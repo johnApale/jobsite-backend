@@ -1,0 +1,60 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Jobsite.Api/Jobsite.Api.csproj" />
+    <Project Path="src/Jobsite.SharedKernel/Jobsite.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Admin/">
+    <Project Path="src/Modules/Admin/Jobsite.Modules.Admin.Api/Jobsite.Modules.Admin.Api.csproj" />
+    <Project Path="src/Modules/Admin/Jobsite.Modules.Admin.Application/Jobsite.Modules.Admin.Application.csproj" />
+    <Project Path="src/Modules/Admin/Jobsite.Modules.Admin.Domain/Jobsite.Modules.Admin.Domain.csproj" />
+    <Project Path="src/Modules/Admin/Jobsite.Modules.Admin.Infrastructure/Jobsite.Modules.Admin.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Auth/">
+    <Project Path="src/Modules/Auth/Jobsite.Modules.Auth.Api/Jobsite.Modules.Auth.Api.csproj" />
+    <Project Path="src/Modules/Auth/Jobsite.Modules.Auth.Application/Jobsite.Modules.Auth.Application.csproj" />
+    <Project Path="src/Modules/Auth/Jobsite.Modules.Auth.Domain/Jobsite.Modules.Auth.Domain.csproj" />
+    <Project Path="src/Modules/Auth/Jobsite.Modules.Auth.Infrastructure/Jobsite.Modules.Auth.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/HRWorkflows/">
+    <Project Path="src/Modules/HRWorkflows/Jobsite.Modules.HRWorkflows.Api/Jobsite.Modules.HRWorkflows.Api.csproj" />
+    <Project Path="src/Modules/HRWorkflows/Jobsite.Modules.HRWorkflows.Application/Jobsite.Modules.HRWorkflows.Application.csproj" />
+    <Project Path="src/Modules/HRWorkflows/Jobsite.Modules.HRWorkflows.Domain/Jobsite.Modules.HRWorkflows.Domain.csproj" />
+    <Project Path="src/Modules/HRWorkflows/Jobsite.Modules.HRWorkflows.Infrastructure/Jobsite.Modules.HRWorkflows.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Matching/">
+    <Project Path="src/Modules/Matching/Jobsite.Modules.Matching.Api/Jobsite.Modules.Matching.Api.csproj" />
+    <Project Path="src/Modules/Matching/Jobsite.Modules.Matching.Application/Jobsite.Modules.Matching.Application.csproj" />
+    <Project Path="src/Modules/Matching/Jobsite.Modules.Matching.Domain/Jobsite.Modules.Matching.Domain.csproj" />
+    <Project Path="src/Modules/Matching/Jobsite.Modules.Matching.Infrastructure/Jobsite.Modules.Matching.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Profiles/">
+    <Project Path="src/Modules/Profiles/Jobsite.Modules.Profiles.Api/Jobsite.Modules.Profiles.Api.csproj" />
+    <Project Path="src/Modules/Profiles/Jobsite.Modules.Profiles.Application/Jobsite.Modules.Profiles.Application.csproj" />
+    <Project Path="src/Modules/Profiles/Jobsite.Modules.Profiles.Domain/Jobsite.Modules.Profiles.Domain.csproj" />
+    <Project Path="src/Modules/Profiles/Jobsite.Modules.Profiles.Infrastructure/Jobsite.Modules.Profiles.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Recruitment/">
+    <Project Path="src/Modules/Recruitment/Jobsite.Modules.Recruitment.Api/Jobsite.Modules.Recruitment.Api.csproj" />
+    <Project Path="src/Modules/Recruitment/Jobsite.Modules.Recruitment.Application/Jobsite.Modules.Recruitment.Application.csproj" />
+    <Project Path="src/Modules/Recruitment/Jobsite.Modules.Recruitment.Domain/Jobsite.Modules.Recruitment.Domain.csproj" />
+    <Project Path="src/Modules/Recruitment/Jobsite.Modules.Recruitment.Infrastructure/Jobsite.Modules.Recruitment.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Screening/">
+    <Project Path="src/Modules/Screening/Jobsite.Modules.Screening.Api/Jobsite.Modules.Screening.Api.csproj" />
+    <Project Path="src/Modules/Screening/Jobsite.Modules.Screening.Application/Jobsite.Modules.Screening.Application.csproj" />
+    <Project Path="src/Modules/Screening/Jobsite.Modules.Screening.Domain/Jobsite.Modules.Screening.Domain.csproj" />
+    <Project Path="src/Modules/Screening/Jobsite.Modules.Screening.Infrastructure/Jobsite.Modules.Screening.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Tenancy/">
+    <Project Path="src/Modules/Tenancy/Jobsite.Modules.Tenancy.Api/Jobsite.Modules.Tenancy.Api.csproj" />
+    <Project Path="src/Modules/Tenancy/Jobsite.Modules.Tenancy.Application/Jobsite.Modules.Tenancy.Application.csproj" />
+    <Project Path="src/Modules/Tenancy/Jobsite.Modules.Tenancy.Domain/Jobsite.Modules.Tenancy.Domain.csproj" />
+    <Project Path="src/Modules/Tenancy/Jobsite.Modules.Tenancy.Infrastructure/Jobsite.Modules.Tenancy.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Jobsite.ArchitectureTests/Jobsite.ArchitectureTests.csproj" />
+    <Project Path="tests/Jobsite.IntegrationTests/Jobsite.IntegrationTests.csproj" />
+    <Project Path="tests/Jobsite.UnitTests/Jobsite.UnitTests.csproj" />
+  </Folder>
+</Solution>

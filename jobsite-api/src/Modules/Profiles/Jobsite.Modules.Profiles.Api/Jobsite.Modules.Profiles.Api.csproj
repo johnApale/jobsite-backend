@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jobsite.Modules.Profiles.Application\Jobsite.Modules.Profiles.Application.csproj" />
+    <ProjectReference Include="..\Jobsite.Modules.Profiles.Infrastructure\Jobsite.Modules.Profiles.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

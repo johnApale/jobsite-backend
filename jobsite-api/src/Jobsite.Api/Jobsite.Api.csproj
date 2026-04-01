@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jobsite.SharedKernel\Jobsite.SharedKernel.csproj" />
+    <ProjectReference Include="..\Modules\Tenancy\Jobsite.Modules.Tenancy.Api\Jobsite.Modules.Tenancy.Api.csproj" />
+    <ProjectReference Include="..\Modules\Auth\Jobsite.Modules.Auth.Api\Jobsite.Modules.Auth.Api.csproj" />
+    <ProjectReference Include="..\Modules\Admin\Jobsite.Modules.Admin.Api\Jobsite.Modules.Admin.Api.csproj" />
+    <ProjectReference Include="..\Modules\Profiles\Jobsite.Modules.Profiles.Api\Jobsite.Modules.Profiles.Api.csproj" />
+    <ProjectReference Include="..\Modules\Recruitment\Jobsite.Modules.Recruitment.Api\Jobsite.Modules.Recruitment.Api.csproj" />
+    <ProjectReference Include="..\Modules\Screening\Jobsite.Modules.Screening.Api\Jobsite.Modules.Screening.Api.csproj" />
+    <ProjectReference Include="..\Modules\Matching\Jobsite.Modules.Matching.Api\Jobsite.Modules.Matching.Api.csproj" />
+    <ProjectReference Include="..\Modules\HRWorkflows\Jobsite.Modules.HRWorkflows.Api\Jobsite.Modules.HRWorkflows.Api.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

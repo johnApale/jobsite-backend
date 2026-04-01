@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jobsite.Modules.Auth.Application\Jobsite.Modules.Auth.Application.csproj" />
+    <ProjectReference Include="..\Jobsite.Modules.Auth.Infrastructure\Jobsite.Modules.Auth.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
