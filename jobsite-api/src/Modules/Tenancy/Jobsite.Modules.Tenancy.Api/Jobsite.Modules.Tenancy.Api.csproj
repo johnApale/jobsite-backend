@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Jobsite.Modules.Tenancy.Application\Jobsite.Modules.Tenancy.Application.csproj" />
     <ProjectReference Include="..\Jobsite.Modules.Tenancy.Infrastructure\Jobsite.Modules.Tenancy.Infrastructure.csproj" />
   </ItemGroup>
