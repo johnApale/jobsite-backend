@@ -4,6 +4,19 @@
 
 The API uses **JWT Bearer** authentication with **HS256** (HMAC-SHA256) symmetric signing.
 
+### Auth Endpoints
+
+Tokens are issued and managed via the [Auth Module API](auth.md):
+
+| Endpoint                        | Method | Description                             |
+| ------------------------------- | ------ | --------------------------------------- |
+| `/api/v1/auth/register`         | POST   | Create account, receive tokens          |
+| `/api/v1/auth/login`            | POST   | Email/password login                    |
+| `/api/v1/auth/refresh`          | POST   | Rotate refresh token                    |
+| `/api/v1/auth/oauth/{provider}` | POST   | OAuth login (Google, Apple, Facebook)   |
+| `/api/v1/auth/logout`           | POST   | Revoke refresh token (requires JWT)     |
+| `/api/v1/auth/me`               | GET    | Get current user profile (requires JWT) |
+
 ### Token Format
 
 Tokens contain the following claims:

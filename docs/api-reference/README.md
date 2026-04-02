@@ -59,7 +59,7 @@ All errors follow a canonical envelope. See [Errors](errors.md) for the full sch
 | ------------ | --------------------- | ----------- | ------------------------ |
 | Health       | `/health`, `/ready`   | Implemented | [health.md](health.md)   |
 | Tenancy      | `/api/v1/tenants`     | Implemented | [tenancy.md](tenancy.md) |
-| Auth         | `/api/v1/auth`        | Planned     | —                        |
+| Auth         | `/api/v1/auth`        | Implemented | [auth.md](auth.md)       |
 | Admin        | `/api/v1/admin`       | Planned     | —                        |
 | Profiles     | `/api/v1/profiles`    | Planned     | —                        |
 | Recruitment  | `/api/v1/recruitment` | Planned     | —                        |

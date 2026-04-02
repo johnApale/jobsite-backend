@@ -48,7 +48,7 @@ Configures `JwtBearerDefaults.AuthenticationScheme` with:
 | `IssuerSigningKey`         | `SymmetricSecurityKey` from `AppSettings.JwtSecret` (HS256) |
 | `ClockSkew`                | `TimeSpan.Zero` (strict expiry)                             |
 
-Also registers `services.AddAuthorization()`.
+Also registers `services.AddAuthorizationBuilder().AddAuthModulePolicies()` which configures role-based authorization policies for the Auth module.
 
 ### 4. HttpContextAccessor
 
@@ -64,6 +64,7 @@ Required by `ITenantDbContextFactory` to resolve the tenant connection string fr
 services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssemblyContaining<CatalogDbContext>();
+    cfg.RegisterServicesFromAssemblyContaining<AuthDbContext>();
     cfg.AddOpenBehavior(typeof(LoggingPipelineBehavior<,>));
     cfg.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
 });
@@ -129,7 +130,7 @@ Each module exposes an `Add{Module}Module(IConfiguration)` extension method that
 
 ```csharp
 services.AddTenancyModule(configuration);    // ← implemented
-// services.AddAuthModule(configuration);     // ← skeleton
+services.AddAuthModule(configuration);       // ← implemented
 // services.AddAdminModule(configuration);
 // services.AddProfilesModule(configuration);
 // services.AddRecruitmentModule(configuration);
@@ -151,6 +152,22 @@ services.AddTenancyModule(configuration);    // ← implemented
 | `ITenantCache`       | `MemoryTenantCache` | Singleton | Cache-first tenant lookup (5-min sliding)  |
 | `ITenantProvisioner` | `TenantProvisioner` | Scoped    | CREATE DATABASE + tenant status management |
 | `ITenantService`     | `TenantService`     | Scoped    | Application service for tenant operations  |
+
+#### Auth module registrations
+
+`AddAuthModule` registers:
+
+| Service                                  | Implementation               | Lifetime  | Purpose                                  |
+| ---------------------------------------- | ---------------------------- | --------- | ---------------------------------------- |
+| `ITenantDbContextFactory<AuthDbContext>` | `TenantAuthDbContextFactory` | Scoped    | Per-tenant AuthDbContext creation        |
+| `AuthDbContext`                          | _(via factory)_              | Scoped    | Auth schema database access              |
+| `IUserRepository`                        | `UserRepository`             | Scoped    | User CRUD operations                     |
+| `IRefreshTokenRepository`                | `RefreshTokenRepository`     | Scoped    | Refresh token operations                 |
+| `IUnitOfWork`                            | `AuthUnitOfWork`             | Scoped    | Auth DB transaction boundary             |
+| `IPasswordHasher`                        | `PasswordHasher`             | Singleton | BCrypt password hashing (work factor 12) |
+| `IJwtService`                            | `JwtService`                 | Singleton | JWT generation, refresh token hashing    |
+| `IOAuthProviderValidator`                | `StubOAuthProviderValidator` | Scoped    | OAuth token validation (**stubbed**)     |
+| `IAuthService`                           | `AuthService`                | Scoped    | Authentication application service       |
 
 ## TenantDbContext per-request lifetime
 

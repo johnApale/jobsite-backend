@@ -198,6 +198,7 @@ public interface IEventConsumer<in T> where T : class, IIntegrationEvent
 
 | Event                             | Implements                          | Producer             | Consumer(s)           |
 | --------------------------------- | ----------------------------------- | -------------------- | --------------------- |
+| `UserRegisteredEvent`             | `IDomainEvent`                      | Auth                 | Admin, Profiles       |
 | `ApplicationSubmittedEvent`       | `IDomainEvent`                      | Recruitment          | Screening             |
 | `CvScreeningCompletedEvent`       | `IDomainEvent`                      | Screening            | Matching, Recruitment |
 | `CandidateReadyForInterviewEvent` | `IDomainEvent`, `IIntegrationEvent` | Screening            | AI Interview Service  |
@@ -207,6 +208,15 @@ public interface IEventConsumer<in T> where T : class, IIntegrationEvent
 | `OfferExtendedEvent`              | `IDomainEvent`                      | HR Workflows         | Recruitment           |
 
 ### Event Properties
+
+#### `UserRegisteredEvent`
+
+| Property       | Type       | Description                    |
+| -------------- | ---------- | ------------------------------ |
+| `UserId`       | `Guid`     | The newly registered user's ID |
+| `Email`        | `string`   | The user's email address       |
+| `Role`         | `string`   | The user's assigned role       |
+| `RegisteredAt` | `DateTime` | When registration occurred     |
 
 #### `ApplicationSubmittedEvent`
 
