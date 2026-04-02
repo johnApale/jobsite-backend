@@ -1,7 +1,8 @@
 using System.Reflection;
 using FluentAssertions;
 using Jobsite.Modules.Admin.Domain;
-using Jobsite.Modules.Auth.Domain;
+using Jobsite.Modules.Auth.Domain.Entities;
+using Jobsite.Modules.Auth.Infrastructure.Persistence;
 using Jobsite.Modules.HRWorkflows.Domain;
 using Jobsite.Modules.Matching.Domain;
 using Jobsite.Modules.Profiles.Domain;
@@ -34,7 +35,7 @@ public sealed class ModuleIsolationTests
     private static readonly Dictionary<string, Assembly> DomainAssemblies = new()
     {
         ["Jobsite.Modules.Tenancy"] = typeof(Tenant).Assembly,
-        ["Jobsite.Modules.Auth"] = typeof(Jobsite.Modules.Auth.Domain.Class1).Assembly,
+        ["Jobsite.Modules.Auth"] = typeof(User).Assembly,
         ["Jobsite.Modules.Admin"] = typeof(Jobsite.Modules.Admin.Domain.Class1).Assembly,
         ["Jobsite.Modules.Profiles"] = typeof(Jobsite.Modules.Profiles.Domain.Class1).Assembly,
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Domain.Class1).Assembly,
@@ -46,7 +47,7 @@ public sealed class ModuleIsolationTests
     private static readonly Dictionary<string, Assembly> InfrastructureAssemblies = new()
     {
         ["Jobsite.Modules.Tenancy"] = typeof(CatalogDbContext).Assembly,
-        ["Jobsite.Modules.Auth"] = typeof(Jobsite.Modules.Auth.Infrastructure.Class1).Assembly,
+        ["Jobsite.Modules.Auth"] = typeof(AuthDbContext).Assembly,
         ["Jobsite.Modules.Admin"] = typeof(Jobsite.Modules.Admin.Infrastructure.Class1).Assembly,
         ["Jobsite.Modules.Profiles"] = typeof(Jobsite.Modules.Profiles.Infrastructure.Class1).Assembly,
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Infrastructure.Class1).Assembly,

@@ -1,7 +1,8 @@
 using System.Reflection;
 using FluentAssertions;
 using Jobsite.Modules.Admin.Domain;
-using Jobsite.Modules.Auth.Domain;
+using Jobsite.Modules.Auth.Domain.Entities;
+using Jobsite.Modules.Auth.Infrastructure.Persistence;
 using Jobsite.Modules.HRWorkflows.Domain;
 using Jobsite.Modules.Matching.Domain;
 using Jobsite.Modules.Profiles.Domain;
@@ -24,7 +25,7 @@ public sealed class NamingConventionTests
     private static readonly Assembly[] AllDomainAssemblies =
     [
         typeof(Tenant).Assembly,
-        typeof(Jobsite.Modules.Auth.Domain.Class1).Assembly,
+        typeof(User).Assembly,
         typeof(Jobsite.Modules.Admin.Domain.Class1).Assembly,
         typeof(Jobsite.Modules.Profiles.Domain.Class1).Assembly,
         typeof(Jobsite.Modules.Recruitment.Domain.Class1).Assembly,
@@ -36,7 +37,7 @@ public sealed class NamingConventionTests
     private static readonly Assembly[] AllInfrastructureAssemblies =
     [
         typeof(CatalogDbContext).Assembly,
-        typeof(Jobsite.Modules.Auth.Infrastructure.Class1).Assembly,
+        typeof(AuthDbContext).Assembly,
         typeof(Jobsite.Modules.Admin.Infrastructure.Class1).Assembly,
         typeof(Jobsite.Modules.Profiles.Infrastructure.Class1).Assembly,
         typeof(Jobsite.Modules.Recruitment.Infrastructure.Class1).Assembly,
