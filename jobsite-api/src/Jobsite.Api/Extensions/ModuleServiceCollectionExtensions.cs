@@ -6,6 +6,10 @@ using Jobsite.Api.Configuration;
 using Jobsite.Api.Infrastructure;
 using Jobsite.Modules.Tenancy.Infrastructure;
 using Jobsite.Modules.Tenancy.Infrastructure.Persistence;
+using Jobsite.Modules.Auth.Api;
+using Jobsite.Modules.Auth.Application.Services;
+using Jobsite.Modules.Auth.Infrastructure;
+using Jobsite.Modules.Auth.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using FluentValidation;
@@ -54,7 +58,8 @@ public static class ModuleServiceCollectionExtensions
                 };
             });
 
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddAuthModulePolicies();
 
         // 4. HttpContext accessor (needed by ITenantDbContextFactory for connection string resolution)
         services.AddHttpContextAccessor();
@@ -63,7 +68,7 @@ public static class ModuleServiceCollectionExtensions
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssemblyContaining<CatalogDbContext>();
-            // Add other module assemblies here as they are implemented
+            cfg.RegisterServicesFromAssemblyContaining<AuthDbContext>();
 
             cfg.AddOpenBehavior(typeof(LoggingPipelineBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
@@ -71,6 +76,7 @@ public static class ModuleServiceCollectionExtensions
 
         // 6. FluentValidation validators (assembly scanning)
         services.AddValidatorsFromAssemblyContaining<CatalogDbContext>(includeInternalTypes: true);
+        services.AddValidatorsFromAssemblyContaining<AuthService>(includeInternalTypes: true);
 
         // 7. Domain event dispatcher (bridges SharedKernel → MediatR)
         services.AddScoped<IDomainEventDispatcher, MediatRDomainEventDispatcher>();
@@ -107,7 +113,7 @@ public static class ModuleServiceCollectionExtensions
 
         // 10. Module registrations
         services.AddTenancyModule(configuration);
-        // services.AddAuthModule(configuration);
+        services.AddAuthModule(configuration);
         // services.AddAdminModule(configuration);
         // services.AddProfilesModule(configuration);
         // services.AddRecruitmentModule(configuration);
