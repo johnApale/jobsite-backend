@@ -47,6 +47,16 @@ public sealed class TenantStatusTests
     }
 
     [Fact]
+    public void IsValid_ProvisioningFailed_ReturnsTrue()
+    {
+        // Arrange & Act
+        bool result = TenantStatus.IsValid("ProvisioningFailed");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
     public void IsValid_UnknownStatus_ReturnsFalse()
     {
         // Arrange & Act

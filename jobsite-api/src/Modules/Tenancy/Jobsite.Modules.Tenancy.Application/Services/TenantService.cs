@@ -13,11 +13,16 @@ namespace Jobsite.Modules.Tenancy.Application.Services;
 public sealed class TenantService : ITenantService
 {
     private readonly ITenantRepository _tenantRepository;
+    private readonly ITenantProvisioner _tenantProvisioner;
     private readonly IUnitOfWork _unitOfWork;
 
-    public TenantService(ITenantRepository tenantRepository, IUnitOfWork unitOfWork)
+    public TenantService(
+        ITenantRepository tenantRepository,
+        ITenantProvisioner tenantProvisioner,
+        IUnitOfWork unitOfWork)
     {
         _tenantRepository = tenantRepository;
+        _tenantProvisioner = tenantProvisioner;
         _unitOfWork = unitOfWork;
     }
 
@@ -54,6 +59,9 @@ public sealed class TenantService : ITenantService
 
         _tenantRepository.Add(tenant);
         await _unitOfWork.SaveChangesAsync(ct);
+
+        // Provision the tenant database (CREATE DATABASE, update status to Active)
+        await _tenantProvisioner.ProvisionAsync(tenant.Id, ct);
 
         return MapToResponse(tenant);
     }

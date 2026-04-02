@@ -7,10 +7,11 @@ namespace Jobsite.Modules.Tenancy.Domain.Constants;
 public static class TenantStatus
 {
     public const string Provisioning = "Provisioning";
+    public const string ProvisioningFailed = "ProvisioningFailed";
     public const string Active = "Active";
     public const string Suspended = "Suspended";
     public const string Deactivated = "Deactivated";
 
     public static bool IsValid(string status) =>
-        status is Provisioning or Active or Suspended or Deactivated;
+        status is Provisioning or ProvisioningFailed or Active or Suspended or Deactivated;
 }

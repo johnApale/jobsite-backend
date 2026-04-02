@@ -14,14 +14,16 @@ namespace Jobsite.UnitTests.Tenancy;
 public sealed class TenantServiceTests
 {
     private readonly ITenantRepository _tenantRepository;
+    private readonly ITenantProvisioner _tenantProvisioner;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TenantService _sut;
 
     public TenantServiceTests()
     {
         _tenantRepository = Substitute.For<ITenantRepository>();
+        _tenantProvisioner = Substitute.For<ITenantProvisioner>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
-        _sut = new TenantService(_tenantRepository, _unitOfWork);
+        _sut = new TenantService(_tenantRepository, _tenantProvisioner, _unitOfWork);
     }
 
     [Fact]
@@ -168,5 +170,50 @@ public sealed class TenantServiceTests
 
         // Assert
         result.Branding.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ValidRequest_TriggersProvisioning()
+    {
+        // Arrange
+        RegisterTenantRequest request = TestData.CreateRegisterTenantRequest();
+        _tenantRepository.SubdomainExistsAsync(request.Subdomain, Arg.Any<CancellationToken>())
+            .Returns(false);
+        _tenantRepository.NameExistsAsync(request.Name, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _sut.RegisterAsync(request, CancellationToken.None);
+
+        // Assert
+        await _tenantProvisioner.Received(1).ProvisionAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ValidRequest_ProvisioningCalledAfterSave()
+    {
+        // Arrange
+        RegisterTenantRequest request = TestData.CreateRegisterTenantRequest();
+        _tenantRepository.SubdomainExistsAsync(request.Subdomain, Arg.Any<CancellationToken>())
+            .Returns(false);
+        _tenantRepository.NameExistsAsync(request.Name, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        bool savedBeforeProvisioning = false;
+        _unitOfWork.SaveChangesAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(0))
+            .AndDoes(_ => savedBeforeProvisioning = true);
+        _tenantProvisioner.ProvisionAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(callInfo =>
+            {
+                savedBeforeProvisioning.Should().BeTrue("provisioning should occur after saving the tenant");
+                return Task.CompletedTask;
+            });
+
+        // Act
+        await _sut.RegisterAsync(request, CancellationToken.None);
+
+        // Assert
+        savedBeforeProvisioning.Should().BeTrue();
     }
 }

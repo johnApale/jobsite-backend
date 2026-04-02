@@ -1,6 +1,8 @@
 using Jobsite.Modules.Tenancy.Application.Interfaces;
 using Jobsite.Modules.Tenancy.Application.Services;
+using Jobsite.Modules.Tenancy.Infrastructure.Caching;
 using Jobsite.Modules.Tenancy.Infrastructure.Persistence;
+using Jobsite.Modules.Tenancy.Infrastructure.Provisioning;
 using Jobsite.Modules.Tenancy.Infrastructure.Repositories;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +32,13 @@ public static class TenancyModuleServiceCollectionExtensions
 
         // Unit of Work (scoped to catalog DB)
         services.AddScoped<IUnitOfWork, CatalogUnitOfWork>();
+
+        // Caching
+        services.AddMemoryCache();
+        services.AddSingleton<ITenantCache, MemoryTenantCache>();
+
+        // Provisioning
+        services.AddScoped<ITenantProvisioner, TenantProvisioner>();
 
         // Services
         services.AddScoped<ITenantService, TenantService>();
