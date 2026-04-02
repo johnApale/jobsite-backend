@@ -170,6 +170,30 @@ public interface IIntegrationEvent
 | `OccurredAt`    | Timestamp when the event occurred.       |
 | `CorrelationId` | Correlation ID for distributed tracing.  |
 
+### `IEventPublisher`
+
+Abstraction for publishing integration events to the message broker. Modules depend on this interface from SharedKernel, not on MassTransit directly.
+
+```csharp
+public interface IEventPublisher
+{
+    Task PublishAsync<T>(T @event, CancellationToken ct = default) where T : class, IIntegrationEvent;
+}
+```
+
+Implemented by `MassTransitEventPublisher` in the API project, which delegates to MassTransit's `IPublishEndpoint`. Integration events are serialized to **snake_case JSON** for Python AI Service interop.
+
+### `IEventConsumer<T>`
+
+Abstraction for consuming integration events from the message broker.
+
+```csharp
+public interface IEventConsumer<in T> where T : class, IIntegrationEvent
+{
+    Task HandleAsync(T @event, CancellationToken ct = default);
+}
+```
+
 ### Event Contracts
 
 | Event                             | Implements                          | Producer             | Consumer(s)           |
@@ -273,3 +297,80 @@ The unit of work is responsible for:
 1. Persisting entity changes within a transaction
 2. Dispatching domain events from aggregate roots after save succeeds
 3. Clearing domain events after dispatch
+
+### `TenantDbContext`
+
+Abstract base `DbContext` for per-tenant databases. Each module creates a concrete subclass (e.g., `AuthDbContext : TenantDbContext`).
+
+```csharp
+public abstract class TenantDbContext : DbContext, IUnitOfWork
+{
+    protected TenantDbContext(DbContextOptions options, IDomainEventDispatcher? dispatcher = null);
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+}
+```
+
+| Aspect                | Detail                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| Naming convention     | `UseSnakeCaseNamingConvention()` applied in `OnConfiguring`                                   |
+| Domain event dispatch | `SaveChangesAsync` collects events from `AggregateRoot.DomainEvents`, dispatches, then clears |
+| Dispatcher            | Optional `IDomainEventDispatcher` — when null, saves succeed without event dispatch           |
+| Implements            | `IUnitOfWork`                                                                                 |
+
+### `IDomainEventDispatcher`
+
+Bridge between SharedKernel and MediatR for domain event dispatch. Defined in SharedKernel so `TenantDbContext` doesn't depend on the full MediatR package.
+
+```csharp
+public interface IDomainEventDispatcher
+{
+    Task DispatchAsync(IDomainEvent domainEvent, CancellationToken ct = default);
+}
+```
+
+Implemented by `MediatRDomainEventDispatcher` in the API project, which delegates to `MediatR.IPublisher.Publish()`.
+
+### `ITenantDbContextFactory<TContext>`
+
+Factory for creating per-tenant `DbContext` instances. Resolves connection strings from the HTTP request context or accepts an explicit connection string for non-HTTP scenarios.
+
+```csharp
+public interface ITenantDbContextFactory<TContext> where TContext : TenantDbContext
+{
+    TContext CreateDbContext();                          // HTTP context
+    TContext CreateDbContext(string connectionString);   // MassTransit consumers / background jobs
+}
+```
+
+| Overload                      | Connection string source                                                                       |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `CreateDbContext()`           | `HttpContext.Items["TenantConnectionString"]` via `IHttpContextAccessor`                       |
+| `CreateDbContext(connString)` | Explicit — for MassTransit consumers that resolve tenant via event `TenantId` → catalog lookup |
+
+## Pipeline Behaviors
+
+MediatR pipeline behaviors run as middleware around every request handler. Registered as open generics in DI.
+
+### `LoggingPipelineBehavior<TRequest, TResponse>`
+
+Logs the start and completion of every MediatR request with elapsed time.
+
+```
+[MediatR] Handling GetTenantByIdQuery...
+[MediatR] Handled GetTenantByIdQuery in 12ms
+```
+
+### `ValidationPipelineBehavior<TRequest, TResponse>`
+
+Runs all `IValidator<TRequest>` from DI before the handler executes. On validation failure, throws `AppErrors.Validation` with a `Dictionary<string, string>` of field → error message pairs.
+
+```csharp
+// Throws:
+throw AppErrors.Validation.WithDetails(new Dictionary<string, string>
+{
+    ["subdomain"] = "Subdomain is already taken",
+    ["owner_email"] = "Must be a valid email address"
+});
+```
+
+If no validators are registered for the request type, the behavior passes through to the handler.

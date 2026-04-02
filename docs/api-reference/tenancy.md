@@ -155,11 +155,32 @@ Note: `provisioned_at`, `deactivated_at`, and `branding` are null (omitted from 
 
 ## Tenant Status
 
-| Status         | Description                                      |
-| -------------- | ------------------------------------------------ |
-| `Provisioning` | Tenant registered, database being created        |
-| `Active`       | Tenant fully operational                         |
-| `Suspended`    | Temporarily disabled (billing, policy violation) |
-| `Deactivated`  | Permanently disabled                             |
+| Status               | Description                                      |
+| -------------------- | ------------------------------------------------ |
+| `Provisioning`       | Tenant registered, database being created        |
+| `Active`             | Tenant fully operational                         |
+| `Suspended`          | Temporarily disabled (billing, policy violation) |
+| `Deactivated`        | Permanently disabled                             |
+| `ProvisioningFailed` | Database creation failed (see logs for details)  |
 
 Status values use `PascalCase` to match the database CHECK constraint.
+
+## Provisioning Flow
+
+When a tenant registers via `POST /api/v1/tenants/register`, the following sequence occurs:
+
+```
+POST /register → Tenant created (Provisioning) → SaveChanges → ProvisionAsync → CREATE DATABASE → Active
+                                                                                             ╲
+                                                                                              → ProvisioningFailed (on error)
+```
+
+1. **Registration**: `TenantService.RegisterAsync()` creates a `Tenant` entity with status `Provisioning` and calls `SaveChangesAsync()` on the catalog database.
+2. **Provisioning**: `ITenantProvisioner.ProvisionAsync()` is called after the tenant is persisted:
+   - Builds a database name: `djobsite_tenant_{subdomain}` (sanitized to alphanumeric + underscore).
+   - Executes `CREATE DATABASE "djobsite_tenant_{subdomain}"` via a raw SQL connection to the catalog PostgreSQL server.
+   - Builds a connection string for the new database using the catalog server's host, port, and credentials.
+   - Updates the tenant: `ConnectionString`, `Status = Active`, `ProvisionedAt = DateTime.UtcNow`.
+3. **On failure**: If any step fails, the tenant's status is set to `ProvisioningFailed` and the error is logged. The tenant middleware will reject requests to `ProvisioningFailed` tenants with a 403.
+
+Tenants in `Provisioning` or `ProvisioningFailed` status cannot be accessed via subdomain — the `TenantResolutionMiddleware` only allows `Active` tenants through.

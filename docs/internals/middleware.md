@@ -103,16 +103,29 @@ Resolves the current tenant **before** authentication so the tenant's database c
 ### Resolution flow
 
 ```
-Host header → extract subdomain → look up tenant → validate status → store in HttpContext
+Host header → extract subdomain → check cache → look up tenant in DB → cache result → validate status → store in HttpContext
 ```
 
 1. **Extract subdomain** from `Host` header (e.g. `acme.djobsite.com` → `acme`).
 2. **Skip** if the route is a non-tenant route (see bypass list below).
-3. **Look up** the tenant by subdomain via `ITenantRepository.GetBySubdomainAsync()`.
-4. **Validate** the tenant's status is `Active`. Reject `Suspended` / `Deactivated` tenants with 403.
-5. **Store** in `HttpContext.Items`:
+3. **Check cache** via `ITenantCache.GetBySubdomainAsync()` for a cached tenant.
+4. **On cache miss**, look up the tenant by subdomain via `ITenantRepository.GetBySubdomainAsync()`, then populate the cache via `ITenantCache.SetAsync()`.
+5. **Validate** the tenant's status is `Active`. Reject `Suspended` / `Deactivated` / `Provisioning` / `ProvisioningFailed` tenants with 403.
+6. **Store** in `HttpContext.Items`:
    - `"Tenant"` → the `Tenant` entity
    - `"TenantConnectionString"` → the tenant's database connection string
+
+### Tenant caching
+
+The middleware uses `ITenantCache` (injected per-request from DI) to avoid hitting the database on every request. The default `MemoryTenantCache` implementation uses `IMemoryCache` with a 5-minute sliding expiration.
+
+| Aspect             | Detail                                                                   |
+| ------------------ | ------------------------------------------------------------------------ |
+| Cache key          | `tenant:subdomain:{subdomain}`                                           |
+| Expiration         | 5-minute sliding window                                                  |
+| Implementation     | `MemoryTenantCache` (singleton via `IMemoryCache`)                       |
+| Cache invalidation | `ITenantCache.InvalidateAsync(subdomain)`                                |
+| Upgrade path       | Swap to Redis-backed implementation when `Redis.ConnectionString` is set |
 
 ### Bypass routes
 
