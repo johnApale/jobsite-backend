@@ -1,3 +1,6 @@
+using Jobsite.Modules.Auth.Application.DTOs;
+using Jobsite.Modules.Auth.Domain.Constants;
+using Jobsite.Modules.Auth.Domain.Entities;
 using Jobsite.Modules.Tenancy.Application.DTOs;
 using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
@@ -48,5 +51,62 @@ public static class TestData
         Subdomain = subdomain ?? "acme",
         OwnerName = "John Doe",
         OwnerEmail = "john@acme.com"
+    };
+
+    // ── Auth Module ──────────────────────────────────────────────────────
+
+    public static User CreateUser(
+        string? email = null,
+        string? passwordHash = null,
+        string? role = null,
+        string? status = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        Email = email ?? "test@example.com",
+        PasswordHash = passwordHash ?? "$2a$12$fakehashfakehashfakehashfakehashfakehashfakehashfakeh",
+        EmailVerified = false,
+        Role = role ?? UserRole.Applicant,
+        Status = status ?? UserStatus.Active,
+        FirstName = "Test",
+        LastName = "User",
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static RefreshToken CreateRefreshToken(
+        Guid? userId = null,
+        string? tokenHash = null,
+        Guid? familyId = null,
+        bool isRevoked = false,
+        DateTime? expiresAt = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        UserId = userId ?? Guid.NewGuid(),
+        TokenHash = tokenHash ?? "test-token-hash",
+        FamilyId = familyId ?? Guid.NewGuid(),
+        IsRevoked = isRevoked,
+        ExpiresAt = expiresAt ?? DateTime.UtcNow.AddDays(30),
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static RegisterRequest CreateRegisterRequest(
+        string? email = null,
+        string? password = null,
+        string? role = null) => new()
+    {
+        Email = email ?? "new@example.com",
+        Password = password ?? "Password123!",
+        FirstName = "New",
+        LastName = "User",
+        Role = role
+    };
+
+    public static LoginRequest CreateLoginRequest(
+        string? email = null,
+        string? password = null) => new()
+    {
+        Email = email ?? "test@example.com",
+        Password = password ?? "Password123!"
     };
 }
