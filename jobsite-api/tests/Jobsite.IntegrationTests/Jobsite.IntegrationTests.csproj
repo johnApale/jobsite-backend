@@ -30,6 +30,9 @@
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Domain\Jobsite.Modules.Tenancy.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Application\Jobsite.Modules.Tenancy.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Infrastructure\Jobsite.Modules.Tenancy.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Domain\Jobsite.Modules.Auth.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Application\Jobsite.Modules.Auth.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Infrastructure\Jobsite.Modules.Auth.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
