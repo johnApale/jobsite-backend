@@ -4,12 +4,12 @@
 
 ## Test Summary
 
-| Project                   | Tests  | Status              |
-| ------------------------- | ------ | ------------------- |
-| Jobsite.UnitTests         | 33     | ✅ All passing      |
-| Jobsite.ArchitectureTests | 10     | ✅ All passing      |
-| Jobsite.IntegrationTests  | 1      | ⬜ Placeholder only |
-| **Total**                 | **44** |                     |
+| Project                   | Tests  | Status         |
+| ------------------------- | ------ | -------------- |
+| Jobsite.UnitTests         | 33     | ✅ All passing |
+| Jobsite.ArchitectureTests | 10     | ✅ All passing |
+| Jobsite.IntegrationTests  | 12     | ✅ All passing |
+| **Total**                 | **55** |                |
 
 ---
 
@@ -176,9 +176,46 @@ Enforces that modules do not cross-reference each other — modules communicate 
 
 ---
 
-## Test Data Factory (`TestData.cs`)
+## Integration Tests (`Jobsite.IntegrationTests`)
 
-Centralized factory methods for test object creation. Avoids inline object construction per `docs/conventions/TESTING_STANDARDS.md`.
+**Infrastructure:** Real PostgreSQL 16 via Testcontainers. EF Core migrations applied to the container. Data isolation via `TRUNCATE CASCADE` between tests.
+
+### Fixture
+
+- `CatalogIntegrationFixture` — spins up a `postgres:16-alpine` container, creates `CatalogDbContext`, runs migrations
+- `CatalogIntegrationCollection` — xUnit `[Collection("Catalog")]` for shared container across test classes
+- `IntegrationTestData` — factory with unique-per-test names/subdomains to avoid collisions
+
+### `TenantRepositoryTests` (12 tests)
+
+Tests `TenantRepository` against a real PostgreSQL database. Validates that EF Core configurations, snake_case column mapping, CHECK constraints, and unique indexes work correctly end-to-end.
+
+| Test                                                           | What It Verifies                                                                      | Expected Outcome                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `Add_ValidTenant_PersistsToDatabase`                           | `Add()` + `SaveChangesAsync()` inserts a row with DB-assigned UUID and timestamps     | Re-queried tenant has non-empty `Id`, `CreatedAt`/`UpdatedAt` close to now |
+| `GetBySubdomainAsync_ExistingTenant_ReturnsTenantWithBranding` | Subdomain lookup eager-loads the branding navigation property                         | Tenant returned with non-null `Branding`, correct `PrimaryColor`           |
+| `GetBySubdomainAsync_NonExistent_ReturnsNull`                  | Missing subdomain returns null, not an exception                                      | Returns `null`                                                             |
+| `GetByIdAsync_ExistingTenant_ReturnsTenant`                    | ID-based lookup returns the correct tenant                                            | Name matches                                                               |
+| `GetByIdAsync_NonExistentId_ReturnsNull`                       | Random GUID returns null                                                              | Returns `null`                                                             |
+| `SubdomainExistsAsync_ExistingSubdomain_ReturnsTrue`           | Existence check for a persisted subdomain                                             | Returns `true`                                                             |
+| `SubdomainExistsAsync_NonExistent_ReturnsFalse`                | Existence check for a missing subdomain                                               | Returns `false`                                                            |
+| `NameExistsAsync_ExistingName_ReturnsTrue`                     | Existence check for a persisted company name                                          | Returns `true`                                                             |
+| `NameExistsAsync_NonExistent_ReturnsFalse`                     | Existence check for a missing company name                                            | Returns `false`                                                            |
+| `Add_DuplicateSubdomain_ThrowsDbUpdateException`               | Unique index `ix_tenants_subdomain` rejects duplicate subdomains                      | Throws `DbUpdateException`                                                 |
+| `Add_DuplicateName_ThrowsDbUpdateException`                    | Unique index `ix_tenants_name` rejects duplicate company names                        | Throws `DbUpdateException`                                                 |
+| `Add_InvalidStatus_ThrowsDbUpdateException`                    | CHECK constraint `chk_tenants_status` rejects invalid status values (e.g., "Deleted") | Throws `DbUpdateException`                                                 |
+
+**Why:** Unit tests with mocked repositories can't catch EF Core configuration bugs — wrong column types, missing indexes, misconfigured relationships, or CHECK constraint mismatches only surface against a real database. These tests prove that the migration, entity configurations, and repository queries actually work against PostgreSQL. The constraint tests (`DuplicateSubdomain`, `DuplicateName`, `InvalidStatus`) are particularly important because they validate that the database enforces invariants the application layer assumes.
+
+**Prerequisite:** Docker must be running. Testcontainers automatically pulls and manages the PostgreSQL container.
+
+---
+
+## Test Data Factories
+
+### `TestData.cs` (Unit Tests)
+
+Centralized factory methods for unit test object creation. Avoids inline object construction per `docs/conventions/TESTING_STANDARDS.md`.
 
 | Method                          | Creates                     | Default Values                                       |
 | ------------------------------- | --------------------------- | ---------------------------------------------------- |
@@ -188,15 +225,23 @@ Centralized factory methods for test object creation. Avoids inline object const
 
 All methods accept optional overrides for customization in specific test scenarios.
 
+### `IntegrationTestData.cs` (Integration Tests)
+
+Factory methods generating unique names/subdomains per test to avoid collisions in the shared database.
+
+| Method             | Creates                 | Default Values                                         |
+| ------------------ | ----------------------- | ------------------------------------------------------ |
+| `CreateTenant()`   | `Tenant` entity         | Unique name/subdomain via `Guid`, Status: Active       |
+| `CreateBranding()` | `TenantBranding` entity | Primary: #1A73E8, Tagline: "Integration test branding" |
+
 ---
 
 ## Coverage Gaps & Next Steps
 
-| Area                   | Gap                                                                                                                     | Priority    |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **Integration Tests**  | No real database tests yet — `IntegrationFixture` with Testcontainers needed for `TenantRepository`, `CatalogDbContext` | High        |
-| **Endpoint Tests**     | No `WebApplicationFactory` tests for `TenantEndpoints` (POST/GET)                                                       | High        |
-| **Middleware Tests**   | `TenantResolutionMiddleware`, `AppErrorMiddleware`, `CorrelationIdMiddleware` untested                                  | Medium      |
-| **Auth Module**        | Not yet implemented — will need JWT issuance, refresh token, replay detection tests                                     | Next module |
-| **Integration Events** | Serialization contract tests for C# ↔ Python boundary (e.g., `ApplicationSubmittedEvent`)                               | Medium      |
-| **SharedKernel**       | `IUnitOfWork` only tested indirectly via `TenantServiceTests` mock verification                                         | Low         |
+| Area                   | Gap                                                                                                   | Priority    |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | ----------- |
+| **Endpoint Tests**     | No `WebApplicationFactory` tests for `TenantEndpoints` (POST/GET) — best added after Auth is wired up | High        |
+| **Middleware Tests**   | `TenantResolutionMiddleware`, `AppErrorMiddleware`, `CorrelationIdMiddleware` untested                | Medium      |
+| **Auth Module**        | Not yet implemented — will need JWT issuance, refresh token, replay detection tests                   | Next module |
+| **Integration Events** | Serialization contract tests for C# ↔ Python boundary (e.g., `ApplicationSubmittedEvent`)             | Medium      |
+| **SharedKernel**       | `IUnitOfWork` only tested indirectly via `TenantServiceTests` mock verification                       | Low         |
