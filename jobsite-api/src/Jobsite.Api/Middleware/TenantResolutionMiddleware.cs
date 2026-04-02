@@ -16,7 +16,7 @@ public sealed class TenantResolutionMiddleware
 
     public TenantResolutionMiddleware(RequestDelegate next) => _next = next;
 
-    public async Task InvokeAsync(HttpContext context, ITenantRepository tenantRepository)
+    public async Task InvokeAsync(HttpContext context, ITenantRepository tenantRepository, ITenantCache tenantCache)
     {
         // Skip tenant resolution for non-tenant routes
         string path = context.Request.Path.Value ?? string.Empty;
@@ -26,23 +26,35 @@ public sealed class TenantResolutionMiddleware
             return;
         }
 
+        string requestId = context.Items["CorrelationId"]?.ToString() ?? context.TraceIdentifier;
+
         string? subdomain = ExtractSubdomain(context.Request.Host.Host);
         if (subdomain is null)
         {
             context.Response.StatusCode = 400;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(
-                """{"code":"INVALID_REQUEST","message":"Unable to resolve tenant from hostname","request_id":""}""");
+                $$"""{"code":"INVALID_REQUEST","message":"Unable to resolve tenant from hostname","request_id":"{{requestId}}"}""");
             return;
         }
 
-        Tenant? tenant = await tenantRepository.GetBySubdomainAsync(subdomain, context.RequestAborted);
+        // Cache-first lookup: check cache before hitting the database
+        Tenant? tenant = await tenantCache.GetBySubdomainAsync(subdomain, context.RequestAborted);
+        if (tenant is null)
+        {
+            tenant = await tenantRepository.GetBySubdomainAsync(subdomain, context.RequestAborted);
+            if (tenant is not null)
+            {
+                await tenantCache.SetAsync(subdomain, tenant, context.RequestAborted);
+            }
+        }
+
         if (tenant is null)
         {
             context.Response.StatusCode = 404;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(
-                """{"code":"TENANT_NOT_FOUND","message":"Tenant not found","request_id":""}""");
+                $$"""{"code":"TENANT_NOT_FOUND","message":"Tenant not found","request_id":"{{requestId}}"}""");
             return;
         }
 
@@ -51,7 +63,7 @@ public sealed class TenantResolutionMiddleware
             context.Response.StatusCode = 403;
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(
-                $$$"""{"code":"FORBIDDEN","message":"Tenant is {{{tenant.Status}}}","request_id":""}""");
+                $$"""{"code":"FORBIDDEN","message":"Tenant is {{tenant.Status}}","request_id":"{{requestId}}"}""");
             return;
         }
 

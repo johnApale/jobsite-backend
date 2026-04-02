@@ -15,10 +15,12 @@ namespace Jobsite.UnitTests.Middleware;
 public sealed class TenantResolutionMiddlewareTests
 {
     private readonly ITenantRepository _tenantRepository;
+    private readonly ITenantCache _tenantCache;
 
     public TenantResolutionMiddlewareTests()
     {
         _tenantRepository = Substitute.For<ITenantRepository>();
+        _tenantCache = Substitute.For<ITenantCache>();
     }
 
     [Fact]
@@ -36,7 +38,7 @@ public sealed class TenantResolutionMiddlewareTests
         });
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         nextCalled.Should().BeTrue();
@@ -58,7 +60,7 @@ public sealed class TenantResolutionMiddlewareTests
         });
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         nextCalled.Should().BeTrue();
@@ -76,7 +78,7 @@ public sealed class TenantResolutionMiddlewareTests
         TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         context.Response.StatusCode.Should().Be(400);
@@ -101,7 +103,7 @@ public sealed class TenantResolutionMiddlewareTests
         TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         context.Response.StatusCode.Should().Be(404);
@@ -127,7 +129,7 @@ public sealed class TenantResolutionMiddlewareTests
         TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         context.Response.StatusCode.Should().Be(403);
@@ -158,7 +160,7 @@ public sealed class TenantResolutionMiddlewareTests
         });
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         nextCalled.Should().BeTrue();
@@ -181,7 +183,7 @@ public sealed class TenantResolutionMiddlewareTests
         TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         context.Items["Tenant"].Should().BeSameAs(activeTenant);
@@ -202,9 +204,106 @@ public sealed class TenantResolutionMiddlewareTests
         });
 
         // Act
-        await middleware.InvokeAsync(context, _tenantRepository);
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
 
         // Assert
         nextCalled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InvokeAsync_TenantInCache_ReturnsCachedWithoutHittingRepository()
+    {
+        // Arrange
+        DefaultHttpContext context = new();
+        context.Request.Host = new HostString("cached.djobsite.com");
+        context.Request.Path = "/api/v1/jobs";
+
+        Tenant cachedTenant = TestData.CreateTenant(subdomain: "cached", status: TenantStatus.Active);
+        _tenantCache.GetBySubdomainAsync("cached", Arg.Any<CancellationToken>())
+            .Returns(cachedTenant);
+
+        TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
+
+        // Act
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
+
+        // Assert
+        context.Items["Tenant"].Should().BeSameAs(cachedTenant);
+        await _tenantRepository.DidNotReceive().GetBySubdomainAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_CacheMiss_QueriesRepositoryAndPopulatesCache()
+    {
+        // Arrange
+        DefaultHttpContext context = new();
+        context.Request.Host = new HostString("fresh.djobsite.com");
+        context.Request.Path = "/api/v1/jobs";
+
+        _tenantCache.GetBySubdomainAsync("fresh", Arg.Any<CancellationToken>())
+            .Returns((Tenant?)null);
+
+        Tenant freshTenant = TestData.CreateTenant(subdomain: "fresh", status: TenantStatus.Active);
+        _tenantRepository.GetBySubdomainAsync("fresh", Arg.Any<CancellationToken>())
+            .Returns(freshTenant);
+
+        TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
+
+        // Act
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
+
+        // Assert
+        context.Items["Tenant"].Should().BeSameAs(freshTenant);
+        await _tenantCache.Received(1).SetAsync("fresh", freshTenant, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_SuspendedTenantFromCache_Returns403()
+    {
+        // Arrange
+        DefaultHttpContext context = new();
+        context.Response.Body = new MemoryStream();
+        context.Request.Host = new HostString("suspended.djobsite.com");
+        context.Request.Path = "/api/v1/jobs";
+
+        Tenant suspendedTenant = TestData.CreateTenant(subdomain: "suspended", status: TenantStatus.Suspended);
+        _tenantCache.GetBySubdomainAsync("suspended", Arg.Any<CancellationToken>())
+            .Returns(suspendedTenant);
+
+        TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
+
+        // Act
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
+
+        // Assert
+        context.Response.StatusCode.Should().Be(403);
+        await _tenantRepository.DidNotReceive().GetBySubdomainAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_ErrorResponse_IncludesCorrelationIdAsRequestId()
+    {
+        // Arrange
+        DefaultHttpContext context = new();
+        context.Response.Body = new MemoryStream();
+        context.Request.Host = new HostString("unknown.djobsite.com");
+        context.Request.Path = "/api/v1/jobs";
+        string correlationId = Guid.NewGuid().ToString();
+        context.Items["CorrelationId"] = correlationId;
+
+        _tenantCache.GetBySubdomainAsync("unknown", Arg.Any<CancellationToken>())
+            .Returns((Tenant?)null);
+        _tenantRepository.GetBySubdomainAsync("unknown", Arg.Any<CancellationToken>())
+            .Returns((Tenant?)null);
+
+        TenantResolutionMiddleware middleware = new(ctx => Task.CompletedTask);
+
+        // Act
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
+
+        // Assert
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        string body = await new StreamReader(context.Response.Body).ReadToEndAsync();
+        body.Should().Contain(correlationId);
     }
 }
