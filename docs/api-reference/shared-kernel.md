@@ -308,6 +308,25 @@ The unit of work is responsible for:
 2. Dispatching domain events from aggregate roots after save succeeds
 3. Clearing domain events after dispatch
 
+#### Keyed service registration
+
+Each module registers its own `IUnitOfWork` implementation using **keyed services** to avoid DI collisions:
+
+```csharp
+// Tenancy module
+services.AddKeyedScoped<IUnitOfWork, CatalogUnitOfWork>("catalog");
+
+// Auth module
+services.AddKeyedScoped<IUnitOfWork, AuthUnitOfWork>("auth");
+```
+
+Services inject the correct unit of work via `[FromKeyedServices]`:
+
+```csharp
+public TenantService([FromKeyedServices("catalog")] IUnitOfWork unitOfWork) { ... }
+public AuthService([FromKeyedServices("auth")] IUnitOfWork unitOfWork) { ... }
+```
+
 ### `TenantDbContext`
 
 Abstract base `DbContext` for per-tenant databases. Each module creates a concrete subclass (e.g., `AuthDbContext : TenantDbContext`).

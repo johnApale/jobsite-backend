@@ -143,15 +143,17 @@ services.AddAuthModule(configuration);       // ← implemented
 
 `AddTenancyModule` registers:
 
-| Service              | Implementation      | Lifetime  | Purpose                                    |
-| -------------------- | ------------------- | --------- | ------------------------------------------ |
-| `CatalogDbContext`   | _(EF Core)_         | Scoped    | Catalog database access                    |
-| `ITenantRepository`  | `TenantRepository`  | Scoped    | Tenant CRUD operations                     |
-| `IUnitOfWork`        | `CatalogUnitOfWork` | Scoped    | Catalog DB transaction boundary            |
-| `IMemoryCache`       | _(framework)_       | Singleton | Backing store for tenant cache             |
-| `ITenantCache`       | `MemoryTenantCache` | Singleton | Cache-first tenant lookup (5-min sliding)  |
-| `ITenantProvisioner` | `TenantProvisioner` | Scoped    | CREATE DATABASE + tenant status management |
-| `ITenantService`     | `TenantService`     | Scoped    | Application service for tenant operations  |
+| Service                          | Implementation      | Lifetime  | Purpose                                    |
+| -------------------------------- | ------------------- | --------- | ------------------------------------------ |
+| `CatalogDbContext`               | _(EF Core)_         | Scoped    | Catalog database access                    |
+| `ITenantRepository`              | `TenantRepository`  | Scoped    | Tenant CRUD operations                     |
+| `IUnitOfWork` (key: `"catalog"`) | `CatalogUnitOfWork` | Scoped    | Catalog DB transaction boundary            |
+| `IMemoryCache`                   | _(framework)_       | Singleton | Backing store for tenant cache             |
+| `ITenantCache`                   | `MemoryTenantCache` | Singleton | Cache-first tenant lookup (5-min sliding)  |
+| `ITenantProvisioner`             | `TenantProvisioner` | Scoped    | CREATE DATABASE + tenant status management |
+| `ITenantService`                 | `TenantService`     | Scoped    | Application service for tenant operations  |
+
+`TenantService` injects `IUnitOfWork` via `[FromKeyedServices("catalog")]` to ensure it gets the catalog-scoped unit of work.
 
 #### Auth module registrations
 
@@ -163,11 +165,13 @@ services.AddAuthModule(configuration);       // ← implemented
 | `AuthDbContext`                          | _(via factory)_              | Scoped    | Auth schema database access              |
 | `IUserRepository`                        | `UserRepository`             | Scoped    | User CRUD operations                     |
 | `IRefreshTokenRepository`                | `RefreshTokenRepository`     | Scoped    | Refresh token operations                 |
-| `IUnitOfWork`                            | `AuthUnitOfWork`             | Scoped    | Auth DB transaction boundary             |
+| `IUnitOfWork` (key: `"auth"`)            | `AuthUnitOfWork`             | Scoped    | Auth DB transaction boundary             |
 | `IPasswordHasher`                        | `PasswordHasher`             | Singleton | BCrypt password hashing (work factor 12) |
 | `IJwtService`                            | `JwtService`                 | Singleton | JWT generation, refresh token hashing    |
 | `IOAuthProviderValidator`                | `StubOAuthProviderValidator` | Scoped    | OAuth token validation (**stubbed**)     |
 | `IAuthService`                           | `AuthService`                | Scoped    | Authentication application service       |
+
+`AuthService` injects `IUnitOfWork` via `[FromKeyedServices("auth")]` to ensure it gets the auth-scoped unit of work.
 
 ## TenantDbContext per-request lifetime
 

@@ -4,12 +4,12 @@
 
 ## Test Summary
 
-| Project                   | Tests   | Status                                               |
-| ------------------------- | ------- | ---------------------------------------------------- |
-| Jobsite.UnitTests         | 140     | ✅ All passing                                       |
-| Jobsite.ArchitectureTests | 25      | ✅ All passing                                       |
-| Jobsite.IntegrationTests  | 12 + 3  | ✅ All passing (3 provisioning tests require Docker) |
-| **Total**                 | **180** |                                                      |
+| Project                   | Tests   | Status                                    |
+| ------------------------- | ------- | ----------------------------------------- |
+| Jobsite.UnitTests         | 140     | ✅ All passing                            |
+| Jobsite.ArchitectureTests | 25      | ✅ All passing                            |
+| Jobsite.IntegrationTests  | 42      | ✅ All passing (all tests require Docker) |
+| **Total**                 | **207** |                                           |
 
 ---
 
@@ -521,6 +521,73 @@ Tests `TenantProvisioner` against a real PostgreSQL container. Validates that te
 
 ---
 
+### Auth Module
+
+#### Fixture
+
+- `AuthIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `AuthDbContext`, runs `InitialAuthSchema` migration. Exposes `ConnectionString` property for direct database access.
+- `AuthIntegrationCollection` — xUnit `[Collection("Auth")]` for shared container across Auth test classes
+
+#### `UserRepositoryTests` (14 tests)
+
+Tests `UserRepository` against a real PostgreSQL database. Validates EF Core configurations, snake_case mapping, CHECK constraints, unique indexes, and query behavior for the `auth.users` table.
+
+| Test                                                                     | What It Verifies                                                                     | Expected Outcome                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `Add_ValidUser_PersistsToDatabase`                                       | `Add()` + `SaveChangesAsync()` inserts a user with DB-assigned UUID and timestamps   | Re-queried user has non-empty `Id`, `CreatedAt`/`UpdatedAt` close to now |
+| `GetByIdAsync_ExistingUser_ReturnsUser`                                  | ID-based lookup returns the correct user                                             | Email matches                                                            |
+| `GetByIdAsync_NonExistentId_ReturnsNull`                                 | Random GUID returns null, not exception                                              | Returns `null`                                                           |
+| `GetByEmailAsync_ExistingEmail_ReturnsUser`                              | Email-based lookup returns the correct user                                          | Email matches                                                            |
+| `GetByEmailAsync_NonExistentEmail_ReturnsNull`                           | Missing email returns null                                                           | Returns `null`                                                           |
+| `GetByEmailForUpdateAsync_ExistingEmail_ReturnsTrackedUser`              | Returns a tracked (not `AsNoTracking`) user for mutation                             | Entity is in change tracker                                              |
+| `EmailExistsAsync_ExistingEmail_ReturnsTrue`                             | Existence check for a persisted email                                                | Returns `true`                                                           |
+| `EmailExistsAsync_NonExistentEmail_ReturnsFalse`                         | Existence check for a missing email                                                  | Returns `false`                                                          |
+| `GetByExternalLoginAsync_ExistingProvider_ReturnsUserWithExternalLogins` | OAuth lookup by provider + subject ID returns user with eager-loaded external logins | User has 1 external login with matching subject ID                       |
+| `GetByExternalLoginAsync_NonExistentProvider_ReturnsNull`                | Missing provider/subject returns null                                                | Returns `null`                                                           |
+| `Add_DuplicateEmail_ThrowsDbUpdateException`                             | Unique index `ix_users_email` rejects duplicate emails                               | Throws `DbUpdateException`                                               |
+| `Add_InvalidRole_ThrowsDbUpdateException`                                | CHECK constraint `chk_users_role` rejects invalid role (e.g., "SuperAdmin")          | Throws `DbUpdateException`                                               |
+| `Add_InvalidStatus_ThrowsDbUpdateException`                              | CHECK constraint `chk_users_status` rejects invalid status (e.g., "Banned")          | Throws `DbUpdateException`                                               |
+| `Add_AllValidRoles_PersistSuccessfully`                                  | All 5 valid roles pass the CHECK constraint                                          | No exception thrown                                                      |
+| `Add_AllValidStatuses_PersistSuccessfully`                               | All 3 valid statuses pass the CHECK constraint                                       | No exception thrown                                                      |
+
+**Why:** Repository integration tests against real PostgreSQL catch EF Core misconfigurations that unit tests with mocked repositories cannot — wrong column types, missing indexes, broken relationships, or CHECK constraint mismatches. The `GetByEmailForUpdateAsync` tracking test ensures mutations won't silently fail due to `AsNoTracking`.
+
+---
+
+#### `RefreshTokenRepositoryTests` (7 tests)
+
+Tests `RefreshTokenRepository` against a real PostgreSQL database. Validates token persistence, hash lookups, family-based revocation logic, unique constraints, and cascade behavior.
+
+| Test                                                         | What It Verifies                                                                           | Expected Outcome                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `Add_ValidToken_PersistsToDatabase`                          | Token persists with correct `UserId`, `TokenHash`, `FamilyId`, and defaults                | Re-queried token exists, `IsRevoked` is false          |
+| `GetByTokenHashAsync_ExistingHash_ReturnsToken`              | Hash-based lookup returns the correct token                                                | `TokenHash` and `UserId` match                         |
+| `GetByTokenHashAsync_NonExistentHash_ReturnsNull`            | Missing hash returns null                                                                  | Returns `null`                                         |
+| `RevokeFamilyAsync_MultipleFamilyTokens_RevokesAllInFamily`  | Family revocation revokes all tokens in the target family but not tokens in other families | Family tokens revoked, other family's tokens untouched |
+| `RevokeFamilyAsync_AlreadyRevokedTokens_SkipsAlreadyRevoked` | Already-revoked tokens are ignored, only active tokens in the family are revoked           | Active token gets revoked                              |
+| `Add_DuplicateTokenHash_ThrowsDbUpdateException`             | Unique index `ix_refresh_tokens_token_hash` rejects duplicate hashes                       | Throws `DbUpdateException`                             |
+| `CascadeDelete_WhenUserDeleted_DeletesRefreshTokens`         | Deleting a user cascade-deletes all their refresh tokens                                   | Token no longer found after user deletion              |
+
+**Why:** The refresh token family revocation is the core of replay detection — if a stolen token is reused, the entire family must be revoked. These tests validate that the SQL `WHERE family_id = @id AND is_revoked = false` query works correctly against real PostgreSQL, and that cascade deletes properly clean up tokens when a user is removed.
+
+---
+
+#### `AuthDbContextTests` (5 tests)
+
+Tests AuthDbContext schema creation, table mapping, default values, and relationship behavior. Validates the `auth` schema exists and EF Core configurations produce correct database structures.
+
+| Test                                                      | What It Verifies                                                                  | Expected Outcome                                         |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `Schema_AuthSchemaExists`                                 | The `auth` PostgreSQL schema is created by the migration                          | Schema `auth` found in `information_schema.schemata`     |
+| `Users_DefaultValues_AppliedByDatabase`                   | `id`, `email_verified`, `created_at`, `updated_at` defaults are applied by the DB | UUID generated, `false` default, timestamps close to now |
+| `Users_ExternalLoginCascade_DeletesLoginWhenUserDeleted`  | Cascade delete removes external logins when user is deleted                       | Login record no longer found                             |
+| `ExternalLogins_UniqueProviderPerUser_EnforcedByDatabase` | Unique index on (provider, subject_id) rejects duplicate OAuth provider links     | Throws `DbUpdateException`                               |
+| `Users_NullablePasswordHash_AllowsOAuthOnlyUsers`         | `password_hash` column is nullable for OAuth-only users (no email/password)       | User persisted with `null` password hash                 |
+
+**Why:** These tests ensure the database schema matches the design spec: auth schema isolation, correct defaults, proper cascading, and nullable `password_hash` for OAuth-only users. The unique provider constraint test validates that a user can't accidentally link the same OAuth account twice.
+
+---
+
 ## Test Data Factories
 
 ### `TestData.cs` (Unit Tests)
@@ -539,20 +606,22 @@ All methods accept optional overrides for customization in specific test scenari
 
 Factory methods generating unique names/subdomains per test to avoid collisions in the shared database.
 
-| Method             | Creates                 | Default Values                                         |
-| ------------------ | ----------------------- | ------------------------------------------------------ |
-| `CreateTenant()`   | `Tenant` entity         | Unique name/subdomain via `Guid`, Status: Active       |
-| `CreateBranding()` | `TenantBranding` entity | Primary: #1A73E8, Tagline: "Integration test branding" |
+| Method                  | Creates                    | Default Values                                           |
+| ----------------------- | -------------------------- | -------------------------------------------------------- |
+| `CreateTenant()`        | `Tenant` entity            | Unique name/subdomain via `Guid`, Status: Active         |
+| `CreateBranding()`      | `TenantBranding` entity    | Primary: #1A73E8, Tagline: "Integration test branding"   |
+| `CreateUser()`          | `User` entity              | Unique email via `Guid`, Role: Applicant, Status: Active |
+| `CreateRefreshToken()`  | `RefreshToken` entity      | Random hash and family, ExpiresAt: 30 days from now      |
+| `CreateExternalLogin()` | `UserExternalLogin` entity | Provider: Google, random subject ID                      |
 
 ---
 
 ## Coverage Gaps & Next Steps
 
-| Area                         | Gap                                                                                                   | Priority    |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ----------- |
-| **Endpoint Tests**           | No `WebApplicationFactory` tests for `TenantEndpoints` (POST/GET) — best added after Auth is wired up | High        |
-| **Auth Module**              | Not yet implemented — will need JWT issuance, refresh token, replay detection tests                   | Next module |
-| **Tenant Isolation Depth**   | No cross-tenant data visibility tests (write via tenant A, query via tenant B → zero results)         | High        |
-| **MassTransit Integration**  | No end-to-end test with Testcontainers RabbitMQ — requires Testcontainers.RabbitMq package            | Medium      |
-| **TenantDbContextFactory**   | Factory not yet implemented — needed before module-level DbContext integration tests                  | Medium      |
-| **RequestLoggingMiddleware** | Not directly tested — logs via Serilog, lower value without log sink assertions                       | Low         |
+| Area                         | Gap                                                                                                  | Priority |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- | -------- |
+| **Endpoint Tests**           | No `WebApplicationFactory` tests for `TenantEndpoints` or `AuthEndpoints` — needs full HTTP pipeline | High     |
+| **Tenant Isolation Depth**   | No cross-tenant data visibility tests (write via tenant A, query via tenant B → zero results)        | High     |
+| **Auth Flow E2E**            | No end-to-end register → login → refresh → logout integration test through HTTP endpoints            | High     |
+| **MassTransit Integration**  | No end-to-end test with Testcontainers RabbitMQ — requires Testcontainers.RabbitMq package           | Medium   |
+| **RequestLoggingMiddleware** | Not directly tested — logs via Serilog, lower value without log sink assertions                      | Low      |
