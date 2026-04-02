@@ -1,6 +1,6 @@
 ﻿namespace Jobsite.Modules.Admin.Application;
 
-public class Class1
+public sealed class Class1
 {
 
 }

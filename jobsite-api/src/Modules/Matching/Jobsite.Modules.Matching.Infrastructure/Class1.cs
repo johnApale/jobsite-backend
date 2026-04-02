@@ -1,6 +1,6 @@
 ﻿namespace Jobsite.Modules.Matching.Infrastructure;
 
-public class Class1
+public sealed class Class1
 {
 
 }

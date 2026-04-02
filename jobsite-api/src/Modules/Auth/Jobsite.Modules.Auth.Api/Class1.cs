@@ -1,6 +1,6 @@
 ﻿namespace Jobsite.Modules.Auth.Api;
 
-public class Class1
+public sealed class Class1
 {
 
 }

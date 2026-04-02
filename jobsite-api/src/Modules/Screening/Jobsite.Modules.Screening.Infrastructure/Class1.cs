@@ -1,6 +1,6 @@
 ﻿namespace Jobsite.Modules.Screening.Infrastructure;
 
-public class Class1
+public sealed class Class1
 {
 
 }

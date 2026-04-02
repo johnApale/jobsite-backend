@@ -1,6 +1,6 @@
 ﻿namespace Jobsite.Modules.HRWorkflows.Infrastructure;
 
-public class Class1
+public sealed class Class1
 {
 
 }
