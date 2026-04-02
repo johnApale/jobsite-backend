@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="FluentAssertions" Version="8.3.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
@@ -25,6 +29,7 @@
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Domain\Jobsite.Modules.Tenancy.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Application\Jobsite.Modules.Tenancy.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Infrastructure\Jobsite.Modules.Tenancy.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Jobsite.Api\Jobsite.Api.csproj" />
   </ItemGroup>
 
 </Project>
