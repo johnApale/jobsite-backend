@@ -30,8 +30,8 @@ public static class TenancyModuleServiceCollectionExtensions
         // Repositories
         services.AddScoped<ITenantRepository, TenantRepository>();
 
-        // Unit of Work (scoped to catalog DB)
-        services.AddScoped<IUnitOfWork, CatalogUnitOfWork>();
+        // Unit of Work (scoped to catalog DB, keyed for disambiguation)
+        services.AddKeyedScoped<IUnitOfWork, CatalogUnitOfWork>("catalog");
 
         // Caching
         services.AddMemoryCache();

@@ -32,8 +32,8 @@ public static class AuthModuleServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
-        // Unit of Work (scoped to Auth tenant DB)
-        services.AddScoped<IUnitOfWork, AuthUnitOfWork>();
+        // Unit of Work (scoped to Auth tenant DB, keyed for disambiguation)
+        services.AddKeyedScoped<IUnitOfWork, AuthUnitOfWork>("auth");
 
         // Security
         services.AddSingleton<IPasswordHasher, PasswordHasher>();

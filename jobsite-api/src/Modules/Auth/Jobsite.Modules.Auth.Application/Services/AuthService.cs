@@ -2,6 +2,7 @@ using Jobsite.Modules.Auth.Application.DTOs;
 using Jobsite.Modules.Auth.Application.Interfaces;
 using Jobsite.Modules.Auth.Domain.Constants;
 using Jobsite.Modules.Auth.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
@@ -26,7 +27,7 @@ public sealed class AuthService : IAuthService
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
         IOAuthProviderValidator oauthValidator,
-        IUnitOfWork unitOfWork)
+        [FromKeyedServices("auth")] IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _refreshTokenRepository = refreshTokenRepository;

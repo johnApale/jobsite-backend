@@ -2,6 +2,7 @@ using Jobsite.Modules.Tenancy.Application.DTOs;
 using Jobsite.Modules.Tenancy.Application.Interfaces;
 using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
+using Microsoft.Extensions.DependencyInjection;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Persistence;
 
@@ -19,7 +20,7 @@ public sealed class TenantService : ITenantService
     public TenantService(
         ITenantRepository tenantRepository,
         ITenantProvisioner tenantProvisioner,
-        IUnitOfWork unitOfWork)
+        [FromKeyedServices("catalog")] IUnitOfWork unitOfWork)
     {
         _tenantRepository = tenantRepository;
         _tenantProvisioner = tenantProvisioner;
