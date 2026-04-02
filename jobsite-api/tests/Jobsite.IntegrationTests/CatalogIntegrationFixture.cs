@@ -13,6 +13,7 @@ public sealed class CatalogIntegrationFixture : IAsyncLifetime
     private PostgreSqlContainer _postgres = null!;
 
     public CatalogDbContext DbContext { get; private set; } = null!;
+    public string ConnectionString { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {
@@ -22,8 +23,10 @@ public sealed class CatalogIntegrationFixture : IAsyncLifetime
 
         await _postgres.StartAsync();
 
+        ConnectionString = _postgres.GetConnectionString();
+
         DbContextOptions<CatalogDbContext> options = new DbContextOptionsBuilder<CatalogDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
+            .UseNpgsql(ConnectionString)
             .UseSnakeCaseNamingConvention()
             .Options;
 
