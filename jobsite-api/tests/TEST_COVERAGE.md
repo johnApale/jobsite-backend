@@ -6,10 +6,10 @@
 
 | Project                   | Tests  | Status         |
 | ------------------------- | ------ | -------------- |
-| Jobsite.UnitTests         | 33     | ✅ All passing |
+| Jobsite.UnitTests         | 56     | ✅ All passing |
 | Jobsite.ArchitectureTests | 10     | ✅ All passing |
 | Jobsite.IntegrationTests  | 12     | ✅ All passing |
-| **Total**                 | **55** |                |
+| **Total**                 | **78** |                |
 
 ---
 
@@ -129,6 +129,75 @@ Tests `TenantService`, the application service for tenant registration and looku
 
 ---
 
+### Middleware
+
+#### `AppErrorMiddlewareTests` (5 tests)
+
+Tests the global exception handler that catches `AppError` exceptions and serializes them into the standard error envelope.
+
+| Test                                                         | What It Verifies                                                      | Expected Outcome                                                             |
+| ------------------------------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `InvokeAsync_AppErrorThrown_ReturnsCorrectStatusAndEnvelope` | `AppError` is caught and mapped to the error envelope JSON            | Status matches `AppError.StatusCode`, body has `code`/`message`/`request_id` |
+| `InvokeAsync_AppErrorWithDetails_IncludesDetailsInEnvelope`  | Validation details dictionary is included in the envelope             | Body contains `details` with field-level errors                              |
+| `InvokeAsync_UnhandledException_Returns500WithSafeMessage`   | Unexpected exceptions produce a generic 500 without leaking internals | Status 500, body has `INTERNAL_ERROR`, no exception message                  |
+| `InvokeAsync_NoException_PassesThrough`                      | Successful requests pass through without modification                 | Next delegate is called, status remains 200                                  |
+| `InvokeAsync_NoCorrelationId_FallsBackToTraceIdentifier`     | When no correlation ID is in Items, falls back to `TraceIdentifier`   | `request_id` in envelope matches `TraceIdentifier`                           |
+
+**Why:** This middleware is the last line of defense for API error responses. If it fails to catch `AppError`, clients receive raw 500 errors with stack traces. If it leaks exception messages for unhandled errors, it creates a security vulnerability (information disclosure).
+
+---
+
+#### `CorrelationIdMiddlewareTests` (4 tests)
+
+Tests correlation ID propagation for distributed tracing across the monolith and AI Interview Service.
+
+| Test                                                 | What It Verifies                                                   | Expected Outcome                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------- |
+| `InvokeAsync_RequestHasCorrelationId_UsesProvidedId` | Existing `X-Correlation-ID` header is preserved and forwarded      | Items["CorrelationId"] matches the provided value |
+| `InvokeAsync_NoCorrelationIdHeader_GeneratesNewGuid` | Missing header triggers GUID generation                            | Items["CorrelationId"] is a valid GUID string     |
+| `InvokeAsync_EchoesCorrelationIdOnResponse`          | Correlation ID is echoed back in the response header               | Response header `X-Correlation-ID` is present     |
+| `InvokeAsync_StoresInHttpContextItems`               | Correlation ID is stored in `HttpContext.Items` for downstream use | Items["CorrelationId"] is not null                |
+
+**Why:** Correlation IDs are essential for tracing requests across the monolith and the AI Interview microservice. If the middleware fails to generate or propagate them, distributed tracing breaks and debugging production issues across services becomes impossible.
+
+---
+
+#### `TenantResolutionMiddlewareTests` (8 tests)
+
+Tests the tenant resolution middleware that extracts the subdomain from the `Host` header, looks up the tenant, and stores it in `HttpContext.Items`. Uses NSubstitute to mock `ITenantRepository`.
+
+| Test                                                   | What It Verifies                                                         | Expected Outcome                                                      |
+| ------------------------------------------------------ | ------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `InvokeAsync_HealthRoute_BypassesTenantResolution`     | `/health` is skipped — no tenant lookup                                  | Next called, repository not invoked                                   |
+| `InvokeAsync_TenantsApiRoute_BypassesTenantResolution` | `/api/v1/tenants/*` is skipped — tenant registration doesn't need tenant | Next called                                                           |
+| `InvokeAsync_OpenApiRoute_BypassesTenantResolution`    | `/openapi/*` is skipped — API docs accessible without tenant             | Next called                                                           |
+| `InvokeAsync_LocalhostWithoutSubdomain_Returns400`     | `localhost` has no subdomain — returns 400 with `INVALID_REQUEST`        | Status 400, body contains `INVALID_REQUEST`                           |
+| `InvokeAsync_ValidSubdomainNotFound_Returns404`        | Subdomain exists but tenant not in DB — returns 404                      | Status 404, body contains `TENANT_NOT_FOUND`                          |
+| `InvokeAsync_SuspendedTenant_Returns403`               | Suspended tenant returns 403 — blocks access                             | Status 403, body contains `FORBIDDEN` and `Suspended`                 |
+| `InvokeAsync_ActiveTenant_StoresInContextAndCallsNext` | Active tenant is stored in Items and pipeline continues                  | Items["Tenant"] set, Items["TenantConnectionString"] set, next called |
+| `InvokeAsync_SubdomainWithPort_ExtractsCorrectly`      | Port numbers are stripped before subdomain extraction                    | Correct tenant resolved despite port in host header                   |
+
+**Why:** Tenant resolution runs on every request (except bypassed routes). If subdomain extraction fails, the wrong tenant's data is served — a catastrophic multi-tenancy violation. The bypass list prevents health checks and API docs from requiring a tenant, which would break monitoring and development. The suspended/403 check enforces billing and compliance controls.
+
+---
+
+#### `IntegrationEventSerializationTests` (6 tests)
+
+Verifies that integration events — which cross the C# → Python boundary via the message broker — serialize to snake_case JSON and round-trip without data loss. The AI Interview Service (Python/FastAPI) deserializes these events using Pydantic, so the JSON contract must remain stable.
+
+| Test                                                        | What It Verifies                                                            | Expected Outcome                                        |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `CandidateReadyForInterviewEvent_SerializesToSnakeCaseJson` | All property names serialize to snake_case (`event_id`, `tenant_id`, etc.)  | JSON contains all expected snake_case keys              |
+| `CandidateReadyForInterviewEvent_RoundTripsWithoutDataLoss` | Serialize → deserialize produces identical property values                  | All fields match original                               |
+| `CandidateReadyForInterviewEvent_NoPascalCaseKeysInOutput`  | PascalCase property names (`EventId`, `TenantId`) do NOT appear in JSON     | No PascalCase keys found in serialized output           |
+| `InterviewCompletedEvent_SerializesToSnakeCaseJson`         | All property names serialize to snake_case including `interview_session_id` | JSON contains all expected snake_case keys              |
+| `InterviewCompletedEvent_RoundTripsWithoutDataLoss`         | Serialize → deserialize preserves `OverallScore` and all GUIDs              | All fields match original                               |
+| `InterviewCompletedEvent_OverallScoreSerializesAsNumber`    | `OverallScore` (int) serializes as a JSON number, not a quoted string       | JSON contains `"overall_score":75` (no quotes on value) |
+
+**Why:** These are the contract tests for the most critical cross-service boundary in the architecture. The .NET monolith publishes `CandidateReadyForInterviewEvent` to RabbitMQ/Azure Service Bus, and the Python AI Interview Service consumes it. If the JSON shape changes (e.g., `eventId` instead of `event_id`), the Python service will silently drop fields or crash. The `NoPascalCaseKeys` test is a safety net against accidentally using the wrong `JsonSerializerOptions`.
+
+---
+
 ## Architecture Tests (`Jobsite.ArchitectureTests`)
 
 Architecture tests enforce structural rules at build time using NetArchTest. They prevent architectural drift as the codebase grows.
@@ -238,10 +307,9 @@ Factory methods generating unique names/subdomains per test to avoid collisions 
 
 ## Coverage Gaps & Next Steps
 
-| Area                   | Gap                                                                                                   | Priority    |
-| ---------------------- | ----------------------------------------------------------------------------------------------------- | ----------- |
-| **Endpoint Tests**     | No `WebApplicationFactory` tests for `TenantEndpoints` (POST/GET) — best added after Auth is wired up | High        |
-| **Middleware Tests**   | `TenantResolutionMiddleware`, `AppErrorMiddleware`, `CorrelationIdMiddleware` untested                | Medium      |
-| **Auth Module**        | Not yet implemented — will need JWT issuance, refresh token, replay detection tests                   | Next module |
-| **Integration Events** | Serialization contract tests for C# ↔ Python boundary (e.g., `ApplicationSubmittedEvent`)             | Medium      |
-| **SharedKernel**       | `IUnitOfWork` only tested indirectly via `TenantServiceTests` mock verification                       | Low         |
+| Area                         | Gap                                                                                                   | Priority    |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------- | ----------- |
+| **Endpoint Tests**           | No `WebApplicationFactory` tests for `TenantEndpoints` (POST/GET) — best added after Auth is wired up | High        |
+| **Auth Module**              | Not yet implemented — will need JWT issuance, refresh token, replay detection tests                   | Next module |
+| **RequestLoggingMiddleware** | Not directly tested — logs via Serilog, lower value without log sink assertions                       | Low         |
+| **SharedKernel**             | `IUnitOfWork` only tested indirectly via `TenantServiceTests` mock verification                       | Low         |
