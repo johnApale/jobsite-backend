@@ -75,11 +75,35 @@ Bound to the `AppSettings` class via `configuration.GetSection("App").Get<AppSet
 | `Password`    | `string` | `"guest"`     | RabbitMQ password     |
 | `VirtualHost` | `string` | `"/"`         | RabbitMQ virtual host |
 
+```json
+{
+  "App": {
+    "MessageBroker": {
+      "Host": "localhost",
+      "Port": 5672,
+      "Username": "guest",
+      "Password": "guest",
+      "VirtualHost": "/"
+    }
+  }
+}
+```
+
 #### `RedisSettings`
 
 | Property           | Type     | Default | Description                                           |
 | ------------------ | -------- | ------- | ----------------------------------------------------- |
 | `ConnectionString` | `string` | `""`    | Redis connection string. Empty = use in-memory cache. |
+
+```json
+{
+  "App": {
+    "Redis": {
+      "ConnectionString": "redis.prod.internal:6380,ssl=true"
+    }
+  }
+}
+```
 
 ## Strongly-typed options class
 
