@@ -1,6 +1,7 @@
 using Jobsite.Api.Endpoints;
 using Jobsite.Api.Extensions;
 using Jobsite.Api.Middleware;
+using Jobsite.Api.OpenApi;
 using Jobsite.Modules.Tenancy.Api;
 using Scalar.AspNetCore;
 using Serilog;
@@ -21,7 +22,35 @@ try
             .WriteTo.Console());
 
     builder.Services.AddJobsiteModules(builder.Configuration);
-    builder.Services.AddOpenApi();
+    builder.Services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+        options.AddOperationTransformer<ErrorSchemaTransformer>();
+        options.AddDocumentTransformer((document, _, _) =>
+        {
+            document.Info = new Microsoft.OpenApi.OpenApiInfo
+            {
+                Title = "D'Jobsite iConnect API",
+                Version = "v1",
+                Description = """
+                    REST API for the D'Jobsite iConnect recruitment platform.
+
+                    **Architecture:** Modular monolith (C#/.NET 10) with a standalone AI Interview microservice (Python/FastAPI).
+
+                    **Authentication:** JWT Bearer (HS256) with tenant-scoped claims.
+
+                    **Multi-tenancy:** Tenant resolved from subdomain in the Host header.
+                    """,
+                Contact = new Microsoft.OpenApi.OpenApiContact
+                {
+                    Name = "D'Jobsite iConnect",
+                    Email = "dev@djobsite.com"
+                }
+            };
+
+            return Task.CompletedTask;
+        });
+    });
 
     WebApplication app = builder.Build();
 

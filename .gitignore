@@ -46,3 +46,7 @@ coverage/
 *.coverage
 htmlcov/
 .pytest_cache/
+
+# Copilot instructions
+.github/instructions/
+.github/copilot-instructions.md
