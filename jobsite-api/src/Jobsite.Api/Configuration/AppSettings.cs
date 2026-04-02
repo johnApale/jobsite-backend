@@ -22,4 +22,39 @@ public sealed class AppSettings
 
     /// <summary>Refresh token lifetime in days.</summary>
     public int RefreshTokenExpirationDays { get; set; } = 30;
+
+    /// <summary>Base URL for the AI Interview microservice.</summary>
+    public string AiServiceUrl { get; set; } = "http://localhost:8000";
+
+    /// <summary>RabbitMQ / Azure Service Bus connection settings.</summary>
+    public MessageBrokerSettings MessageBroker { get; set; } = new();
+
+    /// <summary>Redis connection settings (optional, for distributed caching).</summary>
+    public RedisSettings Redis { get; set; } = new();
+}
+
+/// <summary>RabbitMQ connection settings.</summary>
+public sealed class MessageBrokerSettings
+{
+    /// <summary>RabbitMQ host address.</summary>
+    public string Host { get; set; } = "localhost";
+
+    /// <summary>RabbitMQ AMQP port.</summary>
+    public int Port { get; set; } = 5672;
+
+    /// <summary>RabbitMQ username.</summary>
+    public string Username { get; set; } = "guest";
+
+    /// <summary>RabbitMQ password.</summary>
+    public string Password { get; set; } = "guest";
+
+    /// <summary>RabbitMQ virtual host.</summary>
+    public string VirtualHost { get; set; } = "/";
+}
+
+/// <summary>Redis connection settings for distributed caching.</summary>
+public sealed class RedisSettings
+{
+    /// <summary>Redis connection string. Leave empty to use in-memory cache.</summary>
+    public string ConnectionString { get; set; } = string.Empty;
 }
