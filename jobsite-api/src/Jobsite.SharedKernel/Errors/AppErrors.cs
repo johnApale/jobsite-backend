@@ -27,6 +27,7 @@ public static class AppErrors
     public static AppError JobPostingNotFound => new("JOB_POSTING_NOT_FOUND", 404, "Job posting not found");
     public static AppError ApplicationNotFound => new("APPLICATION_NOT_FOUND", 404, "Application not found");
     public static AppError ProfileNotFound => new("PROFILE_NOT_FOUND", 404, "Profile not found");
+    public static AppError ResumeNotFound => new("RESUME_NOT_FOUND", 404, "Resume not found");
     public static AppError SettingsNotFound => new("SETTINGS_NOT_FOUND", 404, "Company settings not found for this tenant");
 
     // ── 409 Conflict ─────────────────────────────────────────────────────
