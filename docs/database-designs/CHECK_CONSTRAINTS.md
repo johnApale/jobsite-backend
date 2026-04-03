@@ -3,6 +3,7 @@
 Every string enum column across the platform gets a CHECK constraint at the database level. This document is the single reference for all constraints — use it when writing EF Core migrations.
 
 **Enforcement layers:**
+
 1. **Database** — CHECK constraints (this document). Last line of defense. Rejects invalid data on insert/update.
 2. **Application** — C# enums in `SharedKernel`. Validates before hitting the DB. Returns friendly 400 errors.
 3. **API** — `GET /api/lookups/{type}` endpoints. Returns valid values for frontend dropdowns. Reads from the same C# enums.
@@ -100,11 +101,35 @@ ALTER TABLE recruitment.job_postings
 ```sql
 ALTER TABLE recruitment.applications
   ADD CONSTRAINT chk_applications_status
-  CHECK (status IN ('Submitted', 'Screening', 'AiInterview', 'Shortlisted', 'FinalInterview', 'Offered', 'Hired', 'Rejected', 'Withdrawn'));
+  CHECK (status IN ('Submitted', 'Screening', 'Assessment', 'Shortlisted', 'FinalInterview', 'Offered', 'Hired', 'Rejected', 'Withdrawn'));
 
 ALTER TABLE recruitment.applications
   ADD CONSTRAINT chk_applications_rejected_at_stage
-  CHECK (rejected_at_stage IS NULL OR rejected_at_stage IN ('Screening', 'AiInterview', 'Shortlisted', 'FinalInterview', 'Offered'));
+  CHECK (rejected_at_stage IS NULL OR rejected_at_stage IN ('Screening', 'Assessment', 'Shortlisted', 'FinalInterview', 'Offered'));
+```
+
+### job_evaluation_criteria
+
+```sql
+ALTER TABLE recruitment.job_evaluation_criteria
+  ADD CONSTRAINT chk_criteria_category
+  CHECK (category IN ('Skill', 'Experience', 'Certification', 'Education', 'Location', 'Custom'));
+
+ALTER TABLE recruitment.job_evaluation_criteria
+  ADD CONSTRAINT chk_criteria_evaluation_method
+  CHECK (evaluation_method IN ('ExactMatch', 'RangeMatch', 'SemanticSimilarity'));
+```
+
+### job_screening_questions
+
+```sql
+ALTER TABLE recruitment.job_screening_questions
+  ADD CONSTRAINT chk_questions_type
+  CHECK (question_type IN ('FreeText', 'MultipleChoice', 'YesNo'));
+
+ALTER TABLE recruitment.job_screening_questions
+  ADD CONSTRAINT chk_questions_timing
+  CHECK (timing IN ('AtApplication', 'AfterScreening'));
 ```
 
 ---
@@ -125,6 +150,14 @@ ALTER TABLE screening.screening_results
 ALTER TABLE screening.screening_results
   ADD CONSTRAINT chk_screening_outcome
   CHECK (outcome IS NULL OR outcome IN ('AutoAdvanced', 'AutoRejected', 'ManualReview', 'ManuallyAdvanced', 'ManuallyRejected'));
+```
+
+### screening_question_responses
+
+```sql
+ALTER TABLE screening.screening_question_responses
+  ADD CONSTRAINT chk_question_response_result
+  CHECK (score_result IS NULL OR score_result IN ('MeetsRequirement', 'PartialMatch', 'Missing'));
 ```
 
 ---
@@ -201,62 +234,68 @@ ALTER TABLE hr_workflows.job_offers
 
 ---
 
-## AI Interview Database (`ai_interview` schema)
+## AI Service Database (`ai_service` schema)
 
-### interview_sessions
-
-```sql
-ALTER TABLE ai_interview.interview_sessions
-  ADD CONSTRAINT chk_sessions_status
-  CHECK (status IN ('Pending', 'QuestionGeneration', 'InProgress', 'Processing', 'Completed', 'Expired', 'Failed'));
-```
-
-### interview_questions
-
-```sql
-ALTER TABLE ai_interview.interview_questions
-  ADD CONSTRAINT chk_questions_category
-  CHECK (category IN ('Technical', 'Behavioral', 'Situational', 'Experience', 'Communication'));
-
-ALTER TABLE ai_interview.interview_questions
-  ADD CONSTRAINT chk_questions_difficulty
-  CHECK (difficulty IN ('Easy', 'Medium', 'Hard'));
-```
-
-### interview_responses
-
-```sql
-ALTER TABLE ai_interview.interview_responses
-  ADD CONSTRAINT chk_responses_type
-  CHECK (response_type IN ('Text', 'Voice', 'Video', 'Skipped', 'TimedOut'));
-
-ALTER TABLE ai_interview.interview_responses
-  ADD CONSTRAINT chk_responses_media_type
-  CHECK (media_type IS NULL OR media_type IN ('Audio', 'Video'));
-
-ALTER TABLE ai_interview.interview_responses
-  ADD CONSTRAINT chk_responses_transcription_status
-  CHECK (transcription_status IS NULL OR transcription_status IN ('Pending', 'Completed', 'Failed'));
-```
-
-### interview_evaluations
-
-```sql
-ALTER TABLE ai_interview.interview_evaluations
-  ADD CONSTRAINT chk_evaluations_recommendation
-  CHECK (recommendation IN ('StrongAdvance', 'Advance', 'Borderline', 'DoNotAdvance'));
-```
+> **Note:** The AI Service uses a standalone database with tenant ID filtering, not the tenant database. Active tables are `ai_api_logs` and `parsed_resume_cache`. The AI Interview tables below are deferred — constraints will be added when those tables are created.
 
 ### ai_api_logs
 
 ```sql
-ALTER TABLE ai_interview.ai_api_logs
+ALTER TABLE ai_service.ai_api_logs
   ADD CONSTRAINT chk_api_logs_call_type
-  CHECK (call_type IN ('QuestionGeneration', 'ResponseScoring', 'EvaluationGeneration', 'Transcription'));
+  CHECK (call_type IN ('ResumeParsing', 'CriteriaGeneration', 'AssessmentQuestionGeneration', 'ScreeningEvaluation', 'AnswerScoring', 'FeedbackGeneration', 'QuestionGeneration', 'ResponseScoring', 'EvaluationGeneration', 'Transcription'));
 
-ALTER TABLE ai_interview.ai_api_logs
+ALTER TABLE ai_service.ai_api_logs
   ADD CONSTRAINT chk_api_logs_provider
   CHECK (ai_provider IN ('OpenAI', 'Anthropic', 'AzureOpenAI'));
+```
+
+### AI Interview Tables (Deferred)
+
+> **⚠️ DEFERRED** — These constraints will be added when the AI Interview tables are created.
+
+### interview_sessions (deferred)
+
+```sql
+ALTER TABLE ai_service.interview_sessions
+  ADD CONSTRAINT chk_sessions_status
+  CHECK (status IN ('Pending', 'QuestionGeneration', 'InProgress', 'Processing', 'Completed', 'Expired', 'Failed'));
+```
+
+### interview_questions (deferred)
+
+```sql
+ALTER TABLE ai_service.interview_questions
+  ADD CONSTRAINT chk_questions_category
+  CHECK (category IN ('Technical', 'Behavioral', 'Situational', 'Experience', 'Communication'));
+
+ALTER TABLE ai_service.interview_questions
+  ADD CONSTRAINT chk_questions_difficulty
+  CHECK (difficulty IN ('Easy', 'Medium', 'Hard'));
+```
+
+### interview_responses (deferred)
+
+```sql
+ALTER TABLE ai_service.interview_responses
+  ADD CONSTRAINT chk_responses_type
+  CHECK (response_type IN ('Text', 'Voice', 'Video', 'Skipped', 'TimedOut'));
+
+ALTER TABLE ai_service.interview_responses
+  ADD CONSTRAINT chk_responses_media_type
+  CHECK (media_type IS NULL OR media_type IN ('Audio', 'Video'));
+
+ALTER TABLE ai_service.interview_responses
+  ADD CONSTRAINT chk_responses_transcription_status
+  CHECK (transcription_status IS NULL OR transcription_status IN ('Pending', 'Completed', 'Failed'));
+```
+
+### interview_evaluations (deferred)
+
+```sql
+ALTER TABLE ai_service.interview_evaluations
+  ADD CONSTRAINT chk_evaluations_recommendation
+  CHECK (recommendation IN ('StrongAdvance', 'Advance', 'Borderline', 'DoNotAdvance'));
 ```
 
 ---
@@ -282,11 +321,14 @@ ALTER TABLE screening.screening_results
   CHECK (overall_score IS NULL OR (overall_score >= 0 AND overall_score <= 100));
 
 ALTER TABLE screening.screening_results
-  ADD CONSTRAINT chk_screening_skill_score
-  CHECK (skill_match_score IS NULL OR (skill_match_score >= 0 AND skill_match_score <= 100));
+  ADD CONSTRAINT chk_screening_ai_overall_score
+  CHECK (ai_overall_score IS NULL OR (ai_overall_score >= 0 AND ai_overall_score <= 100));
 
--- Same pattern for experience_match_score, resume_quality_score,
--- and all score columns on candidate_matches, interview_evaluations,
+ALTER TABLE screening.screening_results
+  ADD CONSTRAINT chk_screening_assessment_score
+  CHECK (assessment_score IS NULL OR (assessment_score >= 0 AND assessment_score <= 100));
+
+-- Same pattern for all score columns on candidate_matches, interview_evaluations,
 -- response_evaluations, and interview_panelists.rating (1.0-5.0)
 ```
 
