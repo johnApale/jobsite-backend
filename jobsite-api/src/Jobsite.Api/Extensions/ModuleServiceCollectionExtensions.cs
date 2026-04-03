@@ -10,6 +10,9 @@ using Jobsite.Modules.Auth.Api;
 using Jobsite.Modules.Auth.Application.Services;
 using Jobsite.Modules.Auth.Infrastructure;
 using Jobsite.Modules.Auth.Infrastructure.Persistence;
+using Jobsite.Modules.Admin.Application.Services;
+using Jobsite.Modules.Admin.Infrastructure;
+using Jobsite.Modules.Admin.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using FluentValidation;
@@ -69,6 +72,7 @@ public static class ModuleServiceCollectionExtensions
         {
             cfg.RegisterServicesFromAssemblyContaining<CatalogDbContext>();
             cfg.RegisterServicesFromAssemblyContaining<AuthDbContext>();
+            cfg.RegisterServicesFromAssemblyContaining<AdminDbContext>();
 
             cfg.AddOpenBehavior(typeof(LoggingPipelineBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
@@ -77,6 +81,7 @@ public static class ModuleServiceCollectionExtensions
         // 6. FluentValidation validators (assembly scanning)
         services.AddValidatorsFromAssemblyContaining<CatalogDbContext>(includeInternalTypes: true);
         services.AddValidatorsFromAssemblyContaining<AuthService>(includeInternalTypes: true);
+        services.AddValidatorsFromAssemblyContaining<AdminSettingsService>(includeInternalTypes: true);
 
         // 7. Domain event dispatcher (bridges SharedKernel → MediatR)
         services.AddScoped<IDomainEventDispatcher, MediatRDomainEventDispatcher>();
@@ -114,7 +119,7 @@ public static class ModuleServiceCollectionExtensions
         // 10. Module registrations
         services.AddTenancyModule(configuration);
         services.AddAuthModule(configuration);
-        // services.AddAdminModule(configuration);
+        services.AddAdminModule(configuration);
         // services.AddProfilesModule(configuration);
         // services.AddRecruitmentModule(configuration);
         // services.AddScreeningModule(configuration);

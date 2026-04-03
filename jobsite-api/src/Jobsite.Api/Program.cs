@@ -2,6 +2,7 @@ using Jobsite.Api.Endpoints;
 using Jobsite.Api.Extensions;
 using Jobsite.Api.Middleware;
 using Jobsite.Api.OpenApi;
+using Jobsite.Modules.Admin.Api;
 using Jobsite.Modules.Auth.Api;
 using Jobsite.Modules.Tenancy.Api;
 using Scalar.AspNetCore;
@@ -81,6 +82,7 @@ try
     // Module endpoints
     app.MapTenancyEndpoints();
     app.MapAuthEndpoints();
+    app.MapAdminEndpoints();
 
     app.Run();
 }
