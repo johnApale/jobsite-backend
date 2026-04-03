@@ -1,6 +1,7 @@
 using System.Reflection;
 using FluentAssertions;
-using Jobsite.Modules.Admin.Domain;
+using Jobsite.Modules.Admin.Domain.Entities;
+using Jobsite.Modules.Admin.Infrastructure.Persistence;
 using Jobsite.Modules.Auth.Domain.Entities;
 using Jobsite.Modules.Auth.Infrastructure.Persistence;
 using Jobsite.Modules.HRWorkflows.Domain;
@@ -36,7 +37,7 @@ public sealed class ModuleIsolationTests
     {
         ["Jobsite.Modules.Tenancy"] = typeof(Tenant).Assembly,
         ["Jobsite.Modules.Auth"] = typeof(User).Assembly,
-        ["Jobsite.Modules.Admin"] = typeof(Jobsite.Modules.Admin.Domain.Class1).Assembly,
+        ["Jobsite.Modules.Admin"] = typeof(CompanySettings).Assembly,
         ["Jobsite.Modules.Profiles"] = typeof(Jobsite.Modules.Profiles.Domain.Class1).Assembly,
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Domain.Class1).Assembly,
         ["Jobsite.Modules.Screening"] = typeof(Jobsite.Modules.Screening.Domain.Class1).Assembly,
@@ -48,7 +49,7 @@ public sealed class ModuleIsolationTests
     {
         ["Jobsite.Modules.Tenancy"] = typeof(CatalogDbContext).Assembly,
         ["Jobsite.Modules.Auth"] = typeof(AuthDbContext).Assembly,
-        ["Jobsite.Modules.Admin"] = typeof(Jobsite.Modules.Admin.Infrastructure.Class1).Assembly,
+        ["Jobsite.Modules.Admin"] = typeof(AdminDbContext).Assembly,
         ["Jobsite.Modules.Profiles"] = typeof(Jobsite.Modules.Profiles.Infrastructure.Class1).Assembly,
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Infrastructure.Class1).Assembly,
         ["Jobsite.Modules.Screening"] = typeof(Jobsite.Modules.Screening.Infrastructure.Class1).Assembly,
