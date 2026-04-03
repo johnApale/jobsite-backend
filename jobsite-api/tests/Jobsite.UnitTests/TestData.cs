@@ -1,3 +1,7 @@
+using Jobsite.Modules.Admin.Application.DTOs;
+using Jobsite.Modules.Admin.Application.DTOs.Settings;
+using Jobsite.Modules.Admin.Domain.Constants;
+using Jobsite.Modules.Admin.Domain.Entities;
 using Jobsite.Modules.Auth.Application.DTOs;
 using Jobsite.Modules.Auth.Domain.Constants;
 using Jobsite.Modules.Auth.Domain.Entities;
@@ -108,5 +112,58 @@ public static class TestData
     {
         Email = email ?? "test@example.com",
         Password = password ?? "Password123!"
+    };
+
+    // ── Admin Module ─────────────────────────────────────────────────────
+
+    public static CompanySettings CreateCompanySettings(
+        string? defaultTimezone = null,
+        string? defaultCurrency = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        DefaultTimezone = defaultTimezone ?? "UTC",
+        DefaultCurrency = defaultCurrency ?? "USD",
+        AuthSettings = System.Text.Json.JsonSerializer.Serialize(new AuthSettingsDto(), AdminJsonOptions),
+        ProfileSettings = System.Text.Json.JsonSerializer.Serialize(new ProfileSettingsDto(), AdminJsonOptions),
+        ScreeningSettings = System.Text.Json.JsonSerializer.Serialize(new ScreeningSettingsDto(), AdminJsonOptions),
+        MatchingSettings = System.Text.Json.JsonSerializer.Serialize(new MatchingSettingsDto(), AdminJsonOptions),
+        AssessmentSettings = System.Text.Json.JsonSerializer.Serialize(new AssessmentSettingsDto(), AdminJsonOptions),
+        NotificationSettings = System.Text.Json.JsonSerializer.Serialize(new NotificationSettingsDto(), AdminJsonOptions),
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static AuditLog CreateAuditLog(
+        string? action = null,
+        string? entityType = null,
+        Guid? actorId = null,
+        Guid? entityId = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        ActorId = actorId ?? Guid.NewGuid(),
+        ActorEmail = "admin@example.com",
+        ActorRole = "AgencyAdmin",
+        Action = action ?? AuditAction.SettingsUpdated,
+        EntityType = entityType ?? AuditEntityType.CompanySettings,
+        EntityId = entityId,
+        Details = null,
+        IpAddress = "127.0.0.1",
+        UserAgent = "TestAgent/1.0",
+        PerformedAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static UpdateCompanySettingsRequest CreateUpdateSettingsRequest(
+        string? defaultTimezone = null,
+        string? defaultCurrency = null) => new()
+    {
+        DefaultTimezone = defaultTimezone,
+        DefaultCurrency = defaultCurrency
+    };
+
+    private static readonly System.Text.Json.JsonSerializerOptions AdminJsonOptions = new()
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
     };
 }
