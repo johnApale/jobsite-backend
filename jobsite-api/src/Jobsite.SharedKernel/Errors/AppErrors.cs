@@ -30,6 +30,7 @@ public static class AppErrors
     public static AppError SettingsNotFound => new("SETTINGS_NOT_FOUND", 404, "Company settings not found for this tenant");
 
     // ── 409 Conflict ─────────────────────────────────────────────────────
+    public static AppError ProfileAlreadyExists => new("PROFILE_ALREADY_EXISTS", 409, "Profile already exists for this user");
     public static AppError ApplicationAlreadyWithdrawn => new("APPLICATION_ALREADY_WITHDRAWN", 409, "Application has already been withdrawn");
     public static AppError OfferAlreadyAccepted => new("OFFER_ALREADY_ACCEPTED", 409, "Offer has already been accepted");
 
