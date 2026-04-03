@@ -1,6 +1,6 @@
 # D'Jobsite iConnect — Backend Development Plan
 
-> **Last updated:** 2026-04-01
+> **Last updated:** 2026-04-03
 >
 > This document outlines the phased development plan for the D'Jobsite iConnect backend — a modular monolith (C#/.NET 10) with a standalone AI Service microservice (Python/FastAPI).
 
@@ -11,12 +11,14 @@
 ### What's Built
 
 - **Core architecture** — Modular monolith structure, middleware pipeline (CorrelationId, RequestLogging, AppError, TenantResolution), DI composition
-- **SharedKernel** — Base classes (`Entity`, `AggregateRoot`), error handling (`AppError`/`AppErrors`), 7 domain events, result types
+- **SharedKernel** — Base classes (`Entity`, `AggregateRoot`), error handling (`AppError`/`AppErrors`), 8 domain events (including `TenantProvisionedEvent`), result types
 - **Module scaffolds** — All 8 modules have `Domain`, `Application`, `Infrastructure`, `Api` layer projects
 - **Database designs** — All 9 schema design documents completed (Catalog + 8 per-tenant schemas)
 - **Conventions & docs** — API, .NET, database, error envelope, testing, and contribution guides
 - **AI Service scaffold** — FastAPI app with health endpoint, project structure, and dependencies defined
-- **Test projects** — Unit, Integration, and Architecture test projects created (placeholder tests only)
+- **Phase 1 complete** — Auth module fully implemented with JWT, refresh tokens, OAuth, role-based auth
+- **Phase 2 complete** — Admin module implemented: company settings CRUD (JSON merge patch), audit logging with 6 domain event handlers + tenant provisioning handler, cursor-based pagination. Dashboard endpoint deferred until pipeline modules exist
+- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage
 
 ### What Needs Implementation
 

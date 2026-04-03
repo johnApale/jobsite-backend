@@ -29,6 +29,31 @@
 
 ---
 
+## Admin Module
+
+### Deferred
+
+| Item                       | Description                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Dashboard Stats Endpoint   | `GET /api/v1/admin/dashboard` — aggregate pipeline statistics. Deferred until Recruitment/Screening modules exist.  |
+| Platform Admin Controller  | System-wide operations against the Catalog DB (e.g., tenant listing). Not part of per-tenant admin.                 |
+| Tenant Provisioning Wiring | `TenantProvisionedEvent` handler exists but tenant service does not yet publish it. Needs wiring in Tenancy module. |
+
+### Completed
+
+| Item                        | Resolution                                                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Company Settings Entity     | Singleton per-tenant `CompanySettings` entity with 6 JSONB settings columns + timezone/currency.                                                             |
+| Audit Log Entity            | Append-only `AuditLog` entity with denormalized actor data (survives user deletion).                                                                         |
+| EF Core Migration           | `InitialAdminSchema` migration: `admin.company_settings`, `admin.audit_logs` with 4 indexes.                                                                 |
+| Settings CRUD Endpoints     | `GET/PATCH /api/v1/admin/settings` with JSON merge patch semantics and FluentValidation.                                                                     |
+| Audit Log Query Endpoint    | `GET /api/v1/admin/audit-logs` with cursor-based pagination, action/actor/entity/date filters.                                                               |
+| Domain Event Audit Handlers | 6 MediatR handlers for `UserRegistered`, `ApplicationSubmitted`, `CvScreeningCompleted`, `CandidateShortlisted`, `FinalInterviewScheduled`, `OfferExtended`. |
+| Tenant Provisioned Handler  | Seeds default `CompanySettings` row (including 4 default evaluation criteria) when tenant is provisioned.                                                    |
+| IUnitOfWork Disambiguation  | Keyed service: `AddKeyedScoped<IUnitOfWork>("admin")` with `[FromKeyedServices]`.                                                                            |
+
+---
+
 ## AI Interview Capability (Deferred)
 
 > The AI Interview capability is designed but not yet implemented. It will be built within the AI Service when prioritized. The Assessment stage (recruiter-defined screening questions) covers the post-screening evaluation use case in the current design.

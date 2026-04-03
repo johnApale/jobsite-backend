@@ -138,14 +138,16 @@ The hiring pipeline is orchestrated through two types of events:
 
 **Domain events** (MediatR, in-process, synchronous within the monolith):
 
-| Event                          | Publisher    | Consumer        |
-| ------------------------------ | ------------ | --------------- |
-| `ApplicationSubmittedEvent`    | Recruitment  | Screening       |
-| `CvScreeningCompletedEvent`    | Screening    | Matching        |
-| `AssessmentCompletedEvent`     | Screening    | Matching        |
-| `CandidateShortlistedEvent`    | Matching     | HR Workflows    |
-| `FinalInterviewScheduledEvent` | HR Workflows | (notifications) |
-| `OfferExtendedEvent`           | HR Workflows | (notifications) |
+| Event                          | Publisher    | Consumer                    |
+| ------------------------------ | ------------ | --------------------------- |
+| `UserRegisteredEvent`          | Auth         | Profiles, Admin (audit)     |
+| `ApplicationSubmittedEvent`    | Recruitment  | Screening, Admin (audit)    |
+| `CvScreeningCompletedEvent`    | Screening    | Matching, Admin (audit)     |
+| `AssessmentCompletedEvent`     | Screening    | Matching                    |
+| `CandidateShortlistedEvent`    | Matching     | HR Workflows, Admin (audit) |
+| `FinalInterviewScheduledEvent` | HR Workflows | Admin (audit)               |
+| `OfferExtendedEvent`           | HR Workflows | Admin (audit)               |
+| `TenantProvisionedEvent`       | Tenancy      | Admin (seed settings)       |
 
 **Future integration events** (message broker, async, cross-service — deferred until AI Interview is implemented):
 
