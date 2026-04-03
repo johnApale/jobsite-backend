@@ -1,6 +1,6 @@
 # Admin Module — Database Design
 
-Tenant-scoped administration. Manages company settings, tenant configuration, and audit logging. This is the control plane for each tenant — everything from branding and OAuth provider toggles to screening thresholds and AI interview settings lives here.
+Tenant-scoped administration. Manages company settings, tenant configuration, and audit logging. This is the control plane for each tenant — everything from branding and OAuth provider toggles to screening thresholds and assessment settings lives here.
 
 The Admin module also provides dashboard aggregation by reading from other modules' tables, but it doesn't own those tables — it performs read-only queries across schemas. The two tables it owns are `company_settings` and `audit_logs`.
 
@@ -12,23 +12,23 @@ A separate `PlatformAdminController` exists for system-wide operations (managing
 
 ### company_settings
 
-Tenant-scoped configuration. One row per tenant (per database). This is the single source of truth for all tenant-configurable behavior across the platform — profile requirements, screening thresholds, matching weights, AI interview settings, OAuth toggles, and branding overrides.
+Tenant-scoped configuration. One row per tenant (per database). This is the single source of truth for all tenant-configurable behavior across the platform — profile requirements, screening thresholds, matching weights, assessment settings, OAuth toggles, and branding overrides.
 
 Uses a singleton pattern — there's exactly one row in this table per tenant database, created during tenant provisioning with default values. No PK/FK to another table — the tenant boundary is the database itself.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | Singleton — one row per tenant database |
-| default_timezone | varchar(50) | NOT NULL, DEFAULT 'UTC' | IANA timezone (e.g., `America/New_York`). Used for scheduling, deadlines, and display |
-| default_currency | varchar(3) | NOT NULL, DEFAULT 'USD' | ISO 4217 currency code. Default for salary fields on job postings |
-| auth_settings | jsonb | NOT NULL | OAuth provider toggles and auth configuration. See Auth Settings below |
-| profile_settings | jsonb | NOT NULL | Required profile fields, social links, documents. See Profile Settings below |
-| screening_settings | jsonb | NOT NULL | Thresholds, review policy, score weights. See Screening Settings below |
-| matching_settings | jsonb | NOT NULL | Screening/interview weight split. See Matching Settings below |
-| ai_interview_settings | jsonb | NOT NULL | Question count, time limit, question mix. See AI Interview Settings below |
-| notification_settings | jsonb | NOT NULL | Email notification preferences. See Notification Settings below |
-| created_at | timestamp | NOT NULL | |
-| updated_at | timestamp | NOT NULL | Auto-set on modification |
+| Column                | Type        | Constraints             | Description                                                                                               |
+| --------------------- | ----------- | ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| id                    | uuid        | PK                      | Singleton — one row per tenant database                                                                   |
+| default_timezone      | varchar(50) | NOT NULL, DEFAULT 'UTC' | IANA timezone (e.g., `America/New_York`). Used for scheduling, deadlines, and display                     |
+| default_currency      | varchar(3)  | NOT NULL, DEFAULT 'USD' | ISO 4217 currency code. Default for salary fields on job postings                                         |
+| auth_settings         | jsonb       | NOT NULL                | OAuth provider toggles and auth configuration. See Auth Settings below                                    |
+| profile_settings      | jsonb       | NOT NULL                | Required profile fields, social links, documents. See Profile Settings below                              |
+| screening_settings    | jsonb       | NOT NULL                | Thresholds, review policy, AI scoring, transparency, default criteria. See Screening Settings below       |
+| matching_settings     | jsonb       | NOT NULL                | Screening/assessment weight split. See Matching Settings below                                            |
+| assessment_settings   | jsonb       | NOT NULL                | Assessment phase configuration, completion policy, AI question suggestions. See Assessment Settings below |
+| notification_settings | jsonb       | NOT NULL                | Email notification preferences. See Notification Settings below                                           |
+| created_at            | timestamp   | NOT NULL                |                                                                                                           |
+| updated_at            | timestamp   | NOT NULL                | Auto-set on modification                                                                                  |
 
 No indexes needed — this is a single-row table accessed by PK.
 
@@ -40,29 +40,29 @@ Tracks who did what across the tenant. Every significant action — user managem
 
 The audit log is written by listening to domain events from other modules and by direct instrumentation in the Admin module's own operations.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| actor_id | uuid | NOT NULL | The user who performed the action. References `auth.users.id` but stored as a plain UUID (not a FK) to ensure audit entries survive user deletion |
-| actor_email | varchar(254) | NOT NULL | Denormalized email at time of action. If the user's email changes later, the audit record still shows who acted |
-| actor_role | varchar(20) | NOT NULL | Denormalized role at time of action. Same reason — captures the role they had when they did it |
-| action | varchar(100) | NOT NULL | What was done (e.g., `UserInvited`, `UserDeactivated`, `JobPostingPublished`, `SettingsUpdated`, `ScreeningReviewed`, `OfferExtended`, `OfferWithdrawn`) |
-| entity_type | varchar(50) | NOT NULL | What type of entity was affected (e.g., `User`, `JobPosting`, `Application`, `ScreeningResult`, `JobOffer`, `CompanySettings`) |
-| entity_id | uuid | nullable | The ID of the affected entity. NULL for actions that don't target a specific record (e.g., bulk operations) |
-| details | jsonb | nullable | Structured context about the action. Contents vary by action type. See Audit Details below |
-| ip_address | varchar(45) | nullable | Client IP address at time of action. Supports IPv4 and IPv6 |
-| user_agent | varchar(500) | nullable | Client user agent string. Useful for identifying access patterns |
-| performed_at | timestamp | NOT NULL | When the action occurred. Distinct from `created_at` for clarity (though they'll usually be identical) |
-| created_at | timestamp | NOT NULL | |
+| Column       | Type         | Constraints | Description                                                                                                                                              |
+| ------------ | ------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id           | uuid         | PK          |                                                                                                                                                          |
+| actor_id     | uuid         | NOT NULL    | The user who performed the action. References `auth.users.id` but stored as a plain UUID (not a FK) to ensure audit entries survive user deletion        |
+| actor_email  | varchar(254) | NOT NULL    | Denormalized email at time of action. If the user's email changes later, the audit record still shows who acted                                          |
+| actor_role   | varchar(20)  | NOT NULL    | Denormalized role at time of action. Same reason — captures the role they had when they did it                                                           |
+| action       | varchar(100) | NOT NULL    | What was done (e.g., `UserInvited`, `UserDeactivated`, `JobPostingPublished`, `SettingsUpdated`, `ScreeningReviewed`, `OfferExtended`, `OfferWithdrawn`) |
+| entity_type  | varchar(50)  | NOT NULL    | What type of entity was affected (e.g., `User`, `JobPosting`, `Application`, `ScreeningResult`, `JobOffer`, `CompanySettings`)                           |
+| entity_id    | uuid         | nullable    | The ID of the affected entity. NULL for actions that don't target a specific record (e.g., bulk operations)                                              |
+| details      | jsonb        | nullable    | Structured context about the action. Contents vary by action type. See Audit Details below                                                               |
+| ip_address   | varchar(45)  | nullable    | Client IP address at time of action. Supports IPv4 and IPv6                                                                                              |
+| user_agent   | varchar(500) | nullable    | Client user agent string. Useful for identifying access patterns                                                                                         |
+| performed_at | timestamp    | NOT NULL    | When the action occurred. Distinct from `created_at` for clarity (though they'll usually be identical)                                                   |
+| created_at   | timestamp    | NOT NULL    |                                                                                                                                                          |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_audit_logs_actor_id | actor_id | Non-unique | "What did this user do?" — user activity history |
-| ix_audit_logs_action | action | Non-unique | Filter by action type (e.g., "all user deactivations") |
-| ix_audit_logs_entity | entity_type, entity_id | Non-unique | "What happened to this entity?" — entity history |
-| ix_audit_logs_performed_at | performed_at | Non-unique | Time-range queries, recent activity, cleanup |
+| Name                       | Columns                | Type       | Purpose                                                |
+| -------------------------- | ---------------------- | ---------- | ------------------------------------------------------ |
+| ix_audit_logs_actor_id     | actor_id               | Non-unique | "What did this user do?" — user activity history       |
+| ix_audit_logs_action       | action                 | Non-unique | Filter by action type (e.g., "all user deactivations") |
+| ix_audit_logs_entity       | entity_type, entity_id | Non-unique | "What happened to this entity?" — entity history       |
+| ix_audit_logs_performed_at | performed_at           | Non-unique | Time-range queries, recent activity, cleanup           |
 
 ---
 
@@ -120,7 +120,9 @@ Each JSONB settings column on `company_settings` has a defined structure. Defaul
   "required_social_links": ["linkedin"],
   "required_documents": ["CoverLetter"],
   "minimum_skills_count": 3,
-  "resume_required": true
+  "resume_required": true,
+  "ai_parsing_enabled": true,
+  "ai_parsing_provider": "OpenAI"
 }
 ```
 
@@ -134,30 +136,68 @@ Each JSONB settings column on `company_settings` has a defined structure. Defaul
 
 **`resume_required`**: Whether a resume upload is required. Default true.
 
+**`ai_parsing_enabled`**: Whether to use AI-powered structured extraction when a resume is uploaded. When enabled, the Profiles module calls the AI Service to extract skills (with levels and years of experience), experience timeline, education details, and certifications into `ai_parsed_content` on `profiles.resumes`. When disabled (or AI Service unavailable), only the basic parser runs. Default true.
+
+**`ai_parsing_provider`**: Which AI provider to use for resume parsing. Enum: `OpenAI`, `Anthropic`, `AzureOpenAI`. Default `OpenAI`.
+
 ---
 
 ### Screening Settings
 
 ```json
 {
-  "auto_advance_threshold": 70.00,
-  "auto_reject_threshold": 30.00,
+  "auto_advance_threshold": 70.0,
+  "auto_reject_threshold": 30.0,
   "manual_review_policy": "QueueForReview",
-  "score_weights": {
-    "skill_match": 50,
-    "experience_match": 30,
-    "resume_quality": 20
-  }
+  "ai_scoring_enabled": false,
+  "candidate_transparency_enabled": false,
+  "candidate_transparency_level": "Summary",
+  "default_evaluation_criteria": [
+    {
+      "name": "Skills Match",
+      "category": "Skill",
+      "evaluation_method": "SemanticSimilarity",
+      "is_required": true,
+      "weight": 40
+    },
+    {
+      "name": "Experience Level",
+      "category": "Experience",
+      "evaluation_method": "RangeMatch",
+      "is_required": true,
+      "weight": 30
+    },
+    {
+      "name": "Education",
+      "category": "Education",
+      "evaluation_method": "ExactMatch",
+      "is_required": false,
+      "weight": 15
+    },
+    {
+      "name": "Resume Quality",
+      "category": "Custom",
+      "evaluation_method": "SemanticSimilarity",
+      "is_required": false,
+      "weight": 15
+    }
+  ]
 }
 ```
 
-**`auto_advance_threshold`**: Minimum `overall_score` to auto-advance to AI Interview. Default 70.
+**`auto_advance_threshold`**: Minimum deterministic `overall_score` to auto-advance. If the job has `AfterScreening` questions, candidates advance to Assessment; if not, they advance to Shortlisted. Default 70.
 
-**`auto_reject_threshold`**: Maximum `overall_score` to auto-reject. Default 30.
+**`auto_reject_threshold`**: Maximum deterministic `overall_score` to auto-reject. Default 30.
 
 **`manual_review_policy`**: How to handle candidates between thresholds. Enum: `QueueForReview`, `AutoAdvanceAll`, `AutoRejectAll`, `NotifyAndHold`. Default `QueueForReview`.
 
-**`score_weights`**: Relative weights for sub-scores (must sum to 100). Default: skill_match 50, experience_match 30, resume_quality 20.
+**`ai_scoring_enabled`**: Tenant opt-in for AI analysis scoring. When ON (and system-wide gate is also ON), every candidate evaluation produces two scores side-by-side: deterministic (`criteria_score_breakdown`, `overall_score`) and AI analysis (`ai_criteria_score_breakdown`, `ai_overall_score`). Deterministic always drives routing; AI analysis is advisory for recruiter decisions. When OFF, only deterministic scoring runs — no degradation. Default false. See also: `SemanticSimilarity` evaluation method in the deterministic engine does basic keyword/overlap matching as fallback; AI engine does true semantic analysis.
+
+**`candidate_transparency_enabled`**: Whether to generate candidate-facing evaluation feedback. When enabled, the Screening module calls the AI Service to produce a structured summary of the evaluation (criteria met, gaps, strengths) and stores it as `candidate_feedback` on the screening result. Exposed via a candidate-facing endpoint. Default false.
+
+**`candidate_transparency_level`**: How much detail to include in candidate feedback. Enum: `None`, `Summary` (overall fit assessment + key strengths and gaps), `Detailed` (per-criteria breakdown with specific match/miss reasoning). Only applies when `candidate_transparency_enabled` is true. Default `Summary`.
+
+**`default_evaluation_criteria`**: Template criteria copied to new job postings as `job_evaluation_criteria` rows. Recruiter can customize per job. Serves as the tenant-level base until a proper `criteria_templates` table is added. Each entry has the same shape as `recruitment.job_evaluation_criteria` — name, category, evaluation_method, is_required, weight. Configuration JSONB (category-specific shapes) is added per-job by the recruiter.
 
 ---
 
@@ -165,14 +205,14 @@ Each JSONB settings column on `company_settings` has a defined structure. Defaul
 
 ```json
 {
-  "screening_weight": 40,
-  "interview_weight": 60,
+  "screening_weight": 100,
+  "assessment_weight": 0,
   "auto_generate_shortlist": true,
   "shortlist_size": 10
 }
 ```
 
-**`screening_weight` / `interview_weight`**: How much each component contributes to the final compatibility score. Must sum to 100. Default: screening 40, interview 60.
+**`screening_weight` / `assessment_weight`**: How much each component contributes to the final compatibility score. Must sum to 100. Default: screening 100, assessment 0. When assessment questions are scored, tenants can adjust the split to factor assessment answers into the composite score (e.g., screening 60 / assessment 40).
 
 **`auto_generate_shortlist`**: Whether to auto-generate a draft shortlist when enough candidates have full scores. Default true.
 
@@ -180,35 +220,32 @@ Each JSONB settings column on `company_settings` has a defined structure. Defaul
 
 ---
 
-### AI Interview Settings
+### Assessment Settings
 
 ```json
 {
-  "total_questions": 10,
-  "time_limit_minutes": 45,
-  "question_mix": {
-    "Technical": 4,
-    "Behavioral": 2,
-    "Situational": 2,
-    "Experience": 2
-  },
-  "allowed_response_types": ["Text", "Voice", "Video"],
+  "enabled": true,
+  "time_limit_minutes": 60,
   "allow_skip": true,
-  "partial_completion_policy": "ScorePartial"
+  "partial_completion_policy": "ScorePartial",
+  "completion_policy": "AutoAdvance",
+  "ai_assessment_questions_enabled": false
 }
 ```
 
-**`total_questions`**: Number of questions to generate per interview. Default 10.
+**`enabled`**: Whether the Assessment stage is available for jobs. When disabled, no AfterScreening questions can be created — all candidates are routed directly to Shortlisted after screening. Default true.
 
-**`time_limit_minutes`**: Total time the candidate has to complete the interview. Becomes `expires_at` on the session. Default 45.
+**`time_limit_minutes`**: Total time the candidate has to complete all assessment questions. Default 60.
 
-**`question_mix`**: How many questions per category. Must sum to `total_questions`. Tenant can adjust emphasis (e.g., more technical for engineering roles).
+**`allow_skip`**: Whether candidates can skip individual assessment questions. Default true.
 
-**`allowed_response_types`**: Which response types candidates can use. Enum values: `Text`, `Voice`, `Video`. Default all three.
+**`partial_completion_policy`**: What to do if the assessment expires with partial responses. Enum: `ScorePartial` (score whatever was answered), `MarkIncomplete` (don't score, flag for review). Default `ScorePartial`.
 
-**`allow_skip`**: Whether candidates can skip questions. Default true.
+**`completion_policy`**: What happens after assessment answers are scored. Enum: `AutoAdvance` (auto-advance to Shortlisted based on score), `QueueForReview` (recruiter reviews answers before advancing). Mirrors the pattern from Screening's `manual_review_policy`. Default `AutoAdvance`.
 
-**`partial_completion_policy`**: What to do if the interview expires with partial responses. Enum: `ScorePartial` (score whatever was answered), `MarkIncomplete` (don't score, flag for review). Default `ScorePartial`.
+**`ai_assessment_questions_enabled`**: Tenant opt-in for AI-suggested assessment questions. When ON (and system-wide gate is also ON), a "Suggest assessment questions" button is available during job setup. The Recruitment module calls the AI Service to generate AfterScreening questions informed by the job description, title, and saved criteria. Recruiter reviews, edits, and saves suggestions. Same two-layer feature flag pattern as AI scoring. Default false.
+
+> **Note:** When the AI Interview capability is implemented (deferred), additional AI-specific settings will be added here — `question_mix`, `allowed_response_types`, etc.
 
 ---
 
@@ -218,7 +255,7 @@ Each JSONB settings column on `company_settings` has a defined structure. Defaul
 {
   "notify_on_new_application": true,
   "notify_on_screening_complete": true,
-  "notify_on_interview_complete": true,
+  "notify_on_assessment_complete": true,
   "notify_on_manual_review_needed": true,
   "notify_on_offer_response": true,
   "notification_email": null
@@ -236,6 +273,7 @@ These are tenant-level defaults. Per-user notification preferences can be added 
 The `details` JSONB column varies by action type. It captures the context needed to understand what happened without querying the affected entity (which may have changed since the audit entry was written).
 
 **UserInvited:**
+
 ```json
 {
   "invited_email": "jane@example.com",
@@ -244,29 +282,32 @@ The `details` JSONB column varies by action type. It captures the context needed
 ```
 
 **SettingsUpdated:**
+
 ```json
 {
   "field": "screening_settings",
-  "previous": { "auto_advance_threshold": 70.00 },
-  "updated": { "auto_advance_threshold": 65.00 }
+  "previous": { "auto_advance_threshold": 70.0 },
+  "updated": { "auto_advance_threshold": 65.0 }
 }
 ```
 
 **ScreeningReviewed:**
+
 ```json
 {
   "application_id": "uuid",
   "outcome": "ManuallyAdvanced",
-  "overall_score": 55.30,
+  "overall_score": 55.3,
   "review_notes": "Strong culture fit despite borderline score"
 }
 ```
 
 **OfferExtended:**
+
 ```json
 {
   "application_id": "uuid",
-  "salary": 120000.00,
+  "salary": 120000.0,
   "salary_currency": "USD",
   "client_company": "Google"
 }
@@ -281,27 +322,38 @@ The `details` structure is intentionally flexible — new action types can add n
 Actions that should produce audit entries:
 
 **Auth:**
+
 - User invited, activated, deactivated
 - Role changed
 - OAuth provider linked/unlinked
 - Password reset initiated
 
 **Recruitment:**
+
 - Job posting created, published, closed
 - Application submitted (by applicant), withdrawn
 
 **Screening:**
+
 - Manual review decision (advanced or rejected)
 
 **Matching:**
+
 - Shortlist finalized
 
 **HR Workflows:**
+
 - Final interview scheduled, cancelled
 - Interview recommendation recorded
 - Job offer created, extended, accepted, declined, withdrawn
 
+**Assessment:**
+
+- Assessment questions submitted by candidate
+- Assessment answers scored
+
 **Admin:**
+
 - Company settings updated (any field)
 - Any platform admin action (tenant-level)
 
