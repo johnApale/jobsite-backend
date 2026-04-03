@@ -1,4 +1,6 @@
+using FluentValidation;
 using Jobsite.Modules.Profiles.Application.Interfaces;
+using Jobsite.Modules.Profiles.Application.Services;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence.Repositories;
 using Jobsite.SharedKernel.Persistence;
@@ -25,8 +27,14 @@ public static class ProfilesModuleServiceCollectionExtensions
         services.AddScoped<IApplicantProfileRepository, ApplicantProfileRepository>();
         services.AddScoped<IResumeRepository, ResumeRepository>();
 
+        // Services
+        services.AddScoped<IProfileService, ProfileService>();
+
         // Unit of Work (scoped to Profiles tenant DB, keyed for disambiguation)
         services.AddKeyedScoped<IUnitOfWork, ProfilesUnitOfWork>("profiles");
+
+        // Validators
+        services.AddValidatorsFromAssemblyContaining<Application.Validators.CreateProfileRequestValidator>();
 
         return services;
     }
