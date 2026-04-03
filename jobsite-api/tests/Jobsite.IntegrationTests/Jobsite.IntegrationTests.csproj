@@ -33,6 +33,9 @@
     <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Domain\Jobsite.Modules.Auth.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Application\Jobsite.Modules.Auth.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Infrastructure\Jobsite.Modules.Auth.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Domain\Jobsite.Modules.Admin.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Application\Jobsite.Modules.Admin.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Infrastructure\Jobsite.Modules.Admin.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
