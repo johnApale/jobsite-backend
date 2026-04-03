@@ -12,4 +12,11 @@ public sealed class ApplicationSubmittedEvent : IDomainEvent
     public required Guid JobPostingId { get; init; }
     public required Guid ApplicantUserId { get; init; }
     public required DateTime SubmittedAt { get; init; }
+
+    /// <summary>
+    /// Answers to <c>AtApplication</c> screening questions submitted with the application.
+    /// Empty when the job has no <c>AtApplication</c> questions.
+    /// The Screening module persists these into <c>screening.screening_question_responses</c>.
+    /// </summary>
+    public List<QuestionAnswerPayload> QuestionAnswers { get; init; } = [];
 }
