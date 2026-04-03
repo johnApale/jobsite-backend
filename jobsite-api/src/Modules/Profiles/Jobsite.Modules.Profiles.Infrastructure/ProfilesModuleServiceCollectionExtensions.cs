@@ -12,6 +12,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 
+using ResumeOwnershipVerifier = Jobsite.Modules.Profiles.Infrastructure.Persistence.Repositories.ResumeOwnershipVerifier;
+
 namespace Jobsite.Modules.Profiles.Infrastructure;
 
 /// <summary>
@@ -31,6 +33,9 @@ public static class ProfilesModuleServiceCollectionExtensions
         // Repositories
         services.AddScoped<IApplicantProfileRepository, ApplicantProfileRepository>();
         services.AddScoped<IResumeRepository, ResumeRepository>();
+
+        // Cross-module ownership verification (consumed by Recruitment via SharedKernel interface)
+        services.AddScoped<IResumeOwnershipVerifier, ResumeOwnershipVerifier>();
 
         // Services
         services.AddScoped<IProfileService, ProfileService>();

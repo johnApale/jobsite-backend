@@ -6,6 +6,8 @@ using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using TenantSettingsReader = Jobsite.Modules.Admin.Infrastructure.Persistence.TenantSettingsReader;
+
 namespace Jobsite.Modules.Admin.Infrastructure;
 
 /// <summary>
@@ -32,6 +34,9 @@ public static class AdminModuleServiceCollectionExtensions
         // Services
         services.AddScoped<IAdminSettingsService, AdminSettingsService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+
+        // Cross-module settings reader (consumed by other modules via SharedKernel interface)
+        services.AddScoped<ITenantSettingsReader, TenantSettingsReader>();
 
         return services;
     }
