@@ -65,10 +65,10 @@ GET /api/v1/profiles/me
 
 **Errors:**
 
-| Code                | Status | Condition                                   |
-| ------------------- | ------ | ------------------------------------------- |
+| Code                | Status | Condition                                    |
+| ------------------- | ------ | -------------------------------------------- |
 | `PROFILE_NOT_FOUND` | 404    | No profile exists for the authenticated user |
-| `UNAUTHORIZED`      | 401    | Missing or invalid JWT                      |
+| `UNAUTHORIZED`      | 401    | Missing or invalid JWT                       |
 
 ---
 
@@ -108,26 +108,26 @@ POST /api/v1/profiles/me
 
 **Validation Rules:**
 
-| Field          | Rule                                                                        |
-| -------------- | --------------------------------------------------------------------------- |
-| `first_name`   | Required, max 100 characters                                                |
-| `last_name`    | Required, max 100 characters                                                |
-| `phone`        | Optional, max 20 characters                                                 |
-| `city`         | Optional, max 100 characters                                                |
-| `country`      | Optional, max 100 characters                                                |
-| `skills[].name`  | Required when skills provided, max 100 characters                         |
-| `skills[].level` | Optional; must be `Beginner`, `Intermediate`, `Advanced`, or `Expert`     |
-| `skills[].years` | Optional; must be non-negative                                            |
+| Field            | Rule                                                                  |
+| ---------------- | --------------------------------------------------------------------- |
+| `first_name`     | Required, max 100 characters                                          |
+| `last_name`      | Required, max 100 characters                                          |
+| `phone`          | Optional, max 20 characters                                           |
+| `city`           | Optional, max 100 characters                                          |
+| `country`        | Optional, max 100 characters                                          |
+| `skills[].name`  | Required when skills provided, max 100 characters                     |
+| `skills[].level` | Optional; must be `Beginner`, `Intermediate`, `Advanced`, or `Expert` |
+| `skills[].years` | Optional; must be non-negative                                        |
 
 **Response:** `201 Created` — Returns the created profile (same shape as GET).
 
 **Errors:**
 
-| Code                     | Status | Condition                                     |
-| ------------------------ | ------ | --------------------------------------------- |
-| `PROFILE_ALREADY_EXISTS` | 409    | A profile already exists for this user         |
-| `VALIDATION_ERROR`       | 400    | Request body fails validation                  |
-| `UNAUTHORIZED`           | 401    | Missing or invalid JWT                         |
+| Code                     | Status | Condition                              |
+| ------------------------ | ------ | -------------------------------------- |
+| `PROFILE_ALREADY_EXISTS` | 409    | A profile already exists for this user |
+| `VALIDATION_ERROR`       | 400    | Request body fails validation          |
+| `UNAUTHORIZED`           | 401    | Missing or invalid JWT                 |
 
 ---
 
@@ -166,16 +166,16 @@ All fields are optional. Only provided (non-null) fields are updated. Collection
 
 **Validation Rules:**
 
-| Field          | Rule                                                                        |
-| -------------- | --------------------------------------------------------------------------- |
-| `first_name`   | Non-empty when provided, max 100 characters                                 |
-| `last_name`    | Non-empty when provided, max 100 characters                                 |
-| `phone`        | Max 20 characters                                                           |
-| `city`         | Max 100 characters                                                          |
-| `country`      | Max 100 characters                                                          |
-| `skills[].name`  | Required when skills provided, max 100 characters                         |
-| `skills[].level` | Optional; must be `Beginner`, `Intermediate`, `Advanced`, or `Expert`     |
-| `skills[].years` | Optional; must be non-negative                                            |
+| Field            | Rule                                                                  |
+| ---------------- | --------------------------------------------------------------------- |
+| `first_name`     | Non-empty when provided, max 100 characters                           |
+| `last_name`      | Non-empty when provided, max 100 characters                           |
+| `phone`          | Max 20 characters                                                     |
+| `city`           | Max 100 characters                                                    |
+| `country`        | Max 100 characters                                                    |
+| `skills[].name`  | Required when skills provided, max 100 characters                     |
+| `skills[].level` | Optional; must be `Beginner`, `Intermediate`, `Advanced`, or `Expert` |
+| `skills[].years` | Optional; must be non-negative                                        |
 
 **Response:** `200 OK` — Returns the full updated profile (same shape as GET).
 
@@ -205,16 +205,16 @@ POST /api/v1/profiles/me/resumes
 
 **Form Fields:**
 
-| Field  | Type   | Required | Description                       |
-| ------ | ------ | -------- | --------------------------------- |
-| `file` | `file` | Yes      | Resume file (PDF or DOCX format)  |
+| Field  | Type   | Required | Description                      |
+| ------ | ------ | -------- | -------------------------------- |
+| `file` | `file` | Yes      | Resume file (PDF or DOCX format) |
 
 **Constraints:**
 
-| Constraint     | Value                               |
-| -------------- | ----------------------------------- |
-| Max file size  | 25 MB                               |
-| Allowed types  | `.pdf`, `.docx`                     |
+| Constraint    | Value           |
+| ------------- | --------------- |
+| Max file size | 25 MB           |
+| Allowed types | `.pdf`, `.docx` |
 
 **Response:** `201 Created`
 
@@ -311,18 +311,18 @@ GET /api/v1/profiles/me/resumes/{id}
 
 **Path Parameters:**
 
-| Parameter | Type   | Description       |
-| --------- | ------ | ----------------- |
-| `id`      | `uuid` | The resume's ID   |
+| Parameter | Type   | Description     |
+| --------- | ------ | --------------- |
+| `id`      | `uuid` | The resume's ID |
 
 **Response:** `200 OK` — Returns a single resume (same shape as items in the list endpoint).
 
 **Errors:**
 
-| Code               | Status | Condition                                                  |
-| ------------------ | ------ | ---------------------------------------------------------- |
-| `RESUME_NOT_FOUND` | 404    | Resume does not exist or belongs to a different user       |
-| `UNAUTHORIZED`     | 401    | Missing or invalid JWT                                     |
+| Code               | Status | Condition                                            |
+| ------------------ | ------ | ---------------------------------------------------- |
+| `RESUME_NOT_FOUND` | 404    | Resume does not exist or belongs to a different user |
+| `UNAUTHORIZED`     | 401    | Missing or invalid JWT                               |
 
 ---
 
@@ -330,59 +330,59 @@ GET /api/v1/profiles/me/resumes/{id}
 
 ### Profile Response
 
-| Field                  | Type              | Nullable | Description                                         |
-| ---------------------- | ----------------- | -------- | --------------------------------------------------- |
-| `user_id`              | `uuid`            | No       | User ID (shared PK with `auth.users`)               |
-| `first_name`           | `string`          | No       | Applicant's first name                              |
-| `last_name`            | `string`          | No       | Applicant's last name                               |
-| `phone`                | `string`          | Yes      | Contact phone number                                |
-| `city`                 | `string`          | Yes      | City of residence                                   |
-| `country`              | `string`          | Yes      | Country of residence                                |
-| `skills`               | `SkillDto[]`      | Yes      | Self-reported skills                                |
-| `social_links`         | `SocialLinksDto`  | Yes      | Social media links                                  |
-| `documents`            | `DocumentDto[]`   | Yes      | Uploaded documents (cover letters, certifications)  |
-| `profile_completed_at` | `datetime`        | Yes      | When profile met tenant completion requirements     |
-| `created_at`           | `datetime`        | No       | Profile creation timestamp                          |
-| `updated_at`           | `datetime`        | No       | Last modification timestamp                         |
+| Field                  | Type             | Nullable | Description                                        |
+| ---------------------- | ---------------- | -------- | -------------------------------------------------- |
+| `user_id`              | `uuid`           | No       | User ID (shared PK with `auth.users`)              |
+| `first_name`           | `string`         | No       | Applicant's first name                             |
+| `last_name`            | `string`         | No       | Applicant's last name                              |
+| `phone`                | `string`         | Yes      | Contact phone number                               |
+| `city`                 | `string`         | Yes      | City of residence                                  |
+| `country`              | `string`         | Yes      | Country of residence                               |
+| `skills`               | `SkillDto[]`     | Yes      | Self-reported skills                               |
+| `social_links`         | `SocialLinksDto` | Yes      | Social media links                                 |
+| `documents`            | `DocumentDto[]`  | Yes      | Uploaded documents (cover letters, certifications) |
+| `profile_completed_at` | `datetime`       | Yes      | When profile met tenant completion requirements    |
+| `created_at`           | `datetime`       | No       | Profile creation timestamp                         |
+| `updated_at`           | `datetime`       | No       | Last modification timestamp                        |
 
 ### SkillDto
 
-| Field   | Type     | Nullable | Description                                                           |
-| ------- | -------- | -------- | --------------------------------------------------------------------- |
-| `name`  | `string` | No       | Skill name (e.g., "C#", "PostgreSQL")                                 |
-| `level` | `string` | Yes      | Proficiency: `Beginner`, `Intermediate`, `Advanced`, `Expert`         |
-| `years` | `int`    | Yes      | Years of experience                                                   |
+| Field   | Type     | Nullable | Description                                                   |
+| ------- | -------- | -------- | ------------------------------------------------------------- |
+| `name`  | `string` | No       | Skill name (e.g., "C#", "PostgreSQL")                         |
+| `level` | `string` | Yes      | Proficiency: `Beginner`, `Intermediate`, `Advanced`, `Expert` |
+| `years` | `int`    | Yes      | Years of experience                                           |
 
 ### SocialLinksDto
 
-| Field       | Type     | Nullable | Description              |
-| ----------- | -------- | -------- | ------------------------ |
-| `linked_in` | `string` | Yes      | LinkedIn profile URL     |
-| `git_hub`   | `string` | Yes      | GitHub profile URL       |
-| `portfolio` | `string` | Yes      | Personal portfolio URL   |
+| Field       | Type     | Nullable | Description            |
+| ----------- | -------- | -------- | ---------------------- |
+| `linked_in` | `string` | Yes      | LinkedIn profile URL   |
+| `git_hub`   | `string` | Yes      | GitHub profile URL     |
+| `portfolio` | `string` | Yes      | Personal portfolio URL |
 
 ### DocumentDto
 
-| Field         | Type       | Nullable | Description                                  |
-| ------------- | ---------- | -------- | -------------------------------------------- |
-| `type`        | `string`   | No       | Document type (e.g., "CoverLetter")          |
-| `url`         | `string`   | No       | Storage URL                                  |
-| `filename`    | `string`   | No       | Original filename                            |
-| `uploaded_at` | `datetime` | No       | Upload timestamp                             |
+| Field         | Type       | Nullable | Description                         |
+| ------------- | ---------- | -------- | ----------------------------------- |
+| `type`        | `string`   | No       | Document type (e.g., "CoverLetter") |
+| `url`         | `string`   | No       | Storage URL                         |
+| `filename`    | `string`   | No       | Original filename                   |
+| `uploaded_at` | `datetime` | No       | Upload timestamp                    |
 
 ### Resume Response
 
-| Field               | Type       | Nullable | Description                                      |
-| ------------------- | ---------- | -------- | ------------------------------------------------ |
-| `id`                | `uuid`     | No       | Resume ID                                        |
-| `user_id`           | `uuid`     | No       | Owning user ID                                   |
-| `file_url`          | `string`   | No       | Storage URL                                      |
-| `original_filename` | `string`   | No       | Original filename from upload                    |
-| `file_size_bytes`   | `long`     | No       | File size in bytes                               |
-| `file_type`         | `string`   | No       | `PDF` or `DOCX`                                  |
-| `is_latest`         | `bool`     | No       | Whether this is the most recent resume           |
-| `is_parsed`         | `bool`     | No       | Whether async parsing has completed              |
-| `parse_error`       | `string`   | Yes      | Error message if parsing failed                  |
-| `parsed_at`         | `datetime` | Yes      | When parsing completed                           |
-| `created_at`        | `datetime` | No       | Upload timestamp                                 |
-| `updated_at`        | `datetime` | No       | Last modification timestamp                      |
+| Field               | Type       | Nullable | Description                            |
+| ------------------- | ---------- | -------- | -------------------------------------- |
+| `id`                | `uuid`     | No       | Resume ID                              |
+| `user_id`           | `uuid`     | No       | Owning user ID                         |
+| `file_url`          | `string`   | No       | Storage URL                            |
+| `original_filename` | `string`   | No       | Original filename from upload          |
+| `file_size_bytes`   | `long`     | No       | File size in bytes                     |
+| `file_type`         | `string`   | No       | `PDF` or `DOCX`                        |
+| `is_latest`         | `bool`     | No       | Whether this is the most recent resume |
+| `is_parsed`         | `bool`     | No       | Whether async parsing has completed    |
+| `parse_error`       | `string`   | Yes      | Error message if parsing failed        |
+| `parsed_at`         | `datetime` | Yes      | When parsing completed                 |
+| `created_at`        | `datetime` | No       | Upload timestamp                       |
+| `updated_at`        | `datetime` | No       | Last modification timestamp            |

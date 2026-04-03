@@ -55,17 +55,17 @@ All errors follow a canonical envelope. See [Errors](errors.md) for the full sch
 
 ## Modules
 
-| Module       | Prefix                | Status      | Reference                |
-| ------------ | --------------------- | ----------- | ------------------------ |
-| Health       | `/health`, `/ready`   | Implemented | [health.md](health.md)   |
-| Tenancy      | `/api/v1/tenants`     | Implemented | [tenancy.md](tenancy.md) |
-| Auth         | `/api/v1/auth`        | Implemented | [auth.md](auth.md)       |
-| Admin        | `/api/v1/admin`       | Implemented | [admin.md](admin.md)     |
+| Module       | Prefix                | Status      | Reference                  |
+| ------------ | --------------------- | ----------- | -------------------------- |
+| Health       | `/health`, `/ready`   | Implemented | [health.md](health.md)     |
+| Tenancy      | `/api/v1/tenants`     | Implemented | [tenancy.md](tenancy.md)   |
+| Auth         | `/api/v1/auth`        | Implemented | [auth.md](auth.md)         |
+| Admin        | `/api/v1/admin`       | Implemented | [admin.md](admin.md)       |
 | Profiles     | `/api/v1/profiles`    | Implemented | [profiles.md](profiles.md) |
-| Recruitment  | `/api/v1/recruitment` | Planned     | —                        |
-| Screening    | `/api/v1/screening`   | Planned     | —                        |
-| Matching     | `/api/v1/matching`    | Planned     | —                        |
-| HR Workflows | `/api/v1/hr`          | Planned     | —                        |
+| Recruitment  | `/api/v1/recruitment` | Planned     | —                          |
+| Screening    | `/api/v1/screening`   | Planned     | —                          |
+| Matching     | `/api/v1/matching`    | Planned     | —                          |
+| HR Workflows | `/api/v1/hr`          | Planned     | —                          |
 
 ## Reference Pages
 
