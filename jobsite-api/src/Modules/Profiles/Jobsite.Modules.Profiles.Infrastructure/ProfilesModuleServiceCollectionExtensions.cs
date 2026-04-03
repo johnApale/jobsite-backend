@@ -1,8 +1,11 @@
 using FluentValidation;
 using Jobsite.Modules.Profiles.Application.Interfaces;
 using Jobsite.Modules.Profiles.Application.Services;
+using Jobsite.Modules.Profiles.Infrastructure.Parsing;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence.Repositories;
+using Jobsite.Modules.Profiles.Infrastructure.Services;
+using Jobsite.Modules.Profiles.Infrastructure.Storage;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,12 +32,22 @@ public static class ProfilesModuleServiceCollectionExtensions
 
         // Services
         services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<IResumeService, ResumeService>();
+
+        // File storage
+        services.AddScoped<IFileStorage, LocalFileStorage>();
+
+        // Resume parser
+        services.AddScoped<IResumeParser, BasicResumeParser>();
 
         // Unit of Work (scoped to Profiles tenant DB, keyed for disambiguation)
         services.AddKeyedScoped<IUnitOfWork, ProfilesUnitOfWork>("profiles");
 
         // Validators
         services.AddValidatorsFromAssemblyContaining<Application.Validators.CreateProfileRequestValidator>();
+
+        // Background services
+        services.AddHostedService<ResumeParseRecoveryService>();
 
         return services;
     }

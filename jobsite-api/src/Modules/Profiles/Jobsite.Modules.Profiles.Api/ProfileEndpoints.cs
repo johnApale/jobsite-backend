@@ -57,7 +57,59 @@ public static class ProfileEndpoints
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound);
 
-        // Resume endpoints will be added in Part C.
+        // ── Resume endpoints ──────────────────────────────────────────────
+
+        group.MapPost("/me/resumes", async (IResumeService resumeService, HttpContext http, CancellationToken ct) =>
+            {
+                IFormFile? formFile = http.Request.Form.Files.GetFile("file");
+                if (formFile is null || formFile.Length == 0)
+                    return Results.BadRequest(new { error = "File is required" });
+
+                Guid userId = GetUserId(http);
+                Guid tenantId = GetTenantId(http);
+                await using Stream stream = formFile.OpenReadStream();
+                ResumeResponse response = await resumeService.UploadResumeAsync(
+                    userId, tenantId, stream, formFile.FileName, formFile.Length, ct);
+                return Results.Created($"/api/v1/profiles/me/resumes/{response.Id}", response);
+            })
+            .WithName("UploadResume")
+            .WithSummary("Upload a resume")
+            .WithDescription("Uploads a PDF or DOCX resume. Marks previous resumes as not latest. Triggers async parsing.")
+            .DisableAntiforgery()
+            .Produces<ResumeResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/me/resumes", async (IResumeService resumeService, HttpContext http, CancellationToken ct) =>
+            {
+                Guid userId = GetUserId(http);
+                List<ResumeResponse> response = await resumeService.GetResumesAsync(userId, ct);
+                return Results.Ok(response);
+            })
+            .WithName("GetMyResumes")
+            .WithSummary("List all resumes")
+            .WithDescription("Returns all resumes uploaded by the authenticated user, ordered by most recent first.")
+            .Produces<List<ResumeResponse>>(StatusCodes.Status200OK);
+
+        group.MapGet("/me/resumes/{id:guid}", async (Guid id, IResumeService resumeService, HttpContext http, CancellationToken ct) =>
+            {
+                Guid userId = GetUserId(http);
+                ResumeResponse response = await resumeService.GetResumeByIdAsync(id, userId, ct);
+                return Results.Ok(response);
+            })
+            .WithName("GetResumeById")
+            .WithSummary("Get a specific resume")
+            .WithDescription("Returns a specific resume by ID, if it belongs to the authenticated user.")
+            .Produces<ResumeResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+    }
+
+    private static Guid GetTenantId(HttpContext http)
+    {
+        object? tenantId = http.Items["TenantId"];
+        if (tenantId is Guid id)
+            return id;
+
+        throw new InvalidOperationException("TenantId not found in request context. Ensure TenantResolutionMiddleware is configured.");
     }
 
     private static Guid GetUserId(HttpContext http)

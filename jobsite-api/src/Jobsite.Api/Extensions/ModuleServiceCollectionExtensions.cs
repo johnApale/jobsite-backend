@@ -92,8 +92,8 @@ public static class ModuleServiceCollectionExtensions
         // 8. MassTransit + RabbitMQ (message broker for integration events)
         services.AddMassTransit(bus =>
         {
-            // Add consumers from module assemblies as they are implemented
-            // bus.AddConsumers(typeof(CatalogDbContext).Assembly);
+            // Add consumers from module assemblies
+            bus.AddConsumers(typeof(ProfilesDbContext).Assembly);
 
             bus.UsingRabbitMq((context, cfg) =>
             {
@@ -119,7 +119,10 @@ public static class ModuleServiceCollectionExtensions
         // 9. Integration event publisher (wraps MassTransit IPublishEndpoint)
         services.AddScoped<IEventPublisher, MassTransitEventPublisher>();
 
-        // 10. Module registrations
+        // 10. Tenant connection resolver (for consumers and background services)
+        services.AddScoped<ITenantConnectionResolver, CatalogTenantConnectionResolver>();
+
+        // 11. Module registrations
         services.AddTenancyModule(configuration);
         services.AddAuthModule(configuration);
         services.AddAdminModule(configuration);
