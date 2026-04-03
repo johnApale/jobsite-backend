@@ -18,12 +18,13 @@
 - **AI Service scaffold** — FastAPI app with health endpoint, project structure, and dependencies defined
 - **Phase 1 complete** — Auth module fully implemented with JWT, refresh tokens, OAuth, role-based auth
 - **Phase 2 complete** — Admin module implemented: company settings CRUD (JSON merge patch), audit logging with 6 domain event handlers + tenant provisioning handler, cursor-based pagination. Dashboard endpoint deferred until pipeline modules exist
-- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage
+- **Phase 3 complete** — Profiles module implemented: applicant profile CRUD (JSON merge patch), resume upload with file storage abstraction, async resume parsing via MassTransit/RabbitMQ (basic + AI), `UserRegisteredEvent` handler auto-creates profiles for Applicants, AI resume parser client with resilient HTTP + graceful fallback
+- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage (250 unit, 30 architecture, 58 integration)
 
 ### What Needs Implementation
 
-- All module endpoints and business logic
-- EF Core entity configurations and migrations
+- Remaining module endpoints and business logic (Recruitment, Screening, Matching, HR Workflows)
+- EF Core migrations for Profiles module and remaining modules
 - Message broker integration (monolith ↔ AI Service) — deferred until AI Interview capability is built
 - AI Service endpoints: resume parsing, criteria generation, assessment question generation, AI screening
 - AI Interview Service endpoints, models, and media handling (deferred)

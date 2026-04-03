@@ -68,3 +68,32 @@
 | AI Interview Settings     | Additional AI-specific fields in `assessment_settings` (`question_mix`, `allowed_response_types`, etc.) — deferred until AI Interview is built                                                 |
 | Integration Events        | `CandidateReadyForInterviewEvent` and `InterviewCompletedEvent` event definitions in SharedKernel — deferred                                                                                   |
 | Media Transcription       | Speech-to-text for voice/video interview responses — deferred                                                                                                                                  |
+
+---
+
+## Profiles Module
+
+### Deferred
+
+| Item                          | Description                                                                                                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EF Core Migration             | `InitialProfilesSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.                                                    |
+| Profile Completion Evaluation | `ProfileCompletedAt` flag is present but evaluation logic (checking against Admin `ProfileSettings` required fields) is deferred until Admin settings are wired.  |
+| Cloud File Storage            | `IFileStorage` abstraction exists with `LocalFileStorage` implementation. Azure Blob / S3 implementation deferred to hardening phase.                             |
+| Integration Tests             | Profiles integration tests (repository CRUD with Testcontainers) not yet created. Unit tests provide coverage for services, validators, and event handlers.       |
+
+### Completed
+
+| Item                        | Resolution                                                                                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Applicant Profile Entity    | `ApplicantProfile` aggregate root with shared PK to `auth.users`, JSONB fields for skills/social links/documents.                                           |
+| Resume Entity               | `Resume` entity with versioning (`is_latest`), parsing state, basic + AI parsed content JSONB columns.                                                      |
+| Profile CRUD Endpoints      | `GET/POST/PATCH /api/v1/profiles/me` with JSON merge patch semantics and FluentValidation.                                                                  |
+| Resume Endpoints             | `POST/GET /api/v1/profiles/me/resumes`, `GET /api/v1/profiles/me/resumes/{id}` — upload, list, get by ID.                                                   |
+| Resume Upload + Parsing      | File storage abstraction, MassTransit consumer for async parsing, basic text extraction (PdfPig + OpenXml), keyword skill matching.                          |
+| AI Resume Parsing            | `AiResumeParserClient` with resilient HTTP (timeout/retry/circuit breaker), graceful null fallback when AI Service unavailable.                              |
+| UserRegisteredEvent Handler  | Auto-creates empty `ApplicantProfile` when user registers with Applicant role; skips other roles, idempotent.                                               |
+| Resume Parse Recovery        | `ResumeParseRecoveryService` (BackgroundService) retries failed/unparsed resumes on startup.                                                                |
+| Unit Tests                   | 56 tests: ProfileService, ResumeService, validators, event handler, constants, AI parser client.                                                            |
+| Architecture Tests           | 5 Profiles layer dependency tests added to `LayerDependencyTests.cs`; module isolation already covered by `ModuleIsolationTests.cs`.                        |
+| IUnitOfWork Disambiguation   | Keyed service: `AddKeyedScoped<IUnitOfWork>("profiles")` with `[FromKeyedServices]`.                                                                        |

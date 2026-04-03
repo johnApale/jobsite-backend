@@ -96,8 +96,8 @@ throw AppErrors.Validation.WithDetails(new Dictionary<string, string>
 | 400    | `VALIDATION_ERROR`, `INVALID_REQUEST`, `DUPLICATE_EMAIL`, `DUPLICATE_APPLICATION`                           |
 | 401    | `UNAUTHORIZED`, `INVALID_CREDENTIALS`, `TOKEN_EXPIRED`, `TOKEN_REPLAY_DETECTED`                             |
 | 403    | `FORBIDDEN`                                                                                                 |
-| 404    | `TENANT_NOT_FOUND`, `USER_NOT_FOUND`, `JOB_POSTING_NOT_FOUND`, `APPLICATION_NOT_FOUND`, `PROFILE_NOT_FOUND` |
-| 409    | `APPLICATION_ALREADY_WITHDRAWN`, `OFFER_ALREADY_ACCEPTED`                                                   |
+| 404    | `TENANT_NOT_FOUND`, `USER_NOT_FOUND`, `JOB_POSTING_NOT_FOUND`, `APPLICATION_NOT_FOUND`, `PROFILE_NOT_FOUND`, `RESUME_NOT_FOUND` |
+| 409    | `PROFILE_ALREADY_EXISTS`, `APPLICATION_ALREADY_WITHDRAWN`, `OFFER_ALREADY_ACCEPTED`                                              |
 | 422    | `UNPROCESSABLE_ENTITY`                                                                                      |
 | 429    | `RATE_LIMITED`                                                                                              |
 | 500    | `INTERNAL_ERROR`                                                                                            |
@@ -199,6 +199,7 @@ public interface IEventConsumer<in T> where T : class, IIntegrationEvent
 | Event                             | Implements                          | Producer             | Consumer(s)           |
 | --------------------------------- | ----------------------------------- | -------------------- | --------------------- |
 | `UserRegisteredEvent`             | `IDomainEvent`                      | Auth                 | Admin, Profiles       |
+| `ResumeUploadedEvent`             | `IDomainEvent`, `IIntegrationEvent` | Profiles             | Profiles (Consumer)   |
 | `ApplicationSubmittedEvent`       | `IDomainEvent`                      | Recruitment          | Screening             |
 | `CvScreeningCompletedEvent`       | `IDomainEvent`                      | Screening            | Matching, Recruitment |
 | `CandidateReadyForInterviewEvent` | `IDomainEvent`, `IIntegrationEvent` | Screening            | AI Interview Service  |
@@ -217,6 +218,21 @@ public interface IEventConsumer<in T> where T : class, IIntegrationEvent
 | `Email`        | `string`   | The user's email address       |
 | `Role`         | `string`   | The user's assigned role       |
 | `RegisteredAt` | `DateTime` | When registration occurred     |
+
+#### `ResumeUploadedEvent`
+
+Published to the message broker when a resume is uploaded and needs async parsing.
+
+| Property        | Type       | Description                              |
+| --------------- | ---------- | ---------------------------------------- |
+| `EventId`       | `Guid`     | Unique event ID (idempotency key)        |
+| `ResumeId`      | `Guid`     | The uploaded resume                      |
+| `UserId`        | `Guid`     | The applicant who uploaded               |
+| `TenantId`      | `Guid`     | The tenant context                       |
+| `FileUrl`       | `string`   | Storage URL of the uploaded file         |
+| `FileType`      | `string`   | `PDF` or `DOCX`                          |
+| `CorrelationId` | `string`   | Distributed tracing correlation ID       |
+| `OccurredAt`    | `DateTime` | When the event occurred                  |
 
 #### `ApplicationSubmittedEvent`
 
