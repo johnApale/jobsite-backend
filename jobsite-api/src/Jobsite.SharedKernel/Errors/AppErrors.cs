@@ -26,6 +26,9 @@ public static class AppErrors
     public static AppError UserNotFound => new("USER_NOT_FOUND", 404, "User not found");
     public static AppError JobPostingNotFound => new("JOB_POSTING_NOT_FOUND", 404, "Job posting not found");
     public static AppError ApplicationNotFound => new("APPLICATION_NOT_FOUND", 404, "Application not found");
+    public static AppError ClientCompanyNotFound => new("CLIENT_COMPANY_NOT_FOUND", 404, "Client company not found");
+    public static AppError CriteriaNotFound => new("CRITERIA_NOT_FOUND", 404, "Evaluation criteria not found");
+    public static AppError ScreeningQuestionNotFound => new("SCREENING_QUESTION_NOT_FOUND", 404, "Screening question not found");
     public static AppError ProfileNotFound => new("PROFILE_NOT_FOUND", 404, "Profile not found");
     public static AppError ResumeNotFound => new("RESUME_NOT_FOUND", 404, "Resume not found");
     public static AppError SettingsNotFound => new("SETTINGS_NOT_FOUND", 404, "Company settings not found for this tenant");
