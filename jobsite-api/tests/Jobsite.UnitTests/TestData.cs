@@ -5,6 +5,8 @@ using Jobsite.Modules.Admin.Domain.Entities;
 using Jobsite.Modules.Auth.Application.DTOs;
 using Jobsite.Modules.Auth.Domain.Constants;
 using Jobsite.Modules.Auth.Domain.Entities;
+using Jobsite.Modules.Profiles.Application.DTOs;
+using Jobsite.Modules.Profiles.Domain.Entities;
 using Jobsite.Modules.Tenancy.Application.DTOs;
 using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
@@ -160,6 +162,66 @@ public static class TestData
     {
         DefaultTimezone = defaultTimezone,
         DefaultCurrency = defaultCurrency
+    };
+
+    // ── Profiles Module ─────────────────────────────────────────────────
+
+    public static ApplicantProfile CreateApplicantProfile(
+        Guid? id = null,
+        string? firstName = null,
+        string? lastName = null,
+        string? phone = null,
+        string? city = null,
+        string? country = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        FirstName = firstName ?? "Test",
+        LastName = lastName ?? "Applicant",
+        Phone = phone,
+        City = city ?? "Manila",
+        Country = country ?? "Philippines",
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static Resume CreateResume(
+        Guid? id = null,
+        Guid? userId = null,
+        string? fileName = null,
+        string? fileType = null,
+        long? fileSizeBytes = null,
+        bool isLatest = true,
+        bool isParsed = false) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        UserId = userId ?? Guid.NewGuid(),
+        FileUrl = "/uploads/resumes/test-resume.pdf",
+        OriginalFilename = fileName ?? "test-resume.pdf",
+        FileSizeBytes = fileSizeBytes ?? 1024,
+        FileType = fileType ?? "PDF",
+        IsLatest = isLatest,
+        IsParsed = isParsed,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static CreateProfileRequest CreateProfileRequest(
+        string? firstName = null,
+        string? lastName = null) => new()
+    {
+        FirstName = firstName ?? "Test",
+        LastName = lastName ?? "Applicant",
+        Phone = "+639171234567",
+        City = "Manila",
+        Country = "Philippines"
+    };
+
+    public static UpdateProfileRequest CreateUpdateProfileRequest(
+        string? firstName = null,
+        string? lastName = null) => new()
+    {
+        FirstName = firstName,
+        LastName = lastName
     };
 
     private static readonly System.Text.Json.JsonSerializerOptions AdminJsonOptions = new()
