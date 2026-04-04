@@ -7,7 +7,11 @@ using Jobsite.Modules.Auth.Domain.Constants;
 using Jobsite.Modules.Auth.Domain.Entities;
 using Jobsite.Modules.Profiles.Application.DTOs;
 using Jobsite.Modules.Profiles.Domain.Entities;
+using Jobsite.Modules.Recruitment.Application.DTOs;
+using Jobsite.Modules.Recruitment.Domain.Constants;
+using Jobsite.Modules.Recruitment.Domain.Entities;
 using Jobsite.Modules.Tenancy.Application.DTOs;
+using ApplicationEntity = Jobsite.Modules.Recruitment.Domain.Entities.Application;
 using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
 
@@ -227,5 +231,168 @@ public static class TestData
     private static readonly System.Text.Json.JsonSerializerOptions AdminJsonOptions = new()
     {
         PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
+    };
+
+    // ── Recruitment Module ──────────────────────────────────────────────
+
+    public static JobPosting CreateJobPosting(
+        Guid? id = null,
+        string? title = null,
+        string? description = null,
+        string? locationType = null,
+        string? employmentType = null,
+        string? status = null,
+        Guid? postedBy = null,
+        Guid? clientCompanyId = null,
+        decimal? salaryMin = null,
+        decimal? salaryMax = null,
+        string? salaryCurrency = null,
+        string? city = null,
+        string? country = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        ClientCompanyId = clientCompanyId,
+        Title = title ?? "Senior .NET Developer",
+        Description = description ?? "We are looking for an experienced .NET developer.",
+        LocationType = locationType ?? LocationType.Remote,
+        City = city,
+        Country = country,
+        EmploymentType = employmentType ?? EmploymentType.FullTime,
+        SalaryMin = salaryMin,
+        SalaryMax = salaryMax,
+        SalaryCurrency = salaryCurrency,
+        Status = status ?? JobPostingStatus.Draft,
+        PostedBy = postedBy ?? Guid.NewGuid(),
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static ClientCompany CreateClientCompany(
+        Guid? id = null,
+        string? name = null,
+        string? status = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        Name = name ?? "Acme Technologies",
+        DisplayName = null,
+        IsAnonymous = false,
+        Industry = Industry.Technology,
+        Status = status ?? ClientCompanyStatus.Active,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static ApplicationEntity CreateApplication(
+        Guid? id = null,
+        Guid? jobPostingId = null,
+        Guid? applicantId = null,
+        Guid? resumeId = null,
+        string? status = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        JobPostingId = jobPostingId ?? Guid.NewGuid(),
+        ApplicantId = applicantId ?? Guid.NewGuid(),
+        ResumeId = resumeId ?? Guid.NewGuid(),
+        Status = status ?? ApplicationStatus.Submitted,
+        SubmittedAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static JobEvaluationCriteria CreateCriteria(
+        Guid? id = null,
+        Guid? jobPostingId = null,
+        string? name = null,
+        string? category = null,
+        string? evaluationMethod = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        JobPostingId = jobPostingId ?? Guid.NewGuid(),
+        Name = name ?? "C# Proficiency",
+        Category = category ?? CriteriaCategory.Skill,
+        EvaluationMethod = evaluationMethod ?? EvaluationMethod.SemanticSimilarity,
+        IsRequired = true,
+        Weight = 25.0m,
+        Configuration = """{"skill_name":"C#","min_level":"Advanced"}""",
+        DisplayOrder = 0,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static JobScreeningQuestion CreateScreeningQuestion(
+        Guid? id = null,
+        Guid? jobPostingId = null,
+        string? questionText = null,
+        string? questionType = null,
+        string? timing = null) => new()
+    {
+        Id = id ?? Guid.NewGuid(),
+        JobPostingId = jobPostingId ?? Guid.NewGuid(),
+        QuestionText = questionText ?? "Do you have 5+ years of .NET experience?",
+        QuestionType = questionType ?? QuestionType.YesNo,
+        Timing = timing ?? QuestionTiming.AtApplication,
+        IsRequired = true,
+        Weight = 10.0m,
+        DisplayOrder = 0,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static CreateJobPostingRequest CreateJobPostingRequest(
+        string? title = null,
+        string? locationType = null,
+        string? employmentType = null,
+        string? city = null,
+        string? country = null,
+        decimal? salaryMin = null,
+        decimal? salaryMax = null,
+        string? salaryCurrency = null) => new()
+    {
+        Title = title ?? "Senior .NET Developer",
+        Description = "We are looking for an experienced .NET developer.",
+        LocationType = locationType ?? LocationType.Remote,
+        City = city,
+        Country = country,
+        EmploymentType = employmentType ?? EmploymentType.FullTime,
+        SalaryMin = salaryMin,
+        SalaryMax = salaryMax,
+        SalaryCurrency = salaryCurrency
+    };
+
+    public static CreateClientCompanyRequest CreateClientCompanyRequest(
+        string? name = null) => new()
+    {
+        Name = name ?? "Acme Technologies"
+    };
+
+    public static SubmitApplicationRequest CreateSubmitApplicationRequest(
+        Guid? resumeId = null) => new()
+    {
+        ResumeId = resumeId ?? Guid.NewGuid()
+    };
+
+    public static CreateCriteriaRequest CreateCriteriaRequest(
+        string? name = null,
+        string? category = null,
+        string? evaluationMethod = null) => new()
+    {
+        Name = name ?? "C# Proficiency",
+        Category = category ?? CriteriaCategory.Skill,
+        EvaluationMethod = evaluationMethod ?? EvaluationMethod.SemanticSimilarity,
+        IsRequired = true,
+        Weight = 25.0m,
+        Configuration = """{"skill_name":"C#","min_level":"Advanced"}"""
+    };
+
+    public static CreateQuestionRequest CreateQuestionRequest(
+        string? questionText = null,
+        string? questionType = null,
+        string? timing = null) => new()
+    {
+        QuestionText = questionText ?? "Do you have 5+ years of .NET experience?",
+        QuestionType = questionType ?? QuestionType.YesNo,
+        Timing = timing ?? QuestionTiming.AtApplication,
+        IsRequired = true,
+        Weight = 10.0m
     };
 }

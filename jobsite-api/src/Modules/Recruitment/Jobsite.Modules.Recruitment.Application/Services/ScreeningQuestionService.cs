@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Jobsite.Modules.Recruitment.Application.Services;
 
 /// <summary>Minimal settings shape for reading AI assessment feature flag.</summary>
-internal sealed class AssessmentFeatureFlags
+public sealed class AssessmentFeatureFlags
 {
     public bool AiAssessmentQuestionsEnabled { get; set; }
 }
