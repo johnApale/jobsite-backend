@@ -654,12 +654,12 @@ Tests `AiResumeParserClient` — the HTTP client for the AI Service's resume par
 
 Tests the `JobPosting` aggregate root's domain behavior — status lifecycle transitions and default state.
 
-| Test                                                  | What It Verifies                                                      | Expected Outcome                            |
-| ----------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------- |
-| `Publish_DraftJobPosting_SetsStatusAndTimestamp`       | Publishing sets status to `Published` and records `PublishedAt`       | Status is Published, PublishedAt is not null |
-| `Close_PublishedJobPosting_SetsStatusAndTimestamp`     | Closing sets status to `Closed` and records `ClosedAt`               | Status is Closed, ClosedAt is not null      |
-| `NewJobPosting_HasDefaultDraftStatus`                  | A new job posting starts in Draft status                             | Status is `Draft`                           |
-| `NewJobPosting_HasEmptyCollections`                    | Criteria and Questions collections are initialized empty             | Both collections are empty                  |
+| Test                                               | What It Verifies                                                | Expected Outcome                             |
+| -------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------- |
+| `Publish_DraftJobPosting_SetsStatusAndTimestamp`   | Publishing sets status to `Published` and records `PublishedAt` | Status is Published, PublishedAt is not null |
+| `Close_PublishedJobPosting_SetsStatusAndTimestamp` | Closing sets status to `Closed` and records `ClosedAt`          | Status is Closed, ClosedAt is not null       |
+| `NewJobPosting_HasDefaultDraftStatus`              | A new job posting starts in Draft status                        | Status is `Draft`                            |
+| `NewJobPosting_HasEmptyCollections`                | Criteria and Questions collections are initialized empty        | Both collections are empty                   |
 
 **Why:** Job postings follow a strict Draft → Published → Closed lifecycle. If status transitions set incorrect values or timestamps aren't recorded, the entire recruitment pipeline breaks — applications can only be submitted to Published postings.
 
@@ -669,14 +669,14 @@ Tests the `JobPosting` aggregate root's domain behavior — status lifecycle tra
 
 Tests the `Application` aggregate root's domain behavior — submission events and withdrawal.
 
-| Test                                                       | What It Verifies                                                          | Expected Outcome                          |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------- |
-| `Submit_RaisesDomainEvent`                                 | Submitting raises `ApplicationSubmittedEvent`                            | DomainEvents has exactly 1 event          |
-| `Submit_WithQuestionAnswers_SetsAnswers`                    | Submission with question answers stores them                             | QuestionAnswers collection is populated   |
-| `Submit_Event_ContainsCorrectIds`                           | The domain event carries the correct application and job posting IDs     | Event IDs match entity IDs                |
-| `Withdraw_SetsStatusAndTimestamp`                           | Withdrawing sets status to `Withdrawn` and records `WithdrawnAt`         | Status is Withdrawn, WithdrawnAt is set   |
-| `NewApplication_HasDefaultSubmittedStatus`                  | A new application starts in Submitted status                             | Status is `Submitted`                     |
-| `Submit_WithoutQuestionAnswers_LeavesCollectionEmpty`       | Submission without answers leaves QuestionAnswers empty                  | QuestionAnswers is empty                  |
+| Test                                                  | What It Verifies                                                     | Expected Outcome                        |
+| ----------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------- |
+| `Submit_RaisesDomainEvent`                            | Submitting raises `ApplicationSubmittedEvent`                        | DomainEvents has exactly 1 event        |
+| `Submit_WithQuestionAnswers_SetsAnswers`              | Submission with question answers stores them                         | QuestionAnswers collection is populated |
+| `Submit_Event_ContainsCorrectIds`                     | The domain event carries the correct application and job posting IDs | Event IDs match entity IDs              |
+| `Withdraw_SetsStatusAndTimestamp`                     | Withdrawing sets status to `Withdrawn` and records `WithdrawnAt`     | Status is Withdrawn, WithdrawnAt is set |
+| `NewApplication_HasDefaultSubmittedStatus`            | A new application starts in Submitted status                         | Status is `Submitted`                   |
+| `Submit_WithoutQuestionAnswers_LeavesCollectionEmpty` | Submission without answers leaves QuestionAnswers empty              | QuestionAnswers is empty                |
 
 **Why:** `ApplicationSubmittedEvent` is the trigger for the entire downstream pipeline (Screening → Assessment → Shortlisting). If this event isn't raised or carries wrong IDs, screening never starts.
 
@@ -686,18 +686,18 @@ Tests the `Application` aggregate root's domain behavior — submission events a
 
 Tests FluentValidation rules for the `CreateJobPostingRequest` DTO.
 
-| Test                                                         | What It Verifies                                                         | Expected Outcome     |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------ | -------------------- |
-| `Validate_ValidRequest_Passes`                               | A well-formed request passes all validation rules                        | No errors            |
-| `Validate_EmptyTitle_Fails`                                  | Empty title is rejected                                                  | Validation error     |
-| `Validate_TitleTooLong_Fails`                                | Title exceeding 200 chars is rejected                                    | Validation error     |
-| `Validate_InvalidLocationType_Fails`                         | Invalid location type value is rejected                                  | Validation error     |
-| `Validate_OnSiteWithoutCity_Fails`                           | OnSite location without city is rejected                                 | Validation error     |
-| `Validate_RemoteWithoutCity_Passes`                          | Remote location without city is acceptable                               | No errors            |
-| `Validate_InvalidEmploymentType_Fails`                       | Invalid employment type value is rejected                                | Validation error     |
-| `Validate_SalaryMinGreaterThanMax_Fails`                     | Salary min > max is rejected                                             | Validation error     |
-| `Validate_SalaryWithoutCurrency_Fails`                       | Providing salary without currency is rejected                            | Validation error     |
-| `Validate_NegativeSalary_Fails`                              | Negative salary value is rejected                                        | Validation error     |
+| Test                                     | What It Verifies                                  | Expected Outcome |
+| ---------------------------------------- | ------------------------------------------------- | ---------------- |
+| `Validate_ValidRequest_Passes`           | A well-formed request passes all validation rules | No errors        |
+| `Validate_EmptyTitle_Fails`              | Empty title is rejected                           | Validation error |
+| `Validate_TitleTooLong_Fails`            | Title exceeding 200 chars is rejected             | Validation error |
+| `Validate_InvalidLocationType_Fails`     | Invalid location type value is rejected           | Validation error |
+| `Validate_OnSiteWithoutCity_Fails`       | OnSite location without city is rejected          | Validation error |
+| `Validate_RemoteWithoutCity_Passes`      | Remote location without city is acceptable        | No errors        |
+| `Validate_InvalidEmploymentType_Fails`   | Invalid employment type value is rejected         | Validation error |
+| `Validate_SalaryMinGreaterThanMax_Fails` | Salary min > max is rejected                      | Validation error |
+| `Validate_SalaryWithoutCurrency_Fails`   | Providing salary without currency is rejected     | Validation error |
+| `Validate_NegativeSalary_Fails`          | Negative salary value is rejected                 | Validation error |
 
 **Why:** These rules enforce database CHECK constraints and business invariants at the API boundary. Invalid data that passes validation would cause DB constraint violations or corrupt data.
 
@@ -707,12 +707,12 @@ Tests FluentValidation rules for the `CreateJobPostingRequest` DTO.
 
 Tests FluentValidation rules for the `SubmitApplicationRequest` DTO.
 
-| Test                                                     | What It Verifies                                                | Expected Outcome |
-| -------------------------------------------------------- | --------------------------------------------------------------- | ---------------- |
-| `Validate_ValidRequest_Passes`                           | A well-formed submission passes                                 | No errors        |
-| `Validate_EmptyResumeId_Fails`                           | Empty resume ID is rejected                                     | Validation error |
-| `Validate_EmptyQuestionId_InAnswers_Fails`               | Question answer with empty question ID is rejected              | Validation error |
-| `Validate_NullQuestionAnswers_Passes`                    | Null question answers (no screening questions) is acceptable    | No errors        |
+| Test                                       | What It Verifies                                             | Expected Outcome |
+| ------------------------------------------ | ------------------------------------------------------------ | ---------------- |
+| `Validate_ValidRequest_Passes`             | A well-formed submission passes                              | No errors        |
+| `Validate_EmptyResumeId_Fails`             | Empty resume ID is rejected                                  | Validation error |
+| `Validate_EmptyQuestionId_InAnswers_Fails` | Question answer with empty question ID is rejected           | Validation error |
+| `Validate_NullQuestionAnswers_Passes`      | Null question answers (no screening questions) is acceptable | No errors        |
 
 **Why:** Resume ID is required for every application. Question answers with empty IDs would create orphaned responses that can't be scored.
 
@@ -722,19 +722,19 @@ Tests FluentValidation rules for the `SubmitApplicationRequest` DTO.
 
 Tests the `RecruitmentService` which manages job posting CRUD and lifecycle transitions.
 
-| Test                                                             | What It Verifies                                                       | Expected Outcome              |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------- |
-| `CreateAsync_ValidRequest_CreatesJobPosting`                     | Creates a job posting with correct properties                          | Posting saved to repository   |
-| `CreateAsync_WithClientCompany_SetsCompanyId`                    | Client company ID is validated and set                                 | Company ID matches            |
-| `CreateAsync_InvalidClientCompany_ThrowsNotFound`                | Non-existent client company throws error                               | AppError thrown                |
-| `GetByIdAsync_ExistingPosting_ReturnsResponse`                   | Returns mapped response for existing posting                           | Response matches entity       |
-| `GetByIdAsync_NonExistent_ThrowsNotFound`                        | Non-existent ID throws not found error                                 | AppError thrown                |
-| `UpdateAsync_ValidRequest_UpdatesFields`                         | JSON merge patch applies only non-null fields                          | Updated fields match request  |
-| `UpdateAsync_NonExistent_ThrowsNotFound`                         | Update on non-existent posting throws error                            | AppError thrown                |
-| `PublishAsync_DraftPosting_SetsPublished`                        | Draft posting transitions to Published                                 | Status is Published           |
-| `PublishAsync_NonDraftPosting_ThrowsInvalidStatus`               | Publishing non-Draft posting throws error                              | AppError thrown                |
-| `PublishAsync_NonExistent_ThrowsNotFound`                        | Publishing non-existent posting throws error                           | AppError thrown                |
-| `CloseAsync_PublishedPosting_SetsClosed`                         | Published posting transitions to Closed                                | Status is Closed              |
+| Test                                               | What It Verifies                              | Expected Outcome             |
+| -------------------------------------------------- | --------------------------------------------- | ---------------------------- |
+| `CreateAsync_ValidRequest_CreatesJobPosting`       | Creates a job posting with correct properties | Posting saved to repository  |
+| `CreateAsync_WithClientCompany_SetsCompanyId`      | Client company ID is validated and set        | Company ID matches           |
+| `CreateAsync_InvalidClientCompany_ThrowsNotFound`  | Non-existent client company throws error      | AppError thrown              |
+| `GetByIdAsync_ExistingPosting_ReturnsResponse`     | Returns mapped response for existing posting  | Response matches entity      |
+| `GetByIdAsync_NonExistent_ThrowsNotFound`          | Non-existent ID throws not found error        | AppError thrown              |
+| `UpdateAsync_ValidRequest_UpdatesFields`           | JSON merge patch applies only non-null fields | Updated fields match request |
+| `UpdateAsync_NonExistent_ThrowsNotFound`           | Update on non-existent posting throws error   | AppError thrown              |
+| `PublishAsync_DraftPosting_SetsPublished`          | Draft posting transitions to Published        | Status is Published          |
+| `PublishAsync_NonDraftPosting_ThrowsInvalidStatus` | Publishing non-Draft posting throws error     | AppError thrown              |
+| `PublishAsync_NonExistent_ThrowsNotFound`          | Publishing non-existent posting throws error  | AppError thrown              |
+| `CloseAsync_PublishedPosting_SetsClosed`           | Published posting transitions to Closed       | Status is Closed             |
 
 **Why:** The service enforces the job posting lifecycle (Draft → Published → Closed) which gates the entire application flow. Invalid transitions would allow applications to non-published jobs or modifications to published postings.
 
@@ -744,18 +744,18 @@ Tests the `RecruitmentService` which manages job posting CRUD and lifecycle tran
 
 Tests the `ApplicationService` which handles application submission, retrieval, and withdrawal.
 
-| Test                                                              | What It Verifies                                                         | Expected Outcome              |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------- |
-| `SubmitAsync_ValidApplication_CreatesAndPublishesEvent`           | Successful submission saves application and raises domain event          | Application saved, event raised|
-| `SubmitAsync_NonPublishedPosting_ThrowsInvalidStatus`             | Submitting to non-Published job throws error                             | AppError thrown                |
-| `SubmitAsync_NonExistentPosting_ThrowsNotFound`                   | Submitting to non-existent job throws error                              | AppError thrown                |
-| `SubmitAsync_DuplicateApplication_ThrowsDuplicate`                | Same applicant applying twice throws error                               | AppError thrown                |
-| `SubmitAsync_ResumeNotOwned_ThrowsForbidden`                      | Using another user's resume throws error                                 | AppError thrown                |
-| `GetByIdAsync_ExistingApplication_ReturnsResponse`                | Returns mapped response for existing application                         | Response matches entity       |
-| `GetByIdAsync_NonExistent_ThrowsNotFound`                         | Non-existent application throws error                                    | AppError thrown                |
-| `WithdrawAsync_OwnApplication_SetsWithdrawn`                      | Applicant can withdraw their own application                             | Status is Withdrawn           |
-| `WithdrawAsync_OtherUsersApplication_ThrowsForbidden`             | Withdrawing another user's application throws error                      | AppError thrown                |
-| `WithdrawAsync_AlreadyWithdrawn_ThrowsInvalidStatus`              | Withdrawing an already withdrawn application throws error                | AppError thrown                |
+| Test                                                    | What It Verifies                                                | Expected Outcome                |
+| ------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------- |
+| `SubmitAsync_ValidApplication_CreatesAndPublishesEvent` | Successful submission saves application and raises domain event | Application saved, event raised |
+| `SubmitAsync_NonPublishedPosting_ThrowsInvalidStatus`   | Submitting to non-Published job throws error                    | AppError thrown                 |
+| `SubmitAsync_NonExistentPosting_ThrowsNotFound`         | Submitting to non-existent job throws error                     | AppError thrown                 |
+| `SubmitAsync_DuplicateApplication_ThrowsDuplicate`      | Same applicant applying twice throws error                      | AppError thrown                 |
+| `SubmitAsync_ResumeNotOwned_ThrowsForbidden`            | Using another user's resume throws error                        | AppError thrown                 |
+| `GetByIdAsync_ExistingApplication_ReturnsResponse`      | Returns mapped response for existing application                | Response matches entity         |
+| `GetByIdAsync_NonExistent_ThrowsNotFound`               | Non-existent application throws error                           | AppError thrown                 |
+| `WithdrawAsync_OwnApplication_SetsWithdrawn`            | Applicant can withdraw their own application                    | Status is Withdrawn             |
+| `WithdrawAsync_OtherUsersApplication_ThrowsForbidden`   | Withdrawing another user's application throws error             | AppError thrown                 |
+| `WithdrawAsync_AlreadyWithdrawn_ThrowsInvalidStatus`    | Withdrawing an already withdrawn application throws error       | AppError thrown                 |
 
 **Why:** Application submission is the entry point to the recruitment pipeline. The one-per-person-per-job constraint, resume ownership validation, and posting status checks prevent data corruption and unauthorized access.
 
@@ -765,13 +765,13 @@ Tests the `ApplicationService` which handles application submission, retrieval, 
 
 Tests the `ClientCompanyService` CRUD operations.
 
-| Test                                                   | What It Verifies                                         | Expected Outcome           |
-| ------------------------------------------------------ | -------------------------------------------------------- | -------------------------- |
-| `CreateAsync_ValidRequest_CreatesCompany`              | Creates client company with correct properties           | Company saved to repo      |
-| `GetByIdAsync_ExistingCompany_ReturnsResponse`         | Returns mapped response for existing company             | Response matches entity    |
-| `GetByIdAsync_NonExistent_ThrowsNotFound`              | Non-existent company throws error                        | AppError thrown             |
-| `UpdateAsync_ValidRequest_AppliesMergePatch`           | JSON merge patch applies only non-null fields            | Updated fields match       |
-| `UpdateAsync_NonExistent_ThrowsNotFound`               | Update on non-existent company throws error              | AppError thrown             |
+| Test                                           | What It Verifies                               | Expected Outcome        |
+| ---------------------------------------------- | ---------------------------------------------- | ----------------------- |
+| `CreateAsync_ValidRequest_CreatesCompany`      | Creates client company with correct properties | Company saved to repo   |
+| `GetByIdAsync_ExistingCompany_ReturnsResponse` | Returns mapped response for existing company   | Response matches entity |
+| `GetByIdAsync_NonExistent_ThrowsNotFound`      | Non-existent company throws error              | AppError thrown         |
+| `UpdateAsync_ValidRequest_AppliesMergePatch`   | JSON merge patch applies only non-null fields  | Updated fields match    |
+| `UpdateAsync_NonExistent_ThrowsNotFound`       | Update on non-existent company throws error    | AppError thrown         |
 
 **Why:** Client companies support the agency model. Invalid CRUD operations would corrupt the relationship between job postings and their client companies.
 
@@ -781,16 +781,16 @@ Tests the `ClientCompanyService` CRUD operations.
 
 Tests the `CriteriaService` for managing evaluation criteria and AI-assisted suggestions.
 
-| Test                                                          | What It Verifies                                                  | Expected Outcome           |
-| ------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------- |
-| `AddAsync_ValidCriteria_AddsToCriteria`                       | Creates criterion linked to job posting                           | Criterion saved            |
-| `AddAsync_NonExistentJob_ThrowsNotFound`                      | Adding criteria to non-existent job throws error                  | AppError thrown             |
-| `UpdateAsync_ValidUpdate_AppliesMergePatch`                   | JSON merge patch updates only provided fields                     | Updated fields match       |
-| `UpdateAsync_WrongJob_ThrowsNotFound`                         | Updating criterion from another job throws error                  | AppError thrown             |
-| `DeleteAsync_ExistingCriteria_Removes`                        | Deletes criterion successfully                                    | Repository Remove called   |
-| `DeleteAsync_NonExistent_ThrowsNotFound`                      | Deleting non-existent criterion throws error                      | AppError thrown             |
-| `SuggestAsync_AiAvailable_ReturnsSuggestions`                 | AI service returns suggestions when available                     | Suggestions returned       |
-| `SuggestAsync_AiUnavailable_ReturnsNull`                      | Returns null when AI service is unavailable                       | Returns null               |
+| Test                                          | What It Verifies                                 | Expected Outcome         |
+| --------------------------------------------- | ------------------------------------------------ | ------------------------ |
+| `AddAsync_ValidCriteria_AddsToCriteria`       | Creates criterion linked to job posting          | Criterion saved          |
+| `AddAsync_NonExistentJob_ThrowsNotFound`      | Adding criteria to non-existent job throws error | AppError thrown          |
+| `UpdateAsync_ValidUpdate_AppliesMergePatch`   | JSON merge patch updates only provided fields    | Updated fields match     |
+| `UpdateAsync_WrongJob_ThrowsNotFound`         | Updating criterion from another job throws error | AppError thrown          |
+| `DeleteAsync_ExistingCriteria_Removes`        | Deletes criterion successfully                   | Repository Remove called |
+| `DeleteAsync_NonExistent_ThrowsNotFound`      | Deleting non-existent criterion throws error     | AppError thrown          |
+| `SuggestAsync_AiAvailable_ReturnsSuggestions` | AI service returns suggestions when available    | Suggestions returned     |
+| `SuggestAsync_AiUnavailable_ReturnsNull`      | Returns null when AI service is unavailable      | Returns null             |
 
 **Why:** Evaluation criteria drive the Screening module's scoring engine. The weights, categories, and evaluation methods must be valid and correctly linked to job postings for accurate candidate scoring.
 
@@ -800,16 +800,16 @@ Tests the `CriteriaService` for managing evaluation criteria and AI-assisted sug
 
 Tests the `ScreeningQuestionService` for managing screening questions and feature-gated AI suggestions.
 
-| Test                                                               | What It Verifies                                                      | Expected Outcome        |
-| ------------------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------- |
-| `AddAsync_ValidQuestion_AddsToQuestions`                           | Creates question linked to job posting                                | Question saved          |
-| `AddAsync_NonExistentJob_ThrowsNotFound`                           | Adding question to non-existent job throws error                      | AppError thrown          |
-| `UpdateAsync_ValidUpdate_AppliesMergePatch`                        | JSON merge patch updates only provided fields                         | Updated fields match    |
-| `UpdateAsync_WrongJob_ThrowsNotFound`                              | Updating question from another job throws error                       | AppError thrown          |
-| `DeleteAsync_ExistingQuestion_Removes`                             | Deletes question successfully                                         | Repository Remove called|
-| `DeleteAsync_NonExistent_ThrowsNotFound`                           | Deleting non-existent question throws error                           | AppError thrown          |
-| `SuggestAsync_FeatureDisabled_ReturnsNull`                         | Returns null when tenant setting disables AI questions                 | Returns null            |
-| `SuggestAsync_FeatureEnabled_ReturnsSuggestions`                   | AI service returns suggestions when feature is enabled                | Suggestions returned    |
+| Test                                             | What It Verifies                                       | Expected Outcome         |
+| ------------------------------------------------ | ------------------------------------------------------ | ------------------------ |
+| `AddAsync_ValidQuestion_AddsToQuestions`         | Creates question linked to job posting                 | Question saved           |
+| `AddAsync_NonExistentJob_ThrowsNotFound`         | Adding question to non-existent job throws error       | AppError thrown          |
+| `UpdateAsync_ValidUpdate_AppliesMergePatch`      | JSON merge patch updates only provided fields          | Updated fields match     |
+| `UpdateAsync_WrongJob_ThrowsNotFound`            | Updating question from another job throws error        | AppError thrown          |
+| `DeleteAsync_ExistingQuestion_Removes`           | Deletes question successfully                          | Repository Remove called |
+| `DeleteAsync_NonExistent_ThrowsNotFound`         | Deleting non-existent question throws error            | AppError thrown          |
+| `SuggestAsync_FeatureDisabled_ReturnsNull`       | Returns null when tenant setting disables AI questions | Returns null             |
+| `SuggestAsync_FeatureEnabled_ReturnsSuggestions` | AI service returns suggestions when feature is enabled | Suggestions returned     |
 
 **Why:** Screening questions are the foundation of the assessment flow. The feature gate for AI suggestions ensures tenant-level control over AI features. Questions with wrong job posting links would cause assessment to fail.
 
@@ -819,18 +819,18 @@ Tests the `ScreeningQuestionService` for managing screening questions and featur
 
 Tests `IsValid()` methods for all 11 Recruitment module constant classes. Values must match PostgreSQL CHECK constraints exactly.
 
-| Constant Class        | Tests | What It Verifies                                                |
-| --------------------- | ----- | --------------------------------------------------------------- |
+| Constant Class        | Tests | What It Verifies                                                   |
+| --------------------- | ----- | ------------------------------------------------------------------ |
 | `JobPostingStatus`    | 2     | Draft/Published/Closed valid; lowercase and unknown values invalid |
-| `ApplicationStatus`   | 2     | All 9 statuses valid; lowercase and unknown values invalid      |
-| `LocationType`        | 2     | OnSite/Remote/Hybrid valid; lowercase and unknown values invalid|
-| `EmploymentType`      | 2     | All 5 types valid; lowercase and unknown values invalid         |
-| `CriteriaCategory`    | 2     | All 6 categories valid; lowercase and unknown values invalid    |
-| `EvaluationMethod`    | 2     | All 3 methods valid; lowercase and unknown values invalid       |
-| `QuestionType`        | 2     | All 3 types valid; lowercase and unknown values invalid         |
-| `QuestionTiming`      | 2     | AtApplication/AfterScreening valid; lowercase and unknown invalid|
-| `RejectedAtStage`     | 2     | All 5 stages valid; lowercase and unknown values invalid        |
-| `ClientCompanyStatus` | 2     | Active/Inactive valid; lowercase and unknown values invalid     |
+| `ApplicationStatus`   | 2     | All 9 statuses valid; lowercase and unknown values invalid         |
+| `LocationType`        | 2     | OnSite/Remote/Hybrid valid; lowercase and unknown values invalid   |
+| `EmploymentType`      | 2     | All 5 types valid; lowercase and unknown values invalid            |
+| `CriteriaCategory`    | 2     | All 6 categories valid; lowercase and unknown values invalid       |
+| `EvaluationMethod`    | 2     | All 3 methods valid; lowercase and unknown values invalid          |
+| `QuestionType`        | 2     | All 3 types valid; lowercase and unknown values invalid            |
+| `QuestionTiming`      | 2     | AtApplication/AfterScreening valid; lowercase and unknown invalid  |
+| `RejectedAtStage`     | 2     | All 5 stages valid; lowercase and unknown values invalid           |
+| `ClientCompanyStatus` | 2     | Active/Inactive valid; lowercase and unknown values invalid        |
 
 **Why:** PascalCase enum values must exactly match PostgreSQL CHECK constraints. Lowercase or unknown values that pass `IsValid()` would violate DB constraints. These tests guard every status/type field in the module.
 
@@ -840,13 +840,13 @@ Tests `IsValid()` methods for all 11 Recruitment module constant classes. Values
 
 Tests the `AiCriteriaSuggesterClient` HTTP client that calls the AI Service for criteria suggestions.
 
-| Test                                                   | What It Verifies                                              | Expected Outcome    |
-| ------------------------------------------------------ | ------------------------------------------------------------- | ------------------- |
-| `SuggestAsync_SuccessResponse_ReturnsSuggestions`      | Successful AI response returns deserialized suggestions       | Suggestions list    |
-| `SuggestAsync_ErrorResponse_ReturnsNull`               | Non-success HTTP status returns null                          | Returns null        |
-| `SuggestAsync_HttpRequestException_ReturnsNull`        | Network errors return null                                    | Returns null        |
-| `SuggestAsync_TaskCanceled_ReturnsNull`                | Timeout returns null                                          | Returns null        |
-| `SuggestAsync_InvalidJson_ReturnsNull`                 | Malformed JSON response returns null                          | Returns null        |
+| Test                                              | What It Verifies                                        | Expected Outcome |
+| ------------------------------------------------- | ------------------------------------------------------- | ---------------- |
+| `SuggestAsync_SuccessResponse_ReturnsSuggestions` | Successful AI response returns deserialized suggestions | Suggestions list |
+| `SuggestAsync_ErrorResponse_ReturnsNull`          | Non-success HTTP status returns null                    | Returns null     |
+| `SuggestAsync_HttpRequestException_ReturnsNull`   | Network errors return null                              | Returns null     |
+| `SuggestAsync_TaskCanceled_ReturnsNull`           | Timeout returns null                                    | Returns null     |
+| `SuggestAsync_InvalidJson_ReturnsNull`            | Malformed JSON response returns null                    | Returns null     |
 
 **Why:** The AI criteria client must never throw exceptions to callers. All failure modes return null, allowing the application to gracefully handle AI Service unavailability by returning 204 No Content to the user.
 
@@ -856,13 +856,13 @@ Tests the `AiCriteriaSuggesterClient` HTTP client that calls the AI Service for 
 
 Tests the `AiQuestionSuggesterClient` HTTP client that calls the AI Service for screening question suggestions.
 
-| Test                                                   | What It Verifies                                              | Expected Outcome    |
-| ------------------------------------------------------ | ------------------------------------------------------------- | ------------------- |
-| `SuggestAsync_SuccessResponse_ReturnsSuggestions`      | Successful AI response returns deserialized suggestions       | Suggestions list    |
-| `SuggestAsync_ErrorResponse_ReturnsNull`               | Non-success HTTP status returns null                          | Returns null        |
-| `SuggestAsync_HttpRequestException_ReturnsNull`        | Network errors return null                                    | Returns null        |
-| `SuggestAsync_TaskCanceled_ReturnsNull`                | Timeout returns null                                          | Returns null        |
-| `SuggestAsync_InvalidJson_ReturnsNull`                 | Malformed JSON response returns null                          | Returns null        |
+| Test                                              | What It Verifies                                        | Expected Outcome |
+| ------------------------------------------------- | ------------------------------------------------------- | ---------------- |
+| `SuggestAsync_SuccessResponse_ReturnsSuggestions` | Successful AI response returns deserialized suggestions | Suggestions list |
+| `SuggestAsync_ErrorResponse_ReturnsNull`          | Non-success HTTP status returns null                    | Returns null     |
+| `SuggestAsync_HttpRequestException_ReturnsNull`   | Network errors return null                              | Returns null     |
+| `SuggestAsync_TaskCanceled_ReturnsNull`           | Timeout returns null                                    | Returns null     |
+| `SuggestAsync_InvalidJson_ReturnsNull`            | Malformed JSON response returns null                    | Returns null     |
 
 **Why:** Same resilience pattern as the criteria client. AI question suggestions are feature-gated and optional — failures must never block the core recruitment workflow.
 

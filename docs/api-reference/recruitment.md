@@ -40,11 +40,11 @@ POST /api/v1/recruitment/client-companies
 
 **Validation Rules:**
 
-| Field           | Rule                           |
-| --------------- | ------------------------------ |
-| `name`          | Required, max 200 characters   |
+| Field           | Rule                                                    |
+| --------------- | ------------------------------------------------------- |
+| `name`          | Required, max 200 characters                            |
 | `industry`      | Optional; must be valid `Industry` constant if provided |
-| `contact_email` | Optional; must be valid email format if provided |
+| `contact_email` | Optional; must be valid email format if provided        |
 
 **Response:** `201 Created`
 
@@ -68,11 +68,11 @@ POST /api/v1/recruitment/client-companies
 
 **Errors:**
 
-| Code               | Status | Condition                       |
-| ------------------ | ------ | ------------------------------- |
-| `VALIDATION_ERROR` | 400    | Request body fails validation   |
-| `UNAUTHORIZED`     | 401    | Missing or invalid JWT          |
-| `FORBIDDEN`        | 403    | User is not AgencyAdmin         |
+| Code               | Status | Condition                     |
+| ------------------ | ------ | ----------------------------- |
+| `VALIDATION_ERROR` | 400    | Request body fails validation |
+| `UNAUTHORIZED`     | 401    | Missing or invalid JWT        |
+| `FORBIDDEN`        | 403    | User is not AgencyAdmin       |
 
 ---
 
@@ -88,11 +88,11 @@ GET /api/v1/recruitment/client-companies?status=Active&cursor=xxx&pageSize=20
 
 **Query Parameters:**
 
-| Parameter  | Type   | Description                                        |
-| ---------- | ------ | -------------------------------------------------- |
-| `status`   | string | Filter by status (`Active`, `Inactive`)            |
-| `cursor`   | string | Opaque cursor from previous response               |
-| `pageSize` | int    | Results per page (default 20, max 100)             |
+| Parameter  | Type   | Description                             |
+| ---------- | ------ | --------------------------------------- |
+| `status`   | string | Filter by status (`Active`, `Inactive`) |
+| `cursor`   | string | Opaque cursor from previous response    |
+| `pageSize` | int    | Results per page (default 20, max 100)  |
 
 **Response:** `200 OK`
 
@@ -128,9 +128,9 @@ GET /api/v1/recruitment/client-companies/{id}
 
 **Errors:**
 
-| Code                      | Status | Condition         |
-| ------------------------- | ------ | ----------------- |
-| `CLIENT_COMPANY_NOT_FOUND`| 404    | Company not found |
+| Code                       | Status | Condition         |
+| -------------------------- | ------ | ----------------- |
+| `CLIENT_COMPANY_NOT_FOUND` | 404    | Company not found |
 
 ---
 
@@ -157,10 +157,10 @@ PATCH /api/v1/recruitment/client-companies/{id}
 
 **Errors:**
 
-| Code                       | Status | Condition                       |
-| -------------------------- | ------ | ------------------------------- |
-| `CLIENT_COMPANY_NOT_FOUND` | 404    | Company not found               |
-| `VALIDATION_ERROR`         | 400    | Request body fails validation   |
+| Code                       | Status | Condition                     |
+| -------------------------- | ------ | ----------------------------- |
+| `CLIENT_COMPANY_NOT_FOUND` | 404    | Company not found             |
+| `VALIDATION_ERROR`         | 400    | Request body fails validation |
 
 ---
 
@@ -186,8 +186,8 @@ POST /api/v1/recruitment/job-postings
   "city": "Manila",
   "country": "Philippines",
   "employment_type": "FullTime",
-  "salary_min": 80000.00,
-  "salary_max": 120000.00,
+  "salary_min": 80000.0,
+  "salary_max": 120000.0,
   "salary_currency": "USD",
   "department": "Engineering",
   "client_company_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -197,18 +197,18 @@ POST /api/v1/recruitment/job-postings
 
 **Validation Rules:**
 
-| Field              | Rule                                                                 |
-| ------------------ | -------------------------------------------------------------------- |
-| `title`            | Required, max 200 characters                                         |
-| `description`      | Required                                                             |
-| `location_type`    | Required; must be `OnSite`, `Remote`, or `Hybrid`                    |
-| `city`             | Required when `location_type` is `OnSite` or `Hybrid`               |
-| `country`          | Required when `location_type` is `OnSite` or `Hybrid`               |
-| `employment_type`  | Required; must be `FullTime`, `PartTime`, `Contract`, `Temporary`, or `Internship` |
-| `salary_min`       | Must be ≥ 0 when provided                                           |
-| `salary_max`       | Must be ≥ `salary_min` when both provided                           |
-| `salary_currency`  | Required when `salary_min` or `salary_max` is provided              |
-| `client_company_id`| Must reference an existing Active client company when provided       |
+| Field               | Rule                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `title`             | Required, max 200 characters                                                       |
+| `description`       | Required                                                                           |
+| `location_type`     | Required; must be `OnSite`, `Remote`, or `Hybrid`                                  |
+| `city`              | Required when `location_type` is `OnSite` or `Hybrid`                              |
+| `country`           | Required when `location_type` is `OnSite` or `Hybrid`                              |
+| `employment_type`   | Required; must be `FullTime`, `PartTime`, `Contract`, `Temporary`, or `Internship` |
+| `salary_min`        | Must be ≥ 0 when provided                                                          |
+| `salary_max`        | Must be ≥ `salary_min` when both provided                                          |
+| `salary_currency`   | Required when `salary_min` or `salary_max` is provided                             |
+| `client_company_id` | Must reference an existing Active client company when provided                     |
 
 **Response:** `201 Created`
 
@@ -222,8 +222,8 @@ POST /api/v1/recruitment/job-postings
   "city": "Manila",
   "country": "Philippines",
   "employment_type": "FullTime",
-  "salary_min": 80000.00,
-  "salary_max": 120000.00,
+  "salary_min": 80000.0,
+  "salary_max": 120000.0,
   "salary_currency": "USD",
   "department": "Engineering",
   "status": "Draft",
@@ -240,10 +240,10 @@ POST /api/v1/recruitment/job-postings
 
 **Errors:**
 
-| Code                       | Status | Condition                              |
-| -------------------------- | ------ | -------------------------------------- |
-| `VALIDATION_ERROR`         | 400    | Request body fails validation          |
-| `CLIENT_COMPANY_NOT_FOUND` | 404    | Referenced client company doesn't exist|
+| Code                       | Status | Condition                               |
+| -------------------------- | ------ | --------------------------------------- |
+| `VALIDATION_ERROR`         | 400    | Request body fails validation           |
+| `CLIENT_COMPANY_NOT_FOUND` | 404    | Referenced client company doesn't exist |
 
 ---
 
@@ -257,12 +257,12 @@ GET /api/v1/recruitment/job-postings?status=Published&clientCompanyId=xxx&cursor
 
 **Query Parameters:**
 
-| Parameter          | Type   | Description                                        |
-| ------------------ | ------ | -------------------------------------------------- |
-| `status`           | string | Filter by status (`Draft`, `Published`, `Closed`)  |
-| `clientCompanyId`  | guid   | Filter by client company                           |
-| `cursor`           | string | Opaque cursor from previous response               |
-| `pageSize`         | int    | Results per page (default 20, max 100)             |
+| Parameter         | Type   | Description                                       |
+| ----------------- | ------ | ------------------------------------------------- |
+| `status`          | string | Filter by status (`Draft`, `Published`, `Closed`) |
+| `clientCompanyId` | guid   | Filter by client company                          |
+| `cursor`          | string | Opaque cursor from previous response              |
+| `pageSize`        | int    | Results per page (default 20, max 100)            |
 
 **Response:** `200 OK` — Paginated list of job postings with `items` and `next_cursor`.
 
@@ -280,8 +280,8 @@ GET /api/v1/recruitment/job-postings/{id}
 
 **Errors:**
 
-| Code                    | Status | Condition           |
-| ----------------------- | ------ | ------------------- |
+| Code                    | Status | Condition             |
+| ----------------------- | ------ | --------------------- |
 | `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found |
 
 ---
@@ -302,10 +302,10 @@ PATCH /api/v1/recruitment/job-postings/{id}
 
 **Errors:**
 
-| Code                    | Status | Condition                          |
-| ----------------------- | ------ | ---------------------------------- |
-| `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found              |
-| `VALIDATION_ERROR`      | 400    | Request body fails validation      |
+| Code                    | Status | Condition                     |
+| ----------------------- | ------ | ----------------------------- |
+| `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found         |
+| `VALIDATION_ERROR`      | 400    | Request body fails validation |
 
 ---
 
@@ -323,10 +323,10 @@ POST /api/v1/recruitment/job-postings/{id}/publish
 
 **Errors:**
 
-| Code                    | Status | Condition                                |
-| ----------------------- | ------ | ---------------------------------------- |
-| `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found                    |
-| `INVALID_STATUS`        | 409    | Job posting is not in `Draft` status     |
+| Code                    | Status | Condition                            |
+| ----------------------- | ------ | ------------------------------------ |
+| `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found                |
+| `INVALID_STATUS`        | 409    | Job posting is not in `Draft` status |
 
 ---
 
@@ -344,10 +344,10 @@ POST /api/v1/recruitment/job-postings/{id}/close
 
 **Errors:**
 
-| Code                    | Status | Condition                                 |
-| ----------------------- | ------ | ----------------------------------------- |
-| `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found                     |
-| `INVALID_STATUS`        | 409    | Job posting is not in `Published` status  |
+| Code                    | Status | Condition                                |
+| ----------------------- | ------ | ---------------------------------------- |
+| `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found                    |
+| `INVALID_STATUS`        | 409    | Job posting is not in `Published` status |
 
 ---
 
@@ -371,7 +371,7 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/criteria
   "category": "Skill",
   "evaluation_method": "SemanticSimilarity",
   "is_required": true,
-  "weight": 25.00,
+  "weight": 25.0,
   "configuration": "{\"keywords\": [\"C#\", \".NET\", \"ASP.NET Core\"]}",
   "display_order": 1
 }
@@ -379,13 +379,13 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/criteria
 
 **Validation Rules:**
 
-| Field               | Rule                                                                       |
-| ------------------- | -------------------------------------------------------------------------- |
-| `name`              | Required, max 200 characters                                               |
+| Field               | Rule                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `name`              | Required, max 200 characters                                                                   |
 | `category`          | Required; must be `Skill`, `Experience`, `Certification`, `Education`, `Location`, or `Custom` |
-| `evaluation_method` | Required; must be `ExactMatch`, `RangeMatch`, or `SemanticSimilarity`      |
-| `weight`            | Required; must be between 0.00 and 100.00                                  |
-| `configuration`     | Required; must be valid JSON string                                        |
+| `evaluation_method` | Required; must be `ExactMatch`, `RangeMatch`, or `SemanticSimilarity`                          |
+| `weight`            | Required; must be between 0.00 and 100.00                                                      |
+| `configuration`     | Required; must be valid JSON string                                                            |
 
 **Response:** `201 Created`
 
@@ -397,7 +397,7 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/criteria
   "category": "Skill",
   "evaluation_method": "SemanticSimilarity",
   "is_required": true,
-  "weight": 25.00,
+  "weight": 25.0,
   "configuration": "{\"keywords\": [\"C#\", \".NET\", \"ASP.NET Core\"]}",
   "display_order": 1,
   "created_at": "2026-04-01T12:00:00Z",
@@ -452,9 +452,9 @@ DELETE /api/v1/recruitment/job-postings/{jobPostingId}/criteria/{criteriaId}
 
 **Errors:**
 
-| Code                 | Status | Condition          |
-| -------------------- | ------ | ------------------ |
-| `CRITERIA_NOT_FOUND` | 404    | Criterion not found|
+| Code                 | Status | Condition           |
+| -------------------- | ------ | ------------------- |
+| `CRITERIA_NOT_FOUND` | 404    | Criterion not found |
 
 ---
 
@@ -477,7 +477,7 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/criteria/suggest
     "category": "Skill",
     "evaluation_method": "SemanticSimilarity",
     "is_required": true,
-    "weight": 25.00,
+    "weight": 25.0,
     "configuration": "{\"keywords\": [\"C#\", \".NET\"]}"
   }
 ]
@@ -487,8 +487,8 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/criteria/suggest
 
 **Errors:**
 
-| Code                    | Status | Condition           |
-| ----------------------- | ------ | ------------------- |
+| Code                    | Status | Condition             |
+| ----------------------- | ------ | --------------------- |
 | `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found |
 
 ---
@@ -513,7 +513,7 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/questions
   "question_type": "YesNo",
   "timing": "AtApplication",
   "is_required": true,
-  "weight": 10.00,
+  "weight": 10.0,
   "expected_answer": "{\"expected\": \"Yes\"}",
   "options": null,
   "display_order": 1
@@ -522,12 +522,12 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/questions
 
 **Validation Rules:**
 
-| Field           | Rule                                                              |
-| --------------- | ----------------------------------------------------------------- |
-| `question_text` | Required                                                          |
-| `question_type` | Required; must be `FreeText`, `MultipleChoice`, or `YesNo`        |
-| `timing`        | Required; must be `AtApplication` or `AfterScreening`             |
-| `weight`        | Required; must be between 0.00 and 100.00                         |
+| Field           | Rule                                                       |
+| --------------- | ---------------------------------------------------------- |
+| `question_text` | Required                                                   |
+| `question_type` | Required; must be `FreeText`, `MultipleChoice`, or `YesNo` |
+| `timing`        | Required; must be `AtApplication` or `AfterScreening`      |
+| `weight`        | Required; must be between 0.00 and 100.00                  |
 
 **Response:** `201 Created`
 
@@ -539,7 +539,7 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/questions
   "question_type": "YesNo",
   "timing": "AtApplication",
   "is_required": true,
-  "weight": 10.00,
+  "weight": 10.0,
   "expected_answer": "{\"expected\": \"Yes\"}",
   "options": null,
   "display_order": 1,
@@ -576,10 +576,10 @@ PATCH /api/v1/recruitment/job-postings/{jobPostingId}/questions/{questionId}
 
 **Errors:**
 
-| Code                  | Status | Condition                                         |
-| --------------------- | ------ | ------------------------------------------------- |
-| `QUESTION_NOT_FOUND`  | 404    | Question not found or doesn't belong to this job  |
-| `VALIDATION_ERROR`    | 400    | Request body fails validation                     |
+| Code                 | Status | Condition                                        |
+| -------------------- | ------ | ------------------------------------------------ |
+| `QUESTION_NOT_FOUND` | 404    | Question not found or doesn't belong to this job |
+| `VALIDATION_ERROR`   | 400    | Request body fails validation                    |
 
 ---
 
@@ -620,7 +620,7 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/questions/suggest
     "question_type": "FreeText",
     "timing": "AfterScreening",
     "is_required": true,
-    "weight": 15.00,
+    "weight": 15.0,
     "expected_answer": null,
     "options": null
   }
@@ -631,8 +631,8 @@ POST /api/v1/recruitment/job-postings/{jobPostingId}/questions/suggest
 
 **Errors:**
 
-| Code                    | Status | Condition           |
-| ----------------------- | ------ | ------------------- |
+| Code                    | Status | Condition             |
+| ----------------------- | ------ | --------------------- |
 | `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found |
 
 ---
@@ -667,10 +667,10 @@ POST /api/v1/recruitment/applications/job-postings/{jobPostingId}
 
 **Validation Rules:**
 
-| Field                             | Rule                                            |
-| --------------------------------- | ----------------------------------------------- |
-| `resume_id`                       | Required; must reference a resume owned by the applicant |
-| `question_answers[].question_id`  | Required; must be non-empty GUID                |
+| Field                            | Rule                                                     |
+| -------------------------------- | -------------------------------------------------------- |
+| `resume_id`                      | Required; must reference a resume owned by the applicant |
+| `question_answers[].question_id` | Required; must be non-empty GUID                         |
 
 **Response:** `201 Created`
 
@@ -695,13 +695,13 @@ POST /api/v1/recruitment/applications/job-postings/{jobPostingId}
 
 **Errors:**
 
-| Code                        | Status | Condition                                    |
-| --------------------------- | ------ | -------------------------------------------- |
-| `JOB_POSTING_NOT_FOUND`    | 404    | Job posting not found                        |
-| `INVALID_STATUS`           | 409    | Job posting is not in `Published` status     |
-| `DUPLICATE_APPLICATION`    | 409    | Applicant already applied to this job        |
-| `RESUME_NOT_OWNED`         | 403    | Resume doesn't belong to the applicant       |
-| `VALIDATION_ERROR`         | 400    | Request body fails validation                |
+| Code                    | Status | Condition                                |
+| ----------------------- | ------ | ---------------------------------------- |
+| `JOB_POSTING_NOT_FOUND` | 404    | Job posting not found                    |
+| `INVALID_STATUS`        | 409    | Job posting is not in `Published` status |
+| `DUPLICATE_APPLICATION` | 409    | Applicant already applied to this job    |
+| `RESUME_NOT_OWNED`      | 403    | Resume doesn't belong to the applicant   |
+| `VALIDATION_ERROR`      | 400    | Request body fails validation            |
 
 ---
 
@@ -715,13 +715,13 @@ GET /api/v1/recruitment/applications?jobPostingId=xxx&status=Submitted&applicant
 
 **Query Parameters:**
 
-| Parameter      | Type   | Description                                                        |
-| -------------- | ------ | ------------------------------------------------------------------ |
-| `jobPostingId` | guid   | Filter by job posting                                              |
-| `status`       | string | Filter by status (`Submitted`, `Screening`, `Assessment`, etc.)    |
-| `applicantId`  | guid   | Filter by applicant                                                |
-| `cursor`       | string | Opaque cursor from previous response                               |
-| `pageSize`     | int    | Results per page (default 20, max 100)                             |
+| Parameter      | Type   | Description                                                     |
+| -------------- | ------ | --------------------------------------------------------------- |
+| `jobPostingId` | guid   | Filter by job posting                                           |
+| `status`       | string | Filter by status (`Submitted`, `Screening`, `Assessment`, etc.) |
+| `applicantId`  | guid   | Filter by applicant                                             |
+| `cursor`       | string | Opaque cursor from previous response                            |
+| `pageSize`     | int    | Results per page (default 20, max 100)                          |
 
 **Response:** `200 OK` — Paginated list with `items` and `next_cursor`.
 
@@ -759,11 +759,11 @@ POST /api/v1/recruitment/applications/{id}/withdraw
 
 **Errors:**
 
-| Code                    | Status | Condition                              |
-| ----------------------- | ------ | -------------------------------------- |
-| `APPLICATION_NOT_FOUND` | 404    | Application not found                  |
-| `FORBIDDEN`             | 403    | User is not the applicant              |
-| `INVALID_STATUS`        | 409    | Application is already withdrawn       |
+| Code                    | Status | Condition                        |
+| ----------------------- | ------ | -------------------------------- |
+| `APPLICATION_NOT_FOUND` | 404    | Application not found            |
+| `FORBIDDEN`             | 403    | User is not the applicant        |
+| `INVALID_STATUS`        | 409    | Application is already withdrawn |
 
 ---
 
@@ -787,14 +787,14 @@ Any active status → Withdrawn (by applicant)
 
 ### Constants Reference
 
-| Constant             | Valid Values                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| `JobPostingStatus`   | `Draft`, `Published`, `Closed`                                                        |
-| `ApplicationStatus`  | `Submitted`, `Screening`, `Assessment`, `Shortlisted`, `FinalInterview`, `Offered`, `Hired`, `Rejected`, `Withdrawn` |
-| `LocationType`       | `OnSite`, `Remote`, `Hybrid`                                                          |
-| `EmploymentType`     | `FullTime`, `PartTime`, `Contract`, `Temporary`, `Internship`                         |
-| `CriteriaCategory`   | `Skill`, `Experience`, `Certification`, `Education`, `Location`, `Custom`             |
-| `EvaluationMethod`   | `ExactMatch`, `RangeMatch`, `SemanticSimilarity`                                      |
-| `QuestionType`       | `FreeText`, `MultipleChoice`, `YesNo`                                                 |
-| `QuestionTiming`     | `AtApplication`, `AfterScreening`                                                     |
-| `ClientCompanyStatus`| `Active`, `Inactive`                                                                  |
+| Constant              | Valid Values                                                                                                         |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `JobPostingStatus`    | `Draft`, `Published`, `Closed`                                                                                       |
+| `ApplicationStatus`   | `Submitted`, `Screening`, `Assessment`, `Shortlisted`, `FinalInterview`, `Offered`, `Hired`, `Rejected`, `Withdrawn` |
+| `LocationType`        | `OnSite`, `Remote`, `Hybrid`                                                                                         |
+| `EmploymentType`      | `FullTime`, `PartTime`, `Contract`, `Temporary`, `Internship`                                                        |
+| `CriteriaCategory`    | `Skill`, `Experience`, `Certification`, `Education`, `Location`, `Custom`                                            |
+| `EvaluationMethod`    | `ExactMatch`, `RangeMatch`, `SemanticSimilarity`                                                                     |
+| `QuestionType`        | `FreeText`, `MultipleChoice`, `YesNo`                                                                                |
+| `QuestionTiming`      | `AtApplication`, `AfterScreening`                                                                                    |
+| `ClientCompanyStatus` | `Active`, `Inactive`                                                                                                 |
