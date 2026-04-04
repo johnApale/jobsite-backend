@@ -142,4 +142,63 @@ public sealed class ScreeningValidatorTests
         // Assert
         result.IsValid.Should().BeFalse();
     }
+
+    [Fact]
+    public void ManualReviewRequestValidator_ReviewNotesExactly2000Chars_Passes()
+    {
+        // Arrange
+        ManualReviewRequestValidator validator = new();
+        ManualReviewRequest request = new()
+        {
+            Outcome = "ManuallyRejected",
+            ReviewNotes = new string('x', 2000)
+        };
+
+        // Act
+        FluentValidation.Results.ValidationResult result = validator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ManualReviewRequestValidator_ManuallyRejected_Passes()
+    {
+        // Arrange
+        ManualReviewRequestValidator validator = new();
+        ManualReviewRequest request = new()
+        {
+            Outcome = "ManuallyRejected",
+            ReviewNotes = null
+        };
+
+        // Act
+        FluentValidation.Results.ValidationResult result = validator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SubmitAssessmentRequestValidator_MultipleValidAnswers_Passes()
+    {
+        // Arrange
+        SubmitAssessmentRequestValidator validator = new();
+        SubmitAssessmentRequest request = new()
+        {
+            JobPostingId = Guid.NewGuid(),
+            Answers =
+            [
+                new AssessmentAnswerDto { QuestionId = Guid.NewGuid(), ResponseText = "Answer 1" },
+                new AssessmentAnswerDto { QuestionId = Guid.NewGuid(), ResponseData = """{"selected": ["a"]}""" },
+                new AssessmentAnswerDto { QuestionId = Guid.NewGuid(), ResponseText = "Answer 3" }
+            ]
+        };
+
+        // Act
+        FluentValidation.Results.ValidationResult result = validator.Validate(request);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
 }

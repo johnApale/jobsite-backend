@@ -8,6 +8,7 @@ using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace Jobsite.UnitTests.Screening;
 
@@ -353,6 +354,239 @@ public sealed class ScreeningServiceTests
     }
 
     [Fact]
+    public async Task ProcessScreeningAsync_HighScore_WithAfterScreeningQuestions_RoutesToAssessment()
+    {
+        // Arrange — score above threshold + job has AfterScreening questions → Assessment (not Shortlisted)
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = CreateResult(applicationId);
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null);
+
+        List<CriteriaSnapshot> criteria =
+        [
+            new CriteriaSnapshot
+            {
+                Id = Guid.NewGuid(), Name = "C#", Category = "Skill",
+                EvaluationMethod = "ExactMatch", IsRequired = true, Weight = 100,
+                Configuration = """{"skill_name": "C#"}"""
+            }
+        ];
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(criteria);
+
+        ApplicantDataSnapshot applicant = new()
+        {
+            UserId = applicantUserId,
+            ResumeExtractedSkills = """["C#"]"""
+        };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(criteria, applicant, Arg.Any<CancellationToken>())
+            .Returns(new ScoringResult { OverallScore = 90m, Breakdown = [] });
+
+        _responseRepo.GetByApplicationIdAndTimingAsync(applicationId, "AtApplication", Arg.Any<CancellationToken>())
+            .Returns(new List<ScreeningQuestionResponse>());
+
+        _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(true); // This is the key difference
+
+        // Act
+        await _service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert
+        result.Outcome.Should().Be(ScreeningOutcome.AutoAdvanced);
+        await _statusUpdater.Received(1).UpdateStatusAsync(
+            applicationId, "Assessment", null, null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessScreeningAsync_MidScore_QueueForReview_QueuesManualReview()
+    {
+        // Arrange — score between thresholds + QueueForReview policy → ManualReview outcome
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = CreateResult(applicationId);
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null); // defaults: threshold 70/30, QueueForReview
+
+        List<CriteriaSnapshot> criteria =
+        [
+            new CriteriaSnapshot
+            {
+                Id = Guid.NewGuid(), Name = "Skills", Category = "Skill",
+                EvaluationMethod = "ExactMatch", IsRequired = true, Weight = 100,
+                Configuration = """{"skill_name": "C#"}"""
+            }
+        ];
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(criteria);
+
+        ApplicantDataSnapshot applicant = new() { UserId = applicantUserId };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(criteria, applicant, Arg.Any<CancellationToken>())
+            .Returns(new ScoringResult { OverallScore = 50m, Breakdown = [] });
+
+        _responseRepo.GetByApplicationIdAndTimingAsync(applicationId, "AtApplication", Arg.Any<CancellationToken>())
+            .Returns(new List<ScreeningQuestionResponse>());
+
+        // Act
+        await _service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert
+        result.Outcome.Should().Be(ScreeningOutcome.ManualReview);
+        result.MatchStrength.Should().Be(MatchStrength.Moderate); // 40-59 range
+        await _statusUpdater.Received(1).UpdateStatusAsync(
+            applicationId, "Screening", null, null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessScreeningAsync_ScoreExactlyAtAdvanceThreshold_AutoAdvances()
+    {
+        // Arrange — score exactly at the threshold boundary (>=)
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = CreateResult(applicationId);
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null); // default threshold = 70
+
+        List<CriteriaSnapshot> criteria =
+        [
+            new CriteriaSnapshot
+            {
+                Id = Guid.NewGuid(), Name = "C#", Category = "Skill",
+                EvaluationMethod = "ExactMatch", IsRequired = true, Weight = 100,
+                Configuration = """{"skill_name": "C#"}"""
+            }
+        ];
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(criteria);
+
+        ApplicantDataSnapshot applicant = new() { UserId = applicantUserId };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(criteria, applicant, Arg.Any<CancellationToken>())
+            .Returns(new ScoringResult { OverallScore = 70m, Breakdown = [] }); // exactly at threshold
+
+        _responseRepo.GetByApplicationIdAndTimingAsync(applicationId, "AtApplication", Arg.Any<CancellationToken>())
+            .Returns(new List<ScreeningQuestionResponse>());
+
+        _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert — score >= threshold means AutoAdvanced
+        result.Outcome.Should().Be(ScreeningOutcome.AutoAdvanced);
+        await _statusUpdater.Received(1).UpdateStatusAsync(
+            applicationId, "Shortlisted", null, null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessScreeningAsync_ScoreExactlyAtRejectThreshold_AutoRejects()
+    {
+        // Arrange — score exactly at the reject boundary (<=)
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = CreateResult(applicationId);
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null); // default threshold = 30
+
+        List<CriteriaSnapshot> criteria =
+        [
+            new CriteriaSnapshot
+            {
+                Id = Guid.NewGuid(), Name = "C#", Category = "Skill",
+                EvaluationMethod = "ExactMatch", IsRequired = true, Weight = 100,
+                Configuration = """{"skill_name": "C#"}"""
+            }
+        ];
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(criteria);
+
+        ApplicantDataSnapshot applicant = new() { UserId = applicantUserId };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(criteria, applicant, Arg.Any<CancellationToken>())
+            .Returns(new ScoringResult { OverallScore = 30m, Breakdown = [] }); // exactly at threshold
+
+        _responseRepo.GetByApplicationIdAndTimingAsync(applicationId, "AtApplication", Arg.Any<CancellationToken>())
+            .Returns(new List<ScreeningQuestionResponse>());
+
+        // Act
+        await _service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert — score <= threshold means AutoRejected
+        result.Outcome.Should().Be(ScreeningOutcome.AutoRejected);
+        await _statusUpdater.Received(1).UpdateStatusAsync(
+            applicationId, "Rejected", Arg.Any<string>(), "Screening", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessScreeningAsync_PipelineException_SetsStatusFailed()
+    {
+        // Arrange — deterministic engine throws → result is marked Failed with reason
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = CreateResult(applicationId);
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null);
+
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(new List<CriteriaSnapshot>());
+
+        ApplicantDataSnapshot applicant = new() { UserId = applicantUserId };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(Arg.Any<List<CriteriaSnapshot>>(), applicant, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Scoring engine failed"));
+
+        // Act
+        await _service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert
+        result.Status.Should().Be(ScreeningStatus.Failed);
+        result.FailureReason.Should().Contain("Scoring engine failed");
+    }
+
+    [Fact]
     public async Task ProcessScreeningAsync_NoApplicantData_MarksFailed()
     {
         // Arrange
@@ -445,5 +679,233 @@ public sealed class ScreeningServiceTests
         response.ReviewedBy.Should().Be(reviewerId);
         response.AutoAdvanceThreshold.Should().Be(70m);
         response.AutoRejectThreshold.Should().Be(30m);
+    }
+
+    // ─── RescoreApplicationAsync ─────────────────────────────────────────
+
+    [Fact]
+    public async Task RescoreApplicationAsync_CompletedResult_ResetsFieldsAndRerunsScoring()
+    {
+        // Arrange
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = new()
+        {
+            ApplicationId = applicationId,
+            Status = ScreeningStatus.Completed,
+            OverallScore = 85m,
+            MatchStrength = Jobsite.Modules.Screening.Domain.Constants.MatchStrength.Strong,
+            Outcome = ScreeningOutcome.AutoAdvanced,
+            CriteriaScoreBreakdown = """[{"score": 85}]""",
+            AiOverallScore = 80m,
+            AiCriteriaScoreBreakdown = """[{"ai_score": 80}]""",
+            QuestionScoreBreakdown = """[{"q": 1}]""",
+            CandidateFeedback = "Strong match",
+            ReviewedBy = Guid.NewGuid(),
+            ReviewedAt = DateTime.UtcNow,
+            ReviewNotes = "Old notes",
+            FailureReason = null,
+            StartedAt = DateTime.UtcNow.AddMinutes(-5),
+            CompletedAt = DateTime.UtcNow
+        };
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null);
+
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(new List<CriteriaSnapshot>());
+
+        ApplicantDataSnapshot applicant = new() { UserId = applicantUserId };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(Arg.Any<List<CriteriaSnapshot>>(), applicant, Arg.Any<CancellationToken>())
+            .Returns(new ScoringResult { OverallScore = 55m, Breakdown = [] });
+
+        _responseRepo.GetByApplicationIdAndTimingAsync(applicationId, "AtApplication", Arg.Any<CancellationToken>())
+            .Returns(new List<ScreeningQuestionResponse>());
+
+        _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _service.RescoreApplicationAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert — old fields were reset and new pipeline result is applied
+        result.OverallScore.Should().Be(55m);
+        result.AiOverallScore.Should().BeNull();
+        result.AiCriteriaScoreBreakdown.Should().BeNull();
+        result.ReviewedBy.Should().BeNull();
+        result.ReviewedAt.Should().BeNull();
+        result.ReviewNotes.Should().BeNull();
+        result.Status.Should().Be(ScreeningStatus.Completed);
+    }
+
+    [Fact]
+    public async Task RescoreApplicationAsync_FailedResult_CanBeRescored()
+    {
+        // Arrange
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = new()
+        {
+            ApplicationId = applicationId,
+            Status = ScreeningStatus.Failed,
+            FailureReason = "Previous error"
+        };
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null);
+
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(new List<CriteriaSnapshot>());
+
+        ApplicantDataSnapshot applicant = new() { UserId = applicantUserId };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(Arg.Any<List<CriteriaSnapshot>>(), applicant, Arg.Any<CancellationToken>())
+            .Returns(new ScoringResult { OverallScore = 90m, Breakdown = [] });
+
+        _responseRepo.GetByApplicationIdAndTimingAsync(applicationId, "AtApplication", Arg.Any<CancellationToken>())
+            .Returns(new List<ScreeningQuestionResponse>());
+
+        _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _service.RescoreApplicationAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert — previously failed result is now successfully completed with new score
+        result.Status.Should().Be(ScreeningStatus.Completed);
+        result.OverallScore.Should().Be(90m);
+        result.FailureReason.Should().BeNull();
+        result.Outcome.Should().Be(ScreeningOutcome.AutoAdvanced);
+    }
+
+    [Fact]
+    public async Task RescoreApplicationAsync_PendingResult_ThrowsUnprocessable()
+    {
+        // Arrange
+        Guid applicationId = Guid.NewGuid();
+
+        ScreeningResult result = new()
+        {
+            ApplicationId = applicationId,
+            Status = ScreeningStatus.Pending
+        };
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        // Act
+        Func<Task> act = () => _service.RescoreApplicationAsync(
+            applicationId, Guid.NewGuid(), Guid.NewGuid(), null, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<AppError>()
+            .Where(e => e.StatusCode == 422);
+    }
+
+    [Fact]
+    public async Task RescoreApplicationAsync_InProgressResult_ThrowsUnprocessable()
+    {
+        // Arrange
+        Guid applicationId = Guid.NewGuid();
+
+        ScreeningResult result = new()
+        {
+            ApplicationId = applicationId,
+            Status = ScreeningStatus.InProgress
+        };
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        // Act
+        Func<Task> act = () => _service.RescoreApplicationAsync(
+            applicationId, Guid.NewGuid(), Guid.NewGuid(), null, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<AppError>()
+            .Where(e => e.StatusCode == 422);
+    }
+
+    [Fact]
+    public async Task RescoreApplicationAsync_NotFound_ThrowsNotFound()
+    {
+        // Arrange
+        Guid applicationId = Guid.NewGuid();
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns((ScreeningResult?)null);
+
+        // Act
+        Func<Task> act = () => _service.RescoreApplicationAsync(
+            applicationId, Guid.NewGuid(), Guid.NewGuid(), null, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<AppError>()
+            .Where(e => e.StatusCode == 404);
+    }
+
+    [Fact]
+    public async Task RescoreApplicationAsync_ChangesRouting_WhenNewScoreCrossesThreshold()
+    {
+        // Arrange — was AutoRejected (score 25), now rescores to 80 → AutoAdvanced
+        Guid applicationId = Guid.NewGuid();
+        Guid jobPostingId = Guid.NewGuid();
+        Guid applicantUserId = Guid.NewGuid();
+
+        ScreeningResult result = new()
+        {
+            ApplicationId = applicationId,
+            Status = ScreeningStatus.Completed,
+            OverallScore = 25m,
+            Outcome = ScreeningOutcome.AutoRejected,
+            AutoAdvanceThreshold = 70m,
+            AutoRejectThreshold = 30m
+        };
+
+        _resultRepo.GetByApplicationIdForUpdateAsync(applicationId, Arg.Any<CancellationToken>())
+            .Returns(result);
+
+        _settingsReader.GetSettingAsync<object>(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((object?)null);
+
+        _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(new List<CriteriaSnapshot>());
+
+        ApplicantDataSnapshot applicant = new() { UserId = applicantUserId };
+        _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
+            .Returns(applicant);
+
+        _deterministicEngine.ScoreAsync(Arg.Any<List<CriteriaSnapshot>>(), applicant, Arg.Any<CancellationToken>())
+            .Returns(new ScoringResult { OverallScore = 80m, Breakdown = [] });
+
+        _responseRepo.GetByApplicationIdAndTimingAsync(applicationId, "AtApplication", Arg.Any<CancellationToken>())
+            .Returns(new List<ScreeningQuestionResponse>());
+
+        _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // Act
+        await _service.RescoreApplicationAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
+
+        // Assert — routing changed from AutoRejected → AutoAdvanced (Shortlisted)
+        result.Outcome.Should().Be(ScreeningOutcome.AutoAdvanced);
+        result.OverallScore.Should().Be(80m);
+        await _statusUpdater.Received(1).UpdateStatusAsync(
+            applicationId, "Shortlisted", Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 }

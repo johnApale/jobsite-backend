@@ -231,6 +231,44 @@ public sealed class ScreeningService : IScreeningService
         return MapToResponse(result);
     }
 
+    public async Task RescoreApplicationAsync(
+        Guid applicationId, Guid jobPostingId, Guid applicantUserId, Guid? resumeId,
+        CancellationToken ct = default)
+    {
+        ScreeningResult? result = await _resultRepository.GetByApplicationIdForUpdateAsync(applicationId, ct);
+        if (result is null)
+            throw AppErrors.ScreeningResultNotFound;
+
+        if (result.Status is not (ScreeningStatus.Completed or ScreeningStatus.Failed))
+            throw AppErrors.UnprocessableEntity.WithMessage(
+                "Only completed or failed screenings can be rescored");
+
+        // Reset scoring fields
+        result.OverallScore = null;
+        result.MatchStrength = null;
+        result.Outcome = null;
+        result.CriteriaScoreBreakdown = null;
+        result.AiCriteriaScoreBreakdown = null;
+        result.AiOverallScore = null;
+        result.QuestionScoreBreakdown = null;
+        result.CandidateFeedback = null;
+        result.ReviewedBy = null;
+        result.ReviewedAt = null;
+        result.ReviewNotes = null;
+        result.FailureReason = null;
+        result.StartedAt = null;
+        result.CompletedAt = null;
+        result.Status = ScreeningStatus.Pending;
+
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Rescoring triggered for application {ApplicationId}, job {JobPostingId}",
+            applicationId, jobPostingId);
+
+        await ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, resumeId, ct);
+    }
+
     private async Task RouteApplicationAsync(
         ScreeningResult result, Guid jobPostingId, ScreeningConfig config,
         CancellationToken ct)

@@ -15,4 +15,7 @@ public interface IScreeningService
 
     Task<ScreeningResultResponse> ManualReviewAsync(Guid applicationId,
         ManualReviewRequest request, Guid reviewerId, CancellationToken ct = default);
+
+    Task RescoreApplicationAsync(Guid applicationId, Guid jobPostingId,
+        Guid applicantUserId, Guid? resumeId, CancellationToken ct = default);
 }

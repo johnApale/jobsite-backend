@@ -36,6 +36,9 @@
     <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Domain\Jobsite.Modules.Admin.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Application\Jobsite.Modules.Admin.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Infrastructure\Jobsite.Modules.Admin.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Domain\Jobsite.Modules.Screening.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Application\Jobsite.Modules.Screening.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Infrastructure\Jobsite.Modules.Screening.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

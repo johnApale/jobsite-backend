@@ -97,3 +97,46 @@
 | Unit Tests                  | 56 tests: ProfileService, ResumeService, validators, event handler, constants, AI parser client.                                     |
 | Architecture Tests          | 5 Profiles layer dependency tests added to `LayerDependencyTests.cs`; module isolation already covered by `ModuleIsolationTests.cs`. |
 | IUnitOfWork Disambiguation  | Keyed service: `AddKeyedScoped<IUnitOfWork>("profiles")` with `[FromKeyedServices]`.                                                 |
+
+---
+
+## Testing — Deferred Until AI Service Is Running
+
+> These tests require the AI Service (Python/FastAPI) to be operational. They cannot be written as unit tests with mocks — they validate the real integration contracts, end-to-end pipelines, and the AI Service's own behavior.
+
+### AI Service Contract Tests (C# → Python)
+
+| Item                                       | Description                                                                                                                                                               |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI Scoring Client Contract Test            | `AiScoringClient.EvaluateAsync` against real `/api/v1/scoring/evaluate` — verify request/response JSON shape, snake_case contract, and score ranges (0–100).              |
+| AI Answer Scoring Client Contract Test     | `AiAnswerScoringClient.ScoreAnswersAsync` against real `/api/v1/scoring/answers` — verify free-text answer scores are returned with `ScoreResult` and `ScoreReasoning`.   |
+| AI Candidate Feedback Client Contract Test | `AiCandidateFeedbackClient.GenerateFeedbackAsync` against real `/api/v1/feedback/generate` — verify transparency levels (Summary vs Detailed) produce different output.   |
+| AI Resume Parser Client Contract Test      | `AiResumeParserClient.ParseAsync` against real `/api/v1/parsing/resume` — verify parsed skills, experience, and education are returned in expected structure.             |
+| AI Criteria Suggester Client Contract Test | `AiCriteriaSuggesterClient.SuggestAsync` against real `/api/v1/suggestions/criteria` — verify suggestions contain valid `CriteriaCategory` and `EvaluationMethod` values. |
+| AI Question Suggester Client Contract Test | `AiQuestionSuggesterClient.SuggestAsync` against real `/api/v1/suggestions/questions` — verify suggestions contain valid `QuestionType` and `QuestionTiming` values.      |
+
+### End-to-End Screening Pipeline
+
+| Item                                   | Description                                                                                                                                                       |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Full Screening Pipeline E2E            | Submit application → deterministic scoring + AI scoring → three-tier routing → assessment submission → candidate feedback generation. Full pipeline with real AI. |
+| AI Scoring vs Deterministic Comparison | Verify `AiOverallScore` and `OverallScore` are independently populated and can differ. Validate both breakdowns are stored correctly in JSONB.                    |
+| Candidate Feedback E2E                 | Enable transparency → run screening → verify `CandidateFeedback` JSONB is populated with AI-generated text at the configured transparency level.                  |
+
+### AI Interview Service Integration (Broker)
+
+| Item                                | Description                                                                                                                                                      |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CandidateReadyForInterviewEvent E2E | Publish event via MassTransit → AI Service consumes from RabbitMQ/Azure Service Bus → verify interview session created in AI Service DB.                         |
+| InterviewCompletedEvent E2E         | AI Service publishes completion event → .NET monolith consumes → verify application status updated and `InterviewCompletedEvent` audit log entry created.        |
+| Broker Serialization Contract Test  | Verify `CandidateReadyForInterviewEvent` and `InterviewCompletedEvent` snake_case JSON matches Python Pydantic model expectations. Uses Testcontainers RabbitMQ. |
+
+### AI Service pytest Suite (`ai-service/tests/`)
+
+| Item                          | Description                                                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| FastAPI Endpoint Tests        | pytest + httpx `AsyncClient` tests for all AI Service endpoints (scoring, feedback, parsing, suggestions).                               |
+| SQLAlchemy Model Tests        | Verify Alembic migrations create correct tables (`interview_sessions`, `interview_questions`, etc.) against Testcontainers PostgreSQL.   |
+| AI Provider Integration Tests | Test AI provider abstraction (OpenAI/Azure OpenAI) with mock responses — verify prompt construction, token limits, and response parsing. |
+| Message Broker Consumer Tests | Test `CandidateReadyForInterviewEvent` consumer creates interview session with correct tenant filtering and question generation.         |
+| Tenant ID Filtering Tests     | Verify shared-database tenant isolation — write via tenant A, query via tenant B → zero results.                                         |

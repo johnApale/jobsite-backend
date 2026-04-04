@@ -249,4 +249,220 @@ public sealed class QuestionScoringServiceTests
         scores.Should().HaveCount(1);
         scores[0].Score.Should().Be(0m);
     }
+
+    // ─── MultipleChoice: partial credit with incorrect selections ────────
+
+    [Fact]
+    public async Task ScoreResponsesAsync_MultipleChoice_PartialCreditWithIncorrect_PenalizesScore()
+    {
+        // Arrange — selected 2 correct + 1 incorrect out of 3 correct, with partial credit
+        // Formula: max(0, (correctCount - incorrectCount) / totalCorrect * 100) = max(0, (2-1)/3*100) = 33.33
+        Guid questionId = Guid.NewGuid();
+        List<ScreeningQuestionResponse> responses =
+        [
+            CreateResponse(questionId,
+                responseData: """{"selected_options": [0, 1, 3]}""")
+        ];
+        List<QuestionSnapshot> questions =
+        [
+            CreateQuestion(questionId, "MultipleChoice",
+                expectedAnswer: """{"correct_options": [0, 1, 2], "partial_credit": true}""")
+        ];
+
+        // Act
+        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+
+        // Assert — 2 correct, 1 incorrect → (2-1)/3 * 100 = 33.33
+        scores.Should().HaveCount(1);
+        scores[0].Score.Should().Be(33.33m);
+    }
+
+    [Fact]
+    public async Task ScoreResponsesAsync_MultipleChoice_AllOrNothing_WrongAnswer_ReturnsZero()
+    {
+        // Arrange — partial_credit=false, one option missing → 0
+        Guid questionId = Guid.NewGuid();
+        List<ScreeningQuestionResponse> responses =
+        [
+            CreateResponse(questionId,
+                responseData: """{"selected_options": [0]}""")
+        ];
+        List<QuestionSnapshot> questions =
+        [
+            CreateQuestion(questionId, "MultipleChoice",
+                expectedAnswer: """{"correct_options": [0, 2], "partial_credit": false}""")
+        ];
+
+        // Act
+        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+
+        // Assert — partial_credit=false, not exact match → 0
+        scores.Should().HaveCount(1);
+        scores[0].Score.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task ScoreResponsesAsync_MultipleChoice_NoneSelected_ReturnsZero()
+    {
+        // Arrange
+        Guid questionId = Guid.NewGuid();
+        List<ScreeningQuestionResponse> responses =
+        [
+            CreateResponse(questionId,
+                responseData: """{"selected_options": []}""")
+        ];
+        List<QuestionSnapshot> questions =
+        [
+            CreateQuestion(questionId, "MultipleChoice",
+                expectedAnswer: """{"correct_options": [0, 1], "partial_credit": true}""")
+        ];
+
+        // Act
+        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+
+        // Assert
+        scores.Should().HaveCount(1);
+        scores[0].Score.Should().Be(0m);
+    }
+
+    // ─── FreeText: AI applies scores to response entities ───────────────
+
+    [Fact]
+    public async Task ScoreResponsesAsync_FreeText_AiScoresAppliedToResponseEntity()
+    {
+        // Arrange — verify that ApplyScore sets Score, ScoreResult, ScoreReasoning, and ScoredAt
+        Guid questionId = Guid.NewGuid();
+        ScreeningQuestionResponse response = CreateResponse(questionId,
+            responseText: "I have 5 years of C# experience");
+        List<ScreeningQuestionResponse> responses = [response];
+        List<QuestionSnapshot> questions =
+        [
+            CreateQuestion(questionId, "FreeText",
+                expectedAnswer: """{"scoring_guidance": "Look for years", "key_topics": ["C#"]}""")
+        ];
+
+        List<AnswerScore> aiScores =
+        [
+            new AnswerScore
+            {
+                QuestionId = questionId,
+                Score = 75m,
+                Result = ScoreResult.PartialMatch,
+                Reasoning = "Good experience but limited specifics"
+            }
+        ];
+
+        _aiClient.ScoreAnswersAsync(Arg.Any<List<AnswerScoringRequest>>(), Arg.Any<CancellationToken>())
+            .Returns(aiScores);
+
+        // Act
+        await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+
+        // Assert — response entity was mutated with score data
+        response.Score.Should().Be(75m);
+        response.ScoreResult.Should().Be(ScoreResult.PartialMatch);
+        response.ScoreReasoning.Should().Be("Good experience but limited specifics");
+        response.ScoredAt.Should().NotBeNull();
+    }
+
+    // ─── Deterministic scoring also applies to response entities ────────
+
+    [Fact]
+    public async Task ScoreResponsesAsync_YesNo_AppliesScoreToResponseEntity()
+    {
+        // Arrange — verify that deterministic scoring also calls ApplyScore
+        Guid questionId = Guid.NewGuid();
+        ScreeningQuestionResponse response = CreateResponse(questionId,
+            responseData: """{"answer": true}""");
+        List<ScreeningQuestionResponse> responses = [response];
+        List<QuestionSnapshot> questions =
+        [
+            CreateQuestion(questionId, "YesNo", expectedAnswer: """{"correct": true}""")
+        ];
+
+        // Act
+        await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+
+        // Assert — response entity has score fields set
+        response.Score.Should().Be(100m);
+        response.ScoreResult.Should().Be(ScoreResult.MeetsRequirement);
+        response.ScoreReasoning.Should().Be("Correct answer");
+        response.ScoredAt.Should().NotBeNull();
+    }
+
+    // ─── Mixed question types in single batch ───────────────────────────
+
+    [Fact]
+    public async Task ScoreResponsesAsync_MixedTypes_ScoresAllDeterministicallyAndDelegatesFreeText()
+    {
+        // Arrange — YesNo + MC + FreeText in a single batch
+        Guid yesNoId = Guid.NewGuid();
+        Guid mcId = Guid.NewGuid();
+        Guid freeTextId = Guid.NewGuid();
+
+        List<ScreeningQuestionResponse> responses =
+        [
+            CreateResponse(yesNoId, responseData: """{"answer": true}"""),
+            CreateResponse(mcId, responseData: """{"selected_options": [0, 2]}"""),
+            CreateResponse(freeTextId, responseText: "My experience spans 5 years")
+        ];
+
+        List<QuestionSnapshot> questions =
+        [
+            CreateQuestion(yesNoId, "YesNo", expectedAnswer: """{"correct": true}"""),
+            CreateQuestion(mcId, "MultipleChoice",
+                expectedAnswer: """{"correct_options": [0, 2], "partial_credit": false}"""),
+            CreateQuestion(freeTextId, "FreeText",
+                expectedAnswer: """{"scoring_guidance": "Look for experience"}""")
+        ];
+
+        List<AnswerScore> aiScores =
+        [
+            new AnswerScore
+            {
+                QuestionId = freeTextId, Score = 60m,
+                Result = ScoreResult.PartialMatch, Reasoning = "Decent experience"
+            }
+        ];
+
+        _aiClient.ScoreAnswersAsync(
+            Arg.Is<List<AnswerScoringRequest>>(r => r.Count == 1 && r[0].QuestionId == freeTextId),
+            Arg.Any<CancellationToken>())
+            .Returns(aiScores);
+
+        // Act
+        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+
+        // Assert — 3 scores total: YesNo=100, MC=100, FreeText=60
+        scores.Should().HaveCount(3);
+        scores.Should().Contain(s => s.QuestionId == yesNoId && s.Score == 100m);
+        scores.Should().Contain(s => s.QuestionId == mcId && s.Score == 100m);
+        scores.Should().Contain(s => s.QuestionId == freeTextId && s.Score == 60m);
+    }
+
+    // ─── Malformed JSON ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ScoreResponsesAsync_MultipleChoice_MalformedJson_ReturnsMissingScore()
+    {
+        // Arrange
+        Guid questionId = Guid.NewGuid();
+        List<ScreeningQuestionResponse> responses =
+        [
+            CreateResponse(questionId, responseData: "not-valid-json")
+        ];
+        List<QuestionSnapshot> questions =
+        [
+            CreateQuestion(questionId, "MultipleChoice",
+                expectedAnswer: """{"correct_options": [0], "partial_credit": false}""")
+        ];
+
+        // Act
+        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+
+        // Assert — fails gracefully with 0 score
+        scores.Should().HaveCount(1);
+        scores[0].Score.Should().Be(0m);
+        scores[0].Result.Should().Be(ScoreResult.Missing);
+    }
 }
