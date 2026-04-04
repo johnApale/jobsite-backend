@@ -15,6 +15,8 @@ using Jobsite.Modules.Admin.Infrastructure;
 using Jobsite.Modules.Admin.Infrastructure.Persistence;
 using Jobsite.Modules.Profiles.Infrastructure;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence;
+using Jobsite.Modules.Recruitment.Infrastructure;
+using Jobsite.Modules.Recruitment.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using FluentValidation;
@@ -76,6 +78,7 @@ public static class ModuleServiceCollectionExtensions
             cfg.RegisterServicesFromAssemblyContaining<AuthDbContext>();
             cfg.RegisterServicesFromAssemblyContaining<AdminDbContext>();
             cfg.RegisterServicesFromAssemblyContaining<ProfilesDbContext>();
+            cfg.RegisterServicesFromAssemblyContaining<RecruitmentDbContext>();
 
             cfg.AddOpenBehavior(typeof(LoggingPipelineBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
@@ -127,7 +130,7 @@ public static class ModuleServiceCollectionExtensions
         services.AddAuthModule(configuration);
         services.AddAdminModule(configuration);
         services.AddProfilesModule(configuration);
-        // services.AddRecruitmentModule(configuration);
+        services.AddRecruitmentModule(configuration);
         // services.AddScreeningModule(configuration);
         // services.AddMatchingModule(configuration);
         // services.AddHRWorkflowsModule(configuration);
