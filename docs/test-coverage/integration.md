@@ -1,0 +1,295 @@
+# Integration Tests Coverage
+
+← [Test Coverage](README.md)
+
+> All integration tests run against real PostgreSQL via Testcontainers. Docker must be running.
+
+---
+
+## Fixture Infrastructure
+
+- `CatalogIntegrationFixture` — spins up a `postgres:16-alpine` container, creates `CatalogDbContext`, runs migrations. Exposes `ConnectionString` property for provisioning tests that need direct database access.
+- `CatalogIntegrationCollection` — xUnit `[Collection("Catalog")]` for shared container across test classes
+- `IntegrationTestData` — factory with unique-per-test names/subdomains to avoid collisions
+
+---
+
+## Tenancy
+
+### `TenantRepositoryTests` (12 tests)
+
+Tests `TenantRepository` against a real PostgreSQL database. Validates that EF Core configurations, snake_case column mapping, CHECK constraints, and unique indexes work correctly end-to-end.
+
+| Test                                                           | What It Verifies                                                                      | Expected Outcome                                                           |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `Add_ValidTenant_PersistsToDatabase`                           | `Add()` + `SaveChangesAsync()` inserts a row with DB-assigned UUID and timestamps     | Re-queried tenant has non-empty `Id`, `CreatedAt`/`UpdatedAt` close to now |
+| `GetBySubdomainAsync_ExistingTenant_ReturnsTenantWithBranding` | Subdomain lookup eager-loads the branding navigation property                         | Tenant returned with non-null `Branding`, correct `PrimaryColor`           |
+| `GetBySubdomainAsync_NonExistent_ReturnsNull`                  | Missing subdomain returns null, not an exception                                      | Returns `null`                                                             |
+| `GetByIdAsync_ExistingTenant_ReturnsTenant`                    | ID-based lookup returns the correct tenant                                            | Name matches                                                               |
+| `GetByIdAsync_NonExistentId_ReturnsNull`                       | Random GUID returns null                                                              | Returns `null`                                                             |
+| `SubdomainExistsAsync_ExistingSubdomain_ReturnsTrue`           | Existence check for a persisted subdomain                                             | Returns `true`                                                             |
+| `SubdomainExistsAsync_NonExistent_ReturnsFalse`                | Existence check for a missing subdomain                                               | Returns `false`                                                            |
+| `NameExistsAsync_ExistingName_ReturnsTrue`                     | Existence check for a persisted company name                                          | Returns `true`                                                             |
+| `NameExistsAsync_NonExistent_ReturnsFalse`                     | Existence check for a missing company name                                            | Returns `false`                                                            |
+| `Add_DuplicateSubdomain_ThrowsDbUpdateException`               | Unique index `ix_tenants_subdomain` rejects duplicate subdomains                      | Throws `DbUpdateException`                                                 |
+| `Add_DuplicateName_ThrowsDbUpdateException`                    | Unique index `ix_tenants_name` rejects duplicate company names                        | Throws `DbUpdateException`                                                 |
+| `Add_InvalidStatus_ThrowsDbUpdateException`                    | CHECK constraint `chk_tenants_status` rejects invalid status values (e.g., "Deleted") | Throws `DbUpdateException`                                                 |
+
+**Why:** Unit tests with mocked repositories can't catch EF Core configuration bugs — wrong column types, missing indexes, misconfigured relationships, or CHECK constraint mismatches only surface against a real database. These tests prove that the migration, entity configurations, and repository queries actually work against PostgreSQL. The constraint tests (`DuplicateSubdomain`, `DuplicateName`, `InvalidStatus`) are particularly important because they validate that the database enforces invariants the application layer assumes.
+
+**Prerequisite:** Docker must be running. Testcontainers automatically pulls and manages the PostgreSQL container.
+
+---
+
+### `TenantProvisioningTests` (3 tests)
+
+Tests `TenantProvisioner` against a real PostgreSQL container. Validates that tenant database provisioning creates actual databases with correct connection strings and status transitions.
+
+| Test                                                      | What It Verifies                                                                          | Expected Outcome                                                                                 |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `ProvisionAsync_ValidTenant_CreatesDatabaseAndSetsActive` | Provisioning creates a real PostgreSQL database and transitions tenant to `Active` status | Database exists, status is `Active`, `ConnectionString` contains DB name, `ProvisionedAt` is set |
+| `ProvisionAsync_TwoTenants_GetDistinctDatabases`          | Two provisioned tenants get separate databases with distinct connection strings           | Each tenant has its own database and connection string; both databases exist                     |
+| `ProvisionAsync_NonExistentTenant_ThrowsTenantNotFound`   | Provisioning a non-existent tenant ID throws an error                                     | Throws exception                                                                                 |
+
+**Why:** Tenant database isolation is a security-critical feature. These tests verify that `CREATE DATABASE` actually executes against PostgreSQL, that connection strings resolve correctly, and that two tenants never share a database. The distinct-databases test is the primary guard against cross-tenant data leakage.
+
+**Cleanup:** Tests clean up created databases (`DROP DATABASE`) in `DisposeAsync` to avoid polluting the test container.
+
+---
+
+## Auth Module
+
+### Fixture
+
+- `AuthIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `AuthDbContext`, runs `InitialAuthSchema` migration. Exposes `ConnectionString` property for direct database access.
+- `AuthIntegrationCollection` — xUnit `[Collection("Auth")]` for shared container across Auth test classes
+
+### `UserRepositoryTests` (14 tests)
+
+Tests `UserRepository` against a real PostgreSQL database. Validates EF Core configurations, snake_case mapping, CHECK constraints, unique indexes, and query behavior for the `auth.users` table.
+
+| Test                                                                     | What It Verifies                                                                     | Expected Outcome                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `Add_ValidUser_PersistsToDatabase`                                       | `Add()` + `SaveChangesAsync()` inserts a user with DB-assigned UUID and timestamps   | Re-queried user has non-empty `Id`, `CreatedAt`/`UpdatedAt` close to now |
+| `GetByIdAsync_ExistingUser_ReturnsUser`                                  | ID-based lookup returns the correct user                                             | Email matches                                                            |
+| `GetByIdAsync_NonExistentId_ReturnsNull`                                 | Random GUID returns null, not exception                                              | Returns `null`                                                           |
+| `GetByEmailAsync_ExistingEmail_ReturnsUser`                              | Email-based lookup returns the correct user                                          | Email matches                                                            |
+| `GetByEmailAsync_NonExistentEmail_ReturnsNull`                           | Missing email returns null                                                           | Returns `null`                                                           |
+| `GetByEmailForUpdateAsync_ExistingEmail_ReturnsTrackedUser`              | Returns a tracked (not `AsNoTracking`) user for mutation                             | Entity is in change tracker                                              |
+| `EmailExistsAsync_ExistingEmail_ReturnsTrue`                             | Existence check for a persisted email                                                | Returns `true`                                                           |
+| `EmailExistsAsync_NonExistentEmail_ReturnsFalse`                         | Existence check for a missing email                                                  | Returns `false`                                                          |
+| `GetByExternalLoginAsync_ExistingProvider_ReturnsUserWithExternalLogins` | OAuth lookup by provider + subject ID returns user with eager-loaded external logins | User has 1 external login with matching subject ID                       |
+| `GetByExternalLoginAsync_NonExistentProvider_ReturnsNull`                | Missing provider/subject returns null                                                | Returns `null`                                                           |
+| `Add_DuplicateEmail_ThrowsDbUpdateException`                             | Unique index `ix_users_email` rejects duplicate emails                               | Throws `DbUpdateException`                                               |
+| `Add_InvalidRole_ThrowsDbUpdateException`                                | CHECK constraint `chk_users_role` rejects invalid role (e.g., "SuperAdmin")          | Throws `DbUpdateException`                                               |
+| `Add_InvalidStatus_ThrowsDbUpdateException`                              | CHECK constraint `chk_users_status` rejects invalid status (e.g., "Banned")          | Throws `DbUpdateException`                                               |
+| `Add_AllValidRoles_PersistSuccessfully`                                  | All 5 valid roles pass the CHECK constraint                                          | No exception thrown                                                      |
+| `Add_AllValidStatuses_PersistSuccessfully`                               | All 3 valid statuses pass the CHECK constraint                                       | No exception thrown                                                      |
+
+**Why:** Repository integration tests against real PostgreSQL catch EF Core misconfigurations that unit tests with mocked repositories cannot — wrong column types, missing indexes, broken relationships, or CHECK constraint mismatches. The `GetByEmailForUpdateAsync` tracking test ensures mutations won't silently fail due to `AsNoTracking`.
+
+---
+
+### `RefreshTokenRepositoryTests` (7 tests)
+
+Tests `RefreshTokenRepository` against a real PostgreSQL database. Validates token persistence, hash lookups, family-based revocation logic, unique constraints, and cascade behavior.
+
+| Test                                                         | What It Verifies                                                                           | Expected Outcome                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `Add_ValidToken_PersistsToDatabase`                          | Token persists with correct `UserId`, `TokenHash`, `FamilyId`, and defaults                | Re-queried token exists, `IsRevoked` is false          |
+| `GetByTokenHashAsync_ExistingHash_ReturnsToken`              | Hash-based lookup returns the correct token                                                | `TokenHash` and `UserId` match                         |
+| `GetByTokenHashAsync_NonExistentHash_ReturnsNull`            | Missing hash returns null                                                                  | Returns `null`                                         |
+| `RevokeFamilyAsync_MultipleFamilyTokens_RevokesAllInFamily`  | Family revocation revokes all tokens in the target family but not tokens in other families | Family tokens revoked, other family's tokens untouched |
+| `RevokeFamilyAsync_AlreadyRevokedTokens_SkipsAlreadyRevoked` | Already-revoked tokens are ignored, only active tokens in the family are revoked           | Active token gets revoked                              |
+| `Add_DuplicateTokenHash_ThrowsDbUpdateException`             | Unique index `ix_refresh_tokens_token_hash` rejects duplicate hashes                       | Throws `DbUpdateException`                             |
+| `CascadeDelete_WhenUserDeleted_DeletesRefreshTokens`         | Deleting a user cascade-deletes all their refresh tokens                                   | Token no longer found after user deletion              |
+
+**Why:** The refresh token family revocation is the core of replay detection — if a stolen token is reused, the entire family must be revoked. These tests validate that the SQL `WHERE family_id = @id AND is_revoked = false` query works correctly against real PostgreSQL, and that cascade deletes properly clean up tokens when a user is removed.
+
+---
+
+### `AuthDbContextTests` (5 tests)
+
+Tests AuthDbContext schema creation, table mapping, default values, and relationship behavior.
+
+| Test                                                      | What It Verifies                                                                  | Expected Outcome                                         |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `Schema_AuthSchemaExists`                                 | The `auth` PostgreSQL schema is created by the migration                          | Schema `auth` found in `information_schema.schemata`     |
+| `Users_DefaultValues_AppliedByDatabase`                   | `id`, `email_verified`, `created_at`, `updated_at` defaults are applied by the DB | UUID generated, `false` default, timestamps close to now |
+| `Users_ExternalLoginCascade_DeletesLoginWhenUserDeleted`  | Cascade delete removes external logins when user is deleted                       | Login record no longer found                             |
+| `ExternalLogins_UniqueProviderPerUser_EnforcedByDatabase` | Unique index on (provider, subject_id) rejects duplicate OAuth provider links     | Throws `DbUpdateException`                               |
+| `Users_NullablePasswordHash_AllowsOAuthOnlyUsers`         | `password_hash` column is nullable for OAuth-only users (no email/password)       | User persisted with `null` password hash                 |
+
+**Why:** These tests ensure the database schema matches the design spec: auth schema isolation, correct defaults, proper cascading, and nullable `password_hash` for OAuth-only users. The unique provider constraint test validates that a user can't accidentally link the same OAuth account twice.
+
+---
+
+## Admin Module
+
+### Fixture
+
+- `AdminIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `AdminDbContext`, runs `InitialAdminSchema` migration. Exposes `ConnectionString` property for direct database access.
+- `AdminIntegrationCollection` — xUnit `[Collection("Admin")]` for shared container across Admin test classes
+
+### `AdminDbContextTests` (4 tests)
+
+Tests AdminDbContext schema creation, table mapping, default values, and JSONB column behavior.
+
+| Test                                              | What It Verifies                                                                  | Expected Outcome                                      |
+| ------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `Schema_AdminSchemaExists`                        | The `admin` PostgreSQL schema is created by the migration                         | Schema `admin` found in `information_schema.schemata` |
+| `CompanySettings_DefaultValues_AppliedByDatabase` | `id`, `created_at`, `updated_at`, `default_timezone`, `default_currency` defaults | UUID generated, `UTC`, `USD`, timestamps close to now |
+| `CompanySettings_JsonbColumns_PersistAndRetrieve` | All 6 JSONB settings columns round-trip correctly                                 | JSON content matches after persist + re-query         |
+| `AuditLog_AllColumns_PersistCorrectly`            | All audit log columns persist with correct types and values                       | All fields match after persist + re-query             |
+
+**Why:** EF Core JSONB mapping and schema isolation must be validated against real PostgreSQL. Unit tests with mocks can't catch `jsonb` serialization issues or missing schema configurations.
+
+---
+
+### `CompanySettingsRepositoryTests` (5 tests)
+
+Tests `CompanySettingsRepository` against a real PostgreSQL database.
+
+| Test                                                | What It Verifies                                                      | Expected Outcome                                          |
+| --------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------- |
+| `Add_ValidSettings_PersistsToDatabase`              | `Add()` + `SaveChangesAsync()` inserts settings with DB-assigned UUID | Re-queried settings have non-empty `Id`, all fields match |
+| `GetAsync_ExistingSettings_ReturnsUntracked`        | `GetAsync` returns settings with `AsNoTracking()`                     | Settings returned, entity is NOT in change tracker        |
+| `GetAsync_NonExistent_ReturnsNull`                  | Missing tenant settings returns null                                  | Returns `null`                                            |
+| `GetForUpdateAsync_ExistingSettings_ReturnsTracked` | `GetForUpdateAsync` returns tracked entity for mutation               | Settings returned, entity IS in change tracker            |
+| `GetForUpdateAsync_NonExistent_ReturnsNull`         | Missing tenant settings returns null                                  | Returns `null`                                            |
+
+**Why:** The distinction between tracked and untracked queries is critical — `GetAsync` (read-only, `AsNoTracking`) must not accidentally allow mutations, while `GetForUpdateAsync` must return a tracked entity for the merge-patch update flow to work.
+
+---
+
+### `AuditLogRepositoryTests` (7 tests)
+
+Tests `AuditLogRepository` against a real PostgreSQL database. Validates cursor-based pagination, filtering, and sort ordering.
+
+| Test                                                     | What It Verifies                                                           | Expected Outcome                                             |
+| -------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `Add_ValidAuditLog_PersistsToDatabase`                   | `Add()` + `SaveChangesAsync()` inserts audit log with DB-assigned UUID     | Re-queried log has non-empty `Id`, all fields match          |
+| `GetPageAsync_NoCursor_ReturnsFirstPage`                 | First page returns most recent entries (DESC order) with correct page size | Returns requested page size, entries in descending order     |
+| `GetPageAsync_WithCursor_ReturnsNextPage`                | Cursor pagination returns the next page after the cursor position          | Returns entries after the cursor, no overlap with first page |
+| `GetPageAsync_FilterByAction_ReturnsOnlyMatchingLogs`    | `action` filter returns only logs with the specified action                | All returned logs have the filtered action                   |
+| `GetPageAsync_FilterByActorId_ReturnsOnlyMatchingLogs`   | `actorId` filter returns only logs by the specified actor                  | All returned logs have the filtered actor ID                 |
+| `GetPageAsync_FilterByDateRange_ReturnsOnlyMatchingLogs` | `dateFrom`/`dateTo` filter returns only logs within the date range         | All returned logs have `PerformedAt` within range            |
+| `GetPageAsync_EmptyResults_ReturnsEmptyWithNullCursor`   | Filtering with no matches returns empty list and null cursor               | Items empty, `NextCursor` null                               |
+
+**Why:** Cursor-based pagination with composite `(performed_at, id)` cursors is complex — off-by-one errors, incorrect sort direction, or broken Base64 encoding would surface only against real PostgreSQL. Filter combinations must also be tested to ensure they compose correctly with pagination.
+
+---
+
+## Recruitment Module
+
+### Fixture
+
+- `RecruitmentIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `RecruitmentDbContext` via `EnsureCreatedAsync` (no migration files, EF creates schema from entity configurations). Exposes `ConnectionString` for raw SQL tests.
+- `RecruitmentIntegrationCollection` — xUnit `[Collection("Recruitment")]` for shared container across Recruitment test classes
+
+### `RecruitmentDbContextTests` (22 tests)
+
+Tests RecruitmentDbContext schema creation, table mapping, CHECK constraints, indexes, JSONB columns, default values, unique constraints, and cascade deletes against a real PostgreSQL container.
+
+| Test                                                                   | What It Verifies                                                                      | Expected Outcome                              |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `Schema_RecruitmentSchemaExists`                                       | The `recruitment` PostgreSQL schema is created by EF Core                             | Schema found in `information_schema.schemata` |
+| `ClientCompany_Persists_AllFieldsCorrectly`                            | All 11 fields persist and round-trip correctly                                        | All fields match after persist + re-query     |
+| `ClientCompany_CheckConstraint_RejectsInvalidStatus`                   | CHECK constraint `chk_client_companies_status` rejects "Suspended"                    | Throws `DbUpdateException`                    |
+| `JobPosting_Persists_AllFieldsCorrectly`                               | All 16 fields persist including decimal salary and timestamps                         | All fields match after persist + re-query     |
+| `JobPosting_DefaultValues_AppliedByDatabase`                           | `status` defaults to "Draft", timestamps auto-set, nullable fields are null           | Defaults applied correctly                    |
+| `JobPosting_CheckConstraint_RejectsInvalidStatus`                      | CHECK constraint `chk_job_postings_status` rejects "Archived"                         | Throws `DbUpdateException`                    |
+| `JobPosting_CheckConstraint_RejectsInvalidLocationType`                | CHECK constraint `chk_job_postings_location_type` rejects "InOffice"                  | Throws `DbUpdateException`                    |
+| `JobPosting_CheckConstraint_RejectsInvalidEmploymentType`              | CHECK constraint `chk_job_postings_employment_type` rejects "Freelance"               | Throws `DbUpdateException`                    |
+| `Application_Persists_AllFieldsCorrectly`                              | All application fields persist including FK to JobPosting                             | All fields match after persist + re-query     |
+| `Application_CheckConstraint_RejectsInvalidStatus`                     | CHECK constraint `chk_applications_status` rejects "InReview"                         | Throws `DbUpdateException`                    |
+| `Application_UniqueConstraint_PreventsDuplicateApplicantJob`           | Unique index `uq_applications_applicant_job` prevents same applicant applying twice   | Throws `DbUpdateException`                    |
+| `JobEvaluationCriteria_Persists_AllFieldsCorrectly`                    | All criteria fields persist including JSONB `configuration`                           | All fields match after persist + re-query     |
+| `JobEvaluationCriteria_CheckConstraint_RejectsInvalidCategory`         | CHECK constraint `chk_criteria_category` rejects "Personality"                        | Throws `DbUpdateException`                    |
+| `JobEvaluationCriteria_CheckConstraint_RejectsInvalidEvaluationMethod` | CHECK constraint `chk_criteria_evaluation_method` rejects "FuzzyMatch"                | Throws `DbUpdateException`                    |
+| `JobEvaluationCriteria_JsonbConfiguration_PersistsCorrectly`           | Complex JSONB configuration with nested arrays round-trips correctly                  | JSON content preserved after persist          |
+| `JobScreeningQuestion_Persists_AllFieldsCorrectly`                     | All question fields persist including JSONB `expected_answer`                         | All fields match after persist + re-query     |
+| `JobScreeningQuestion_CheckConstraint_RejectsInvalidQuestionType`      | CHECK constraint `chk_questions_question_type` rejects "Essay"                        | Throws `DbUpdateException`                    |
+| `JobScreeningQuestion_CheckConstraint_RejectsInvalidTiming`            | CHECK constraint `chk_questions_timing` rejects "DuringInterview"                     | Throws `DbUpdateException`                    |
+| `JobScreeningQuestion_JsonbOptions_PersistsCorrectly`                  | JSONB `options` and `expected_answer` columns round-trip correctly for MultipleChoice | JSON content preserved after persist          |
+| `JobPostings_Indexes_Exist`                                            | All 5 indexes exist (status, posted_by, published_at, client_company, location)       | All index names found in `pg_indexes`         |
+| `Applications_Indexes_Exist`                                           | All 4 indexes exist (job_posting_id, applicant_id, status, submitted_at)              | All index names found in `pg_indexes`         |
+| `JobPosting_CascadeDelete_RemovesChildEntities`                        | Deleting a JobPosting cascades to criteria and questions                              | Child entities no longer exist                |
+
+**Why:** EF Core entity configurations, CHECK constraints, JSONB column mapping, and cascade delete behavior can only be validated against real PostgreSQL. The Recruitment module has the highest number of CHECK constraints (10 across 5 tables) in the system — unit tests with mocks cannot catch constraint mismatches. The cascade delete test ensures that removing a job posting cleanly removes all associated criteria and questions.
+
+---
+
+## Screening Module
+
+### Fixture
+
+- `ScreeningIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `ScreeningDbContext` via `EnsureCreatedAsync` (no migration files, EF creates schema from entity configurations). Exposes `ConnectionString` for raw SQL tests.
+- `ScreeningIntegrationCollection` — xUnit `[Collection("Screening")]` for shared container across Screening test classes
+
+### `ScreeningDbContextTests` (10 tests)
+
+Tests ScreeningDbContext schema creation, table mapping, CHECK constraints, indexes, and default values against a real PostgreSQL container.
+
+| Test                                                              | What It Verifies                                                                    | Expected Outcome                              |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| `Schema_ScreeningSchemaExists`                                    | The `screening` PostgreSQL schema is created by EF Core                             | Schema found in `information_schema.schemata` |
+| `ScreeningResult_Persists_AllFieldsCorrectly`                     | All 20+ fields persist and round-trip correctly including JSONB columns             | All fields match after persist + re-query     |
+| `ScreeningResult_DefaultValues_AppliedByDatabase`                 | `status` defaults to "Pending", timestamps auto-set, nullable fields are null       | Defaults applied correctly                    |
+| `ScreeningResult_CheckConstraint_RejectsInvalidStatus`            | CHECK constraint `chk_screening_results_status` rejects "InvalidStatus"             | Throws `DbUpdateException`                    |
+| `ScreeningResult_CheckConstraint_RejectsInvalidOutcome`           | CHECK constraint rejects "InvalidOutcome"                                           | Throws `DbUpdateException`                    |
+| `ScreeningResult_CheckConstraint_RejectsInvalidMatchStrength`     | CHECK constraint rejects "SuperStrong"                                              | Throws `DbUpdateException`                    |
+| `ScreeningResults_Indexes_Exist`                                  | All 4 indexes exist (status, match_strength, outcome, overall_score)                | All index names found in `pg_indexes`         |
+| `QuestionResponse_Persists_AllFieldsCorrectly`                    | All response fields persist including JSONB `response_data` and scoring fields      | All fields match after persist + re-query     |
+| `QuestionResponse_UniqueConstraint_PreventseDuplicateAppQuestion` | Unique index `uq_question_responses_app_question` rejects duplicate (app, question) | Throws `DbUpdateException`                    |
+| `QuestionResponse_CheckConstraint_RejectsInvalidScoreResult`      | CHECK constraint rejects invalid `score_result` values                              | Throws `DbUpdateException`                    |
+
+**Why:** EF Core entity configurations and CHECK constraints can only be validated against real PostgreSQL. Unit tests with mocks cannot catch wrong column types, missing JSONB mapping, or CHECK constraint mismatches. The index tests ensure query performance optimizations are applied.
+
+---
+
+### `ScreeningRepositoryTests` (7 tests)
+
+Tests `ScreeningResultRepository` and `ScreeningQuestionResponseRepository` against a real PostgreSQL database. Validates CRUD operations, cursor-based pagination, tracking behavior, and ordering.
+
+| Test                                                                       | What It Verifies                                                                 | Expected Outcome                                  |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `GetByApplicationIdAsync_Exists_ReturnsResult`                             | `AsNoTracking` lookup returns the correct result                                 | Result found, fields match                        |
+| `GetByApplicationIdAsync_NotExists_ReturnsNull`                            | Missing application ID returns null                                              | Returns null                                      |
+| `GetByApplicationIdForUpdateAsync_ReturnsTrackedEntity`                    | Tracked entity can be mutated and saved                                          | Status change persists after save                 |
+| `ListAsync_FiltersByStatus_ReturnsCursorPagination`                        | Status filter excludes non-matching results                                      | Only Completed results returned, Pending excluded |
+| `ListAsync_CursorPagination_ReturnsCorrectPage`                            | First page returns 2 items + cursor, second page returns 1 item with no more     | Pages don't overlap, cursor advances correctly    |
+| `QuestionResponseRepo_GetByApplicationIdAsync_ReturnsOrderedBySubmittedAt` | Responses returned ordered by `SubmittedAt` ascending regardless of insert order | "First" appears before "Second"                   |
+| `QuestionResponseRepo_ExistsByApplicationAndQuestionAsync_TrueWhenExists`  | Existence check returns true for existing pair, false for non-existing           | Correct boolean for both cases                    |
+
+**Why:** Repository integration tests catch EF Core query translation issues and cursor pagination bugs (off-by-one, incorrect sort direction, broken Base64 encoding) that only surface against real PostgreSQL. The tracking vs untracking distinction is critical for the mutation-heavy screening pipeline.
+
+---
+
+## Test Data Factories
+
+### `TestData.cs` (Unit Tests)
+
+Centralized factory methods for unit test object creation. Avoids inline object construction per `docs/conventions/TESTING_STANDARDS.md`.
+
+| Method                          | Creates                     | Default Values                                       |
+| ------------------------------- | --------------------------- | ---------------------------------------------------- |
+| `CreateTenant()`                | `Tenant` entity             | Name: "Acme Corp", Subdomain: "acme", Status: Active |
+| `CreateTenantBranding()`        | `TenantBranding` entity     | Primary: #1A73E8, Tagline: "Test tagline"            |
+| `CreateRegisterTenantRequest()` | `RegisterTenantRequest` DTO | Name: "Acme Corp", Subdomain: "acme"                 |
+| `CreateCompanySettings()`       | `CompanySettings` entity    | TenantId: provided, Timezone: UTC, Currency: USD     |
+| `CreateAuditLog()`              | `AuditLog` entity           | Action: SettingsUpdated, EntityType: CompanySettings |
+
+All methods accept optional overrides for customization in specific test scenarios.
+
+### `IntegrationTestData.cs` (Integration Tests)
+
+Factory methods generating unique names/subdomains per test to avoid collisions in the shared database.
+
+| Method                  | Creates                    | Default Values                                           |
+| ----------------------- | -------------------------- | -------------------------------------------------------- |
+| `CreateTenant()`        | `Tenant` entity            | Unique name/subdomain via `Guid`, Status: Active         |
+| `CreateBranding()`      | `TenantBranding` entity    | Primary: #1A73E8, Tagline: "Integration test branding"   |
+| `CreateUser()`          | `User` entity              | Unique email via `Guid`, Role: Applicant, Status: Active |
+| `CreateRefreshToken()`  | `RefreshToken` entity      | Random hash and family, ExpiresAt: 30 days from now      |
+| `CreateExternalLogin()` | `UserExternalLogin` entity | Provider: Google, random subject ID                      |
