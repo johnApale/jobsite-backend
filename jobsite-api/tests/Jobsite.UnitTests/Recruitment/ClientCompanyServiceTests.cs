@@ -100,4 +100,50 @@ public sealed class ClientCompanyServiceTests
         AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
         error.Code.Should().Be("CLIENT_COMPANY_NOT_FOUND");
     }
+
+    // ── ListAsync ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ListAsync_ValidParameters_DelegatesToRepository()
+    {
+        // Arrange
+        ClientCompanyQueryParameters parameters = new() { PageSize = 10 };
+        ClientCompanyListResponse expected = new() { Items = [], NextCursor = null };
+        _clientCompanyRepo.ListAsync(parameters, Arg.Any<CancellationToken>()).Returns(expected);
+
+        // Act
+        ClientCompanyListResponse result = await _sut.ListAsync(parameters, CancellationToken.None);
+
+        // Assert
+        await _clientCompanyRepo.Received(1).ListAsync(parameters, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ListAsync_ReturnsPaginatedResponse()
+    {
+        // Arrange
+        ClientCompanyQueryParameters parameters = new() { PageSize = 20 };
+        ClientCompanyListResponse expected = new()
+        {
+            Items = [new ClientCompanyResponse
+            {
+                Id = Guid.NewGuid(),
+                Name = "Test Company",
+                Industry = "Technology",
+                IsAnonymous = false,
+                Status = "Active",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }],
+            NextCursor = "company_cursor"
+        };
+        _clientCompanyRepo.ListAsync(parameters, Arg.Any<CancellationToken>()).Returns(expected);
+
+        // Act
+        ClientCompanyListResponse result = await _sut.ListAsync(parameters, CancellationToken.None);
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        result.NextCursor.Should().Be("company_cursor");
+    }
 }

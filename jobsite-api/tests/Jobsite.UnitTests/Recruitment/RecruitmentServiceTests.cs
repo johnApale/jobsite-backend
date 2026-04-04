@@ -235,4 +235,52 @@ public sealed class RecruitmentServiceTests
         AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
         error.Code.Should().Be("UNPROCESSABLE_ENTITY");
     }
+
+    // ── ListAsync ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ListAsync_ValidParameters_DelegatesToRepository()
+    {
+        // Arrange
+        JobPostingQueryParameters parameters = new() { PageSize = 10 };
+        JobPostingListResponse expected = new() { Items = [], NextCursor = null };
+        _jobPostingRepo.ListAsync(parameters, Arg.Any<CancellationToken>()).Returns(expected);
+
+        // Act
+        JobPostingListResponse result = await _sut.ListAsync(parameters, CancellationToken.None);
+
+        // Assert
+        await _jobPostingRepo.Received(1).ListAsync(parameters, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ListAsync_ReturnsPaginatedResponse()
+    {
+        // Arrange
+        JobPostingQueryParameters parameters = new() { PageSize = 20 };
+        JobPostingListResponse expected = new()
+        {
+            Items = [new JobPostingResponse
+            {
+                Id = Guid.NewGuid(),
+                Title = "Test Job",
+                Description = "Desc",
+                LocationType = "Remote",
+                EmploymentType = "FullTime",
+                Status = "Draft",
+                PostedBy = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }],
+            NextCursor = "cursor123"
+        };
+        _jobPostingRepo.ListAsync(parameters, Arg.Any<CancellationToken>()).Returns(expected);
+
+        // Act
+        JobPostingListResponse result = await _sut.ListAsync(parameters, CancellationToken.None);
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        result.NextCursor.Should().Be("cursor123");
+    }
 }

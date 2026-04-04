@@ -214,4 +214,51 @@ public sealed class ApplicationServiceTests
         AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
         error.Code.Should().Be("APPLICATION_NOT_FOUND");
     }
+
+    // ── ListAsync ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ListAsync_ValidParameters_DelegatesToRepository()
+    {
+        // Arrange
+        ApplicationQueryParameters parameters = new() { PageSize = 10 };
+        ApplicationListResponse expected = new() { Items = [], NextCursor = null };
+        _applicationRepo.ListAsync(parameters, Arg.Any<CancellationToken>()).Returns(expected);
+
+        // Act
+        ApplicationListResponse result = await _sut.ListAsync(parameters, CancellationToken.None);
+
+        // Assert
+        await _applicationRepo.Received(1).ListAsync(parameters, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ListAsync_ReturnsPaginatedResponse()
+    {
+        // Arrange
+        ApplicationQueryParameters parameters = new() { PageSize = 20 };
+        ApplicationListResponse expected = new()
+        {
+            Items = [new ApplicationResponse
+            {
+                Id = Guid.NewGuid(),
+                JobPostingId = Guid.NewGuid(),
+                ApplicantId = Guid.NewGuid(),
+                ResumeId = Guid.NewGuid(),
+                Status = "Submitted",
+                SubmittedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }],
+            NextCursor = "next_page"
+        };
+        _applicationRepo.ListAsync(parameters, Arg.Any<CancellationToken>()).Returns(expected);
+
+        // Act
+        ApplicationListResponse result = await _sut.ListAsync(parameters, CancellationToken.None);
+
+        // Assert
+        result.Items.Should().HaveCount(1);
+        result.NextCursor.Should().Be("next_page");
+    }
 }
