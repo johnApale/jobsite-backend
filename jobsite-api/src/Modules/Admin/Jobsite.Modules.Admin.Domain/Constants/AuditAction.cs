@@ -9,6 +9,7 @@ public static class AuditAction
     public const string SettingsUpdated = "SettingsUpdated";
     public const string ApplicationSubmitted = "ApplicationSubmitted";
     public const string CvScreeningCompleted = "CvScreeningCompleted";
+    public const string AssessmentCompleted = "AssessmentCompleted";
     public const string CandidateShortlisted = "CandidateShortlisted";
     public const string FinalInterviewScheduled = "FinalInterviewScheduled";
     public const string OfferExtended = "OfferExtended";
@@ -16,6 +17,6 @@ public static class AuditAction
 
     public static bool IsValid(string action) =>
         action is UserRegistered or SettingsUpdated or ApplicationSubmitted
-            or CvScreeningCompleted or CandidateShortlisted or FinalInterviewScheduled
-            or OfferExtended or TenantProvisioned;
+            or CvScreeningCompleted or AssessmentCompleted or CandidateShortlisted
+            or FinalInterviewScheduled or OfferExtended or TenantProvisioned;
 }
