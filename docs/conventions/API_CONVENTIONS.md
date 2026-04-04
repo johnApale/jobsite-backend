@@ -197,7 +197,7 @@ Modules within the monolith **never** call each other's endpoints directly. Comm
 
 | Pattern                         | Mechanism                                     | When                                                              |
 | ------------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
-| Module → Module (same process)  | MediatR domain events                         | Application submitted, screening completed, candidate shortlisted |
+| Module → Module (same process)  | In-process domain events                      | Application submitted, screening completed, candidate shortlisted |
 | Monolith → AI Interview Service | Message broker (RabbitMQ / Azure Service Bus) | `CandidateReadyForInterviewEvent`                                 |
 | AI Interview Service → Monolith | Message broker                                | `InterviewCompletedEvent`                                         |
 

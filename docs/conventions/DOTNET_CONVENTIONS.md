@@ -31,7 +31,7 @@ Jobsite.SharedKernel/
 ├── Domain/
 │   ├── Entity.cs              # Base entity with Id, CreatedAt, UpdatedAt
 │   ├── AggregateRoot.cs       # Base aggregate with domain event collection
-│   ├── IDomainEvent.cs        # Marker interface for MediatR domain events
+│   ├── IDomainEvent.cs        # Marker interface for domain events
 │   └── IIntegrationEvent.cs   # Marker interface for broker events
 ├── Errors/
 │   ├── AppError.cs            # Typed exception class
@@ -179,7 +179,7 @@ public static class ModuleServiceCollectionExtensions
         // 2. Catalog DbContext (singleton connection to shared catalog DB)
         // 3. Tenant DbContext factory (per-request, resolved from tenant)
         // 4. Redis (singleton IConnectionMultiplexer)
-        // 5. MediatR (scans all module assemblies)
+        // 5. Domain event bus (scans all module assemblies)
         // 6. Message broker (RabbitMQ / Azure Service Bus)
         // 7. JWT authentication
         // 8. FluentValidation (scans all module assemblies)
@@ -476,9 +476,9 @@ Standard order (must be consistent):
 5. `UseAuthentication()` / `UseAuthorization()` — JWT validation
 6. `UseSerilogRequestLogging()` — log request completion
 
-## Domain Events (MediatR)
+## Domain Events (In-Process Event Bus)
 
-Modules communicate via domain events published through MediatR:
+Modules communicate via domain events published through the in-process event bus:
 
 ```csharp
 // In Recruitment Domain
@@ -494,7 +494,7 @@ public sealed class ApplicationSubmittedEvent : IDomainEvent
 ```csharp
 // In Screening Application — handles the event
 public sealed class ApplicationSubmittedEventHandler
-    : INotificationHandler<ApplicationSubmittedEvent>
+    : IDomainEventHandler<ApplicationSubmittedEvent>
 {
     private readonly IScreeningService _screeningService;
 
@@ -503,19 +503,19 @@ public sealed class ApplicationSubmittedEventHandler
         _screeningService = screeningService;
     }
 
-    public async Task Handle(ApplicationSubmittedEvent notification, CancellationToken ct)
+    public async Task HandleAsync(ApplicationSubmittedEvent domainEvent, CancellationToken ct)
     {
-        await _screeningService.ScreenApplicationAsync(notification.ApplicationId, ct);
+        await _screeningService.ScreenApplicationAsync(domainEvent.ApplicationId, ct);
     }
 }
 ```
 
 Rules:
 
-- Domain events implement `IDomainEvent` (which extends `INotification`).
+- Domain events implement `IDomainEvent` (standalone marker interface).
 - Events are dispatched after `SaveChangesAsync` via the `AggregateRoot` pattern.
-- Handlers live in the consuming module's Application layer.
-- Integration events (cross-service, to AI Interview Service) implement `IIntegrationEvent` and are published to the message broker, not MediatR.
+- Handlers implement `IDomainEventHandler<T>` and live in the consuming module's Application layer.
+- Integration events (cross-service, to AI Interview Service) implement `IIntegrationEvent` and are published to the message broker, not the in-process event bus.
 
 ## Naming Conventions
 

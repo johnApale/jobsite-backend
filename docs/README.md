@@ -69,7 +69,7 @@ Every step is configurable per tenant — thresholds, scoring weights, question 
        └─────────────────────────────┘
 ```
 
-The core HR logic lives in a **modular monolith** — eight modules sharing a runtime but isolated by code boundaries and database schemas. Modules communicate via in-process domain events (MediatR).
+The core HR logic lives in a **modular monolith** — eight modules sharing a runtime but isolated by code boundaries and database schemas. Modules communicate via in-process domain events.
 
 The **AI Interview Service** is a standalone microservice with its own database. It's separated because it has different scaling needs (compute-intensive AI calls) and a different deployment lifecycle. It communicates with the monolith through a message broker.
 
@@ -77,10 +77,10 @@ The **AI Interview Service** is a standalone microservice with its own database.
 
 ## Databases
 
-| Database | Scope | Purpose |
-|----------|-------|---------|
-| **Catalog DB** | One shared instance | Tenant metadata, subdomains, connection strings, branding, subscriptions. No user data. |
-| **Tenant DB** | One per tenant | Everything else — users, profiles, jobs, applications, screening, matching, interviews, offers, settings, audit logs. |
+| Database            | Scope               | Purpose                                                                                                                      |
+| ------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Catalog DB**      | One shared instance | Tenant metadata, subdomains, connection strings, branding, subscriptions. No user data.                                      |
+| **Tenant DB**       | One per tenant      | Everything else — users, profiles, jobs, applications, screening, matching, interviews, offers, settings, audit logs.        |
 | **AI Interview DB** | One shared instance | Interview sessions, questions, responses, evaluations, AI API logs. Uses tenant ID filtering instead of database-per-tenant. |
 
 All monolith modules share the tenant database but own separate PostgreSQL schemas (`auth.*`, `profiles.*`, `recruitment.*`, `screening.*`, `matching.*`, `hr_workflows.*`, `admin.*`). Module boundaries are enforced in code — each module owns its tables and exposes data through interfaces and events.
@@ -116,14 +116,14 @@ Custom auth — not ASP.NET Identity. Supports email/password and OAuth (Google,
 
 ## Roles
 
-| Role | Scope | Access |
-|------|-------|--------|
-| **SystemAdmin** | Platform-wide | Manage all tenants and subscriptions |
-| **AgencyAdmin** | Tenant | Full admin — settings, users, all hiring data |
-| **HiringManager** | Tenant | Manage jobs, view applicants, final decisions, extend offers |
-| **Recruiter** | Tenant | Create jobs, manage applications, review screening results |
-| **Interviewer** | Tenant | Conduct and score final interviews |
-| **Applicant** | Tenant | Apply to jobs, complete AI interviews, respond to offers |
+| Role              | Scope         | Access                                                       |
+| ----------------- | ------------- | ------------------------------------------------------------ |
+| **SystemAdmin**   | Platform-wide | Manage all tenants and subscriptions                         |
+| **AgencyAdmin**   | Tenant        | Full admin — settings, users, all hiring data                |
+| **HiringManager** | Tenant        | Manage jobs, view applicants, final decisions, extend offers |
+| **Recruiter**     | Tenant        | Create jobs, manage applications, review screening results   |
+| **Interviewer**   | Tenant        | Conduct and score final interviews                           |
+| **Applicant**     | Tenant        | Apply to jobs, complete AI interviews, respond to offers     |
 
 ---
 
@@ -134,7 +134,7 @@ Custom auth — not ASP.NET Identity. Supports email/password and OAuth (Google,
 - **Entity Framework Core** — ORM with Npgsql provider
 - **Redis** — Tenant resolution caching, rate limiting, session state
 - **RabbitMQ / Azure Service Bus** — Cross-service messaging
-- **MediatR** — In-process domain events between modules
+- **In-process event bus** — Domain events between modules (hand-rolled, no external library)
 - **JWT** — Shared token format across monolith and AI service
 - **BCrypt** — Password hashing
 - **AI Provider SDK** — OpenAI, Anthropic, or Azure OpenAI (swappable)
@@ -238,18 +238,18 @@ POST /api/tenants/register
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Technical Overview](TECHNICAL_OVERVIEW.md) | Architecture, module responsibilities, data flow, and design decisions |
-| [Catalog DB Design](CATALOG_DB_DESIGN.md) | Shared catalog database schema |
-| [Auth DB Design](AUTH_DB_DESIGN.md) | Authentication, OAuth, refresh tokens |
-| [Admin DB Design](ADMIN_DB_DESIGN.md) | Company settings, audit logging |
-| [Profiles DB Design](PROFILES_DB_DESIGN.md) | Applicant profiles, resumes, skills |
-| [Recruitment DB Design](RECRUITMENT_DB_DESIGN.md) | Job postings, applications, client companies |
-| [Screening DB Design](SCREENING_DB_DESIGN.md) | CV screening, scoring, routing |
-| [HR Workflows DB Design](HR_WORKFLOWS_DB_DESIGN.md) | Final interviews, offers |
-| [AI Interview DB Design](AI_INTERVIEW_DB_DESIGN.md) | AI interview microservice database |
-| [CHECK Constraints](CHECK_CONSTRAINTS.md) | All database enum constraints |
+| Document                                            | Description                                                            |
+| --------------------------------------------------- | ---------------------------------------------------------------------- |
+| [Technical Overview](TECHNICAL_OVERVIEW.md)         | Architecture, module responsibilities, data flow, and design decisions |
+| [Catalog DB Design](CATALOG_DB_DESIGN.md)           | Shared catalog database schema                                         |
+| [Auth DB Design](AUTH_DB_DESIGN.md)                 | Authentication, OAuth, refresh tokens                                  |
+| [Admin DB Design](ADMIN_DB_DESIGN.md)               | Company settings, audit logging                                        |
+| [Profiles DB Design](PROFILES_DB_DESIGN.md)         | Applicant profiles, resumes, skills                                    |
+| [Recruitment DB Design](RECRUITMENT_DB_DESIGN.md)   | Job postings, applications, client companies                           |
+| [Screening DB Design](SCREENING_DB_DESIGN.md)       | CV screening, scoring, routing                                         |
+| [HR Workflows DB Design](HR_WORKFLOWS_DB_DESIGN.md) | Final interviews, offers                                               |
+| [AI Interview DB Design](AI_INTERVIEW_DB_DESIGN.md) | AI interview microservice database                                     |
+| [CHECK Constraints](CHECK_CONSTRAINTS.md)           | All database enum constraints                                          |
 
 ---
 

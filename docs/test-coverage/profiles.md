@@ -60,7 +60,7 @@ Tests `ResumeService` — upload, listing, and retrieval. Uses NSubstitute to mo
 
 ## `UserRegisteredProfileHandlerTests` (5 tests)
 
-Tests the MediatR handler that auto-creates an empty `ApplicantProfile` when a user registers with the Applicant role.
+Tests the domain event handler that auto-creates an empty `ApplicantProfile` when a user registers with the Applicant role.
 
 | Test                                                 | What It Verifies                                          | Expected Outcome                |
 | ---------------------------------------------------- | --------------------------------------------------------- | ------------------------------- |

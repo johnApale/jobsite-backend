@@ -46,7 +46,7 @@
 | 0.2 | **Catalog database schema**      | Tenancy                       | EF Core entities & migration for `tenants` and `tenant_brandings` tables in catalog DB                                      |
 | 0.3 | **Tenant resolution middleware** | API                           | Complete `TenantResolutionMiddleware` — subdomain extraction, catalog lookup, Redis caching, DbContext configuration        |
 | 0.4 | **Global configuration**         | API                           | Finish `AppSettings.cs` binding — JWT settings, connection strings, broker config, Redis, AI service URL                    |
-| 0.5 | **MediatR pipeline**             | SharedKernel                  | Configure MediatR for domain event dispatch, add logging/validation pipeline behaviors                                      |
+| 0.5 | **Domain event pipeline**        | SharedKernel                  | Configure in-process event bus for domain event dispatch, add logging/validation pipeline behaviors                         |
 | 0.6 | **Message broker abstraction**   | SharedKernel / Infrastructure | RabbitMQ / Azure Service Bus publisher/consumer abstraction for integration events                                          |
 | 0.7 | **Architecture tests**           | Tests                         | NetArchTest rules — module dependency direction, no cross-module project refs, sealed class enforcement, naming conventions |
 | 0.8 | **CI pipeline**                  | DevOps                        | `dotnet build` → `dotnet test` → lint checks; Python `pytest` for AI service                                                |
@@ -136,7 +136,7 @@
 | 4.11 | **AI-assisted question generation** | Api / Infrastructure    | Call AI Service `POST /api/v1/ai/assessment/suggest` — suggest AfterScreening questions (feature-flagged: system gate + tenant `ai_assessment_questions_enabled`); recruiter reviews and saves          |
 | 4.12 | **Application submission**          | Api                     | `POST /api/v1/recruitment/job-postings/{id}/applications` — validate one-per-person-per-job, attach resume reference, accept AtApplication question answers                                             |
 | 4.13 | **Application listing**             | Api                     | `GET /api/v1/recruitment/applications` — filterable by status, job posting; cursor-based pagination                                                                                                     |
-| 4.14 | **ApplicationSubmittedEvent**       | Domain                  | Publish `ApplicationSubmittedEvent` via MediatR when application is created                                                                                                                             |
+| 4.14 | **ApplicationSubmittedEvent**       | Domain                  | Publish `ApplicationSubmittedEvent` via domain event bus when application is created                                                                                                                    |
 | 4.15 | **Tests**                           | Tests                   | One-app-per-person-per-job enforcement, criteria CRUD, questions CRUD, AI suggestion integration, status transitions, event publishing                                                                  |
 
 **Exit Criteria:** Jobs can be posted with evaluation criteria and screening questions. AI can suggest criteria and questions. Applicants can apply (one per job) and answer AtApplication questions. `ApplicationSubmittedEvent` fires for downstream modules.

@@ -7,19 +7,19 @@
 
 This guide is **modular**. The root document (this file) defines the structure and links to focused standards documents. Each document covers one concern and can be referenced independently.
 
-| Document                                          | Scope            | Description                                                                                         |
-| ------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------- |
-| [API Conventions](API_CONVENTIONS.md)             | All components   | HTTP endpoint design, headers, JWT authentication, request/response casing, pagination, validation  |
-| [Error Envelope Specification](ERROR_ENVELOPE.md) | All components   | The canonical error response shape — one format, every component, no exceptions                     |
-| [Database Conventions](DATABASE_CONVENTIONS.md)   | All components   | EF Core migrations, column types, timestamp handling, CHECK constraints, query patterns             |
-| [.NET Conventions](DOTNET_CONVENTIONS.md)         | Modular monolith | Module structure, Clean Architecture, EF Core, Minimal API, DI, MediatR events, naming, Scalar docs |
-| [Testing Standards](TESTING_STANDARDS.md)         | All components   | Test pyramid, architecture tests, integration tests, unit tests, naming conventions, test data      |
+| Document                                          | Scope            | Description                                                                                        |
+| ------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------- |
+| [API Conventions](API_CONVENTIONS.md)             | All components   | HTTP endpoint design, headers, JWT authentication, request/response casing, pagination, validation |
+| [Error Envelope Specification](ERROR_ENVELOPE.md) | All components   | The canonical error response shape — one format, every component, no exceptions                    |
+| [Database Conventions](DATABASE_CONVENTIONS.md)   | All components   | EF Core migrations, column types, timestamp handling, CHECK constraints, query patterns            |
+| [.NET Conventions](DOTNET_CONVENTIONS.md)         | Modular monolith | Module structure, Clean Architecture, EF Core, Minimal API, DI, domain events, naming, Scalar docs |
+| [Testing Standards](TESTING_STANDARDS.md)         | All components   | Test pyramid, architecture tests, integration tests, unit tests, naming conventions, test data     |
 
 ## System Components
 
 | Component             | Language | Framework / Stack                                                      |
 | --------------------- | -------- | ---------------------------------------------------------------------- |
-| Modular Monolith      | C#       | .NET 10, Minimal API, EF Core, MediatR, FluentValidation               |
+| Modular Monolith      | C#       | .NET 10, Minimal API, EF Core, FluentValidation                        |
 | — Tenancy module      | C#       | Catalog DB management, tenant provisioning, connection string cache    |
 | — Auth module         | C#       | Custom JWT auth, OAuth (Google/Apple/Facebook), refresh token rotation |
 | — Admin module        | C#       | Company settings (JSONB), audit logging, dashboard aggregation         |
@@ -35,7 +35,7 @@ This guide is **modular**. The root document (this file) defines the structure a
 **Modular monolith** with one **standalone microservice**.
 
 - Eight modules share a runtime process and a per-tenant PostgreSQL database, isolated by schema.
-- Modules communicate via **MediatR domain events** (in-process, synchronous).
+- Modules communicate via **domain events** (in-process event bus, synchronous).
 - The AI Interview Service is deployed separately and communicates via **message broker** (RabbitMQ / Azure Service Bus).
 - **Database-per-tenant** for the monolith. **Shared database with tenant ID filtering** for the AI Interview Service.
 
@@ -44,7 +44,7 @@ See [TECHNICAL_OVERVIEW.md](../TECHNICAL_OVERVIEW.md) for the full architecture 
 ## Core Principles
 
 1. **Consistency over preference.** If a pattern is established, follow it — even if you'd do it differently on a greenfield project.
-2. **Module boundaries are real.** Modules never query each other's tables directly. Communication is through domain events (MediatR) or, for the AI Interview Service, integration events (message broker).
+2. **Module boundaries are real.** Modules never query each other's tables directly. Communication is through domain events (in-process event bus) or, for the AI Interview Service, integration events (message broker).
 3. **Schema = ownership boundary.** Each module owns its PostgreSQL schema. Cross-schema foreign keys exist only where referential integrity is critical (user identity, application spine).
 4. **Test the boundaries.** Architecture tests enforce dependency direction. Integration tests verify infrastructure. Unit tests verify business logic.
 5. **Flat, consistent, predictable.** Error envelopes, JSON casing, event shapes, header names — identical across the monolith and the AI Interview Service.
@@ -89,7 +89,7 @@ No module may reference another module's Domain, Application, or Infrastructure 
 | Multi-tenancy      | Database-per-tenant (monolith)    | Full isolation, no tenant ID filter bugs, per-tenant backup/compliance        |
 | Auth               | Custom (not ASP.NET Identity)     | Identity Framework fights database-per-tenant multi-tenancy                   |
 | ORM                | EF Core                           | Fits modular monolith pattern; migrations, change tracking, schema management |
-| Inter-module comms | MediatR domain events             | Clean dependency graph; publishers don't know about consumers                 |
+| Inter-module comms | In-process domain events          | Clean dependency graph; publishers don't know about consumers                 |
 | Enum storage       | String `VARCHAR(50)` + CHECK      | Readable in DB, queryable, no migration for reordering                        |
 | Enum values        | PascalCase                        | Matches C# constants directly                                                 |
 | Flexible data      | JSONB columns                     | Avoids migrations for skills, settings, social links                          |

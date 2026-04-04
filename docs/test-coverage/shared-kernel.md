@@ -21,7 +21,7 @@ Tests the base `Entity` class that every domain entity in every module inherits 
 
 ## `AggregateRootTests` (4 tests)
 
-Tests domain event tracking on `AggregateRoot`, which extends `Entity`. Aggregate roots collect domain events during business operations and dispatch them after `SaveChangesAsync` succeeds — this is the backbone of inter-module communication via MediatR.
+Tests domain event tracking on `AggregateRoot`, which extends `Entity`. Aggregate roots collect domain events during business operations and dispatch them after `SaveChangesAsync` succeeds — this is the backbone of inter-module communication via the in-process event bus.
 
 | Test                                                 | What It Verifies                                                            | Expected Outcome                                      |
 | ---------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------- |

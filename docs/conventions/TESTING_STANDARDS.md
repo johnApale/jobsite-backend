@@ -355,7 +355,7 @@ Rules to enforce:
 
 | Rule                       | Enforces                                                             |
 | -------------------------- | -------------------------------------------------------------------- |
-| Domain → SharedKernel only | No EF Core, no HTTP, no MediatR impl in Domain                       |
+| Domain → SharedKernel only | No EF Core, no HTTP, no event bus impl in Domain                     |
 | Application → Domain only  | No infrastructure dependencies in Application layer                  |
 | No cross-module references | Auth.Application cannot reference Recruitment.Domain                 |
 | All events in SharedKernel | Integration events must live in SharedKernel, not in module projects |

@@ -284,7 +284,7 @@ GET /api/v1/screening/assessments/{applicationId}?jobPostingId={jobPostingId}
 
 ## Domain Events
 
-The Screening module publishes and consumes the following domain events via MediatR:
+The Screening module publishes and consumes the following domain events via the in-process event bus:
 
 ### Consumed Events
 

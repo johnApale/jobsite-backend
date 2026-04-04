@@ -2,32 +2,32 @@
 
 ← [Test Coverage](README.md)
 
-> Tests for MediatR pipeline behaviors — cross-cutting concerns that wrap every command and query.
+> Tests for domain event pipeline behaviors — cross-cutting concerns that wrap every domain event dispatch.
 
 ---
 
-## `LoggingPipelineBehaviorTests` (3 tests)
+## `LoggingEventBehaviorTests` (3 tests)
 
-Tests the MediatR pipeline behavior that logs request start/finish with elapsed time.
+Tests the pipeline behavior that logs event start/finish with elapsed time.
 
-| Test                                        | What It Verifies                                                | Expected Outcome                          |
-| ------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------- |
-| `Handle_LogsStartAndCompletion`             | Logs "Handling {RequestName}..." and "Handled {RequestName} in" | Logger receives both log entries          |
-| `Handle_ReturnsHandlerResult`               | The behavior passes through the handler's return value          | Response matches what the handler returns |
-| `Handle_WhenNextThrows_PropagatesException` | Exceptions from the handler are not swallowed                   | Exception propagates to caller            |
+| Test                                        | What It Verifies                                                | Expected Outcome                 |
+| ------------------------------------------- | --------------------------------------------------------------- | -------------------------------- |
+| `Handle_LogsStartAndCompletion`             | Logs "Handling {EventName}..." and "Handled {EventName} in"     | Logger receives both log entries |
+| `Handle_ReturnsHandlerResult`               | The behavior passes through to the next handler in the pipeline | Next delegate is invoked         |
+| `Handle_WhenNextThrows_PropagatesException` | Exceptions from the handler are not swallowed                   | Exception propagates to caller   |
 
-**Why:** The logging behavior wraps every MediatR request. If it swallows exceptions or fails to pass through results, every command and query in the system breaks silently.
+**Why:** The logging behavior wraps every domain event. If it swallows exceptions or fails to invoke next, every event handler in the system breaks silently.
 
 ---
 
-## `ValidationPipelineBehaviorTests` (4 tests)
+## `ValidationEventBehaviorTests` (4 tests)
 
-Tests the MediatR pipeline behavior that runs FluentValidation validators before the handler.
+Tests the pipeline behavior that runs FluentValidation validators before the event handlers.
 
 | Test                                                  | What It Verifies                                                           | Expected Outcome                                             |
 | ----------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `Handle_NoValidators_PassesThrough`                   | When no `IValidator<TRequest>` is registered, the handler executes         | Handler result returned                                      |
-| `Handle_ValidRequest_PassesThrough`                   | When validators pass, the handler executes                                 | Handler result returned                                      |
+| `Handle_NoValidators_PassesThrough`                   | When no `IValidator<T>` is registered, the handler executes                | Next delegate invoked                                        |
+| `Handle_ValidRequest_PassesThrough`                   | When validators pass, the handler executes                                 | Next delegate invoked                                        |
 | `Handle_ValidationFails_ThrowsValidationError`        | When any validator fails, throws `AppErrors.Validation` with field details | Throws `AppError` with code `VALIDATION_ERROR` and `Details` |
 | `Handle_MultipleValidationFailures_AggregatesDetails` | Multiple validator failures are aggregated into one `Details` dictionary   | All failing fields present in `Details`                      |
 

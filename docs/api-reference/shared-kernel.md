@@ -143,10 +143,10 @@ Modules communicate through events defined in SharedKernel. There are two types:
 
 ### `IDomainEvent`
 
-In-process events dispatched via **MediatR**. Used for communication between modules within the monolith.
+In-process events dispatched via the **domain event bus**. Used for communication between modules within the monolith.
 
 ```csharp
-public interface IDomainEvent : INotification { }
+public interface IDomainEvent { }
 ```
 
 Domain events are raised by aggregate roots and published by the unit of work after `SaveChangesAsync` completes.
@@ -364,7 +364,7 @@ public abstract class TenantDbContext : DbContext, IUnitOfWork
 
 ### `IDomainEventDispatcher`
 
-Bridge between SharedKernel and MediatR for domain event dispatch. Defined in SharedKernel so `TenantDbContext` doesn't depend on the full MediatR package.
+Bridge between SharedKernel and the in-process event bus for domain event dispatch. Defined in SharedKernel so `TenantDbContext` doesn't depend on event bus implementation details.
 
 ```csharp
 public interface IDomainEventDispatcher
@@ -373,7 +373,7 @@ public interface IDomainEventDispatcher
 }
 ```
 
-Implemented by `MediatRDomainEventDispatcher` in the API project, which delegates to `MediatR.IPublisher.Publish()`.
+Implemented by `InProcessDomainEventDispatcher` in the API project, which resolves `IDomainEventHandler<T>` instances from the DI container and runs them through the pipeline behaviors.
 
 ### `ITenantDbContextFactory<TContext>`
 
@@ -394,20 +394,20 @@ public interface ITenantDbContextFactory<TContext> where TContext : TenantDbCont
 
 ## Pipeline Behaviors
 
-MediatR pipeline behaviors run as middleware around every request handler. Registered as open generics in DI.
+Domain event pipeline behaviors run as middleware around every domain event handler. Registered as `IDomainEventPipelineBehavior` in DI.
 
-### `LoggingPipelineBehavior<TRequest, TResponse>`
+### `LoggingEventBehavior`
 
-Logs the start and completion of every MediatR request with elapsed time.
+Logs the start and completion of every domain event dispatch with elapsed time.
 
 ```
-[MediatR] Handling GetTenantByIdQuery...
-[MediatR] Handled GetTenantByIdQuery in 12ms
+[DomainEvent] Handling ApplicationSubmittedEvent...
+[DomainEvent] Handled ApplicationSubmittedEvent in 12ms
 ```
 
-### `ValidationPipelineBehavior<TRequest, TResponse>`
+### `ValidationEventBehavior`
 
-Runs all `IValidator<TRequest>` from DI before the handler executes. On validation failure, throws `AppErrors.Validation` with a `Dictionary<string, string>` of field → error message pairs.
+Runs all `IValidator<T>` from DI before the handlers execute. On validation failure, throws `AppErrors.Validation` with a `Dictionary<string, string>` of field → error message pairs.
 
 ```csharp
 // Throws:

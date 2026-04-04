@@ -10,7 +10,7 @@ For database-level details (table schemas, indexes, constraints, JSONB formats),
 
 D'Jobsite iConnect is built as a **modular monolith** with one **standalone microservice**.
 
-The monolith contains eight modules that share a runtime process and a per-tenant database, but are isolated at the code level — each module owns its own PostgreSQL schema, entities, and business logic. Modules communicate through in-process domain events via MediatR.
+The monolith contains eight modules that share a runtime process and a per-tenant database, but are isolated at the code level — each module owns its own PostgreSQL schema, entities, and business logic. Modules communicate through in-process domain events via a hand-rolled event bus.
 
 The AI Service is deployed separately because it has fundamentally different scaling and lifecycle needs: compute-intensive AI provider calls, specialized AI model integrations, and (eventually) media transcription and async batch processing. It communicates with the monolith via **HTTP for synchronous operations** (resume parsing, criteria generation, assessment question generation, AI screening) and via **message broker for asynchronous operations** (future AI Interview).
 
@@ -43,7 +43,7 @@ The AI Service is deployed separately because it has fundamentally different sca
 │  │hr_workflows.*│  │profiles.*│  │admin.*│                           │
 │  └──────────────┘  └──────────┘  └───────┘                           │
 │                                                                        │
-│  Internal communication: MediatR domain events                         │
+│  Internal communication: in-process domain events                         │
 └──────────────────────────┬─────────────────┬───────────────────────────┘
                            │                 │
            HTTP (sync)     │                 │  Integration events
@@ -136,7 +136,7 @@ Standalone deployment with its own database. Centralizes all AI capabilities for
 
 The hiring pipeline is orchestrated through two types of events:
 
-**Domain events** (MediatR, in-process, synchronous within the monolith):
+**Domain events** (in-process event bus, synchronous within the monolith):
 
 | Event                          | Publisher    | Consumer                    |
 | ------------------------------ | ------------ | --------------------------- |

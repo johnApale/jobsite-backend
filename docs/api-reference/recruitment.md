@@ -691,7 +691,7 @@ POST /api/v1/recruitment/applications/job-postings/{jobPostingId}
 }
 ```
 
-**Domain Event:** Publishes `ApplicationSubmittedEvent` via MediatR for downstream processing (Screening module).
+**Domain Event:** Publishes `ApplicationSubmittedEvent` via domain event bus for downstream processing (Screening module).
 
 **Errors:**
 

@@ -58,24 +58,38 @@ services.AddHttpContextAccessor();
 
 Required by `ITenantDbContextFactory` to resolve the tenant connection string from the current HTTP request context (`HttpContext.Items["TenantConnectionString"]`).
 
-### 5. MediatR + Pipeline Behaviors
+### 5. Domain Event Bus + Pipeline Behaviors
 
 ```csharp
-services.AddMediatR(cfg =>
+// Scan module assemblies for IDomainEventHandler<T> implementations
+foreach (Assembly assembly in moduleAssemblies)
 {
-    cfg.RegisterServicesFromAssemblyContaining<CatalogDbContext>();
-    cfg.RegisterServicesFromAssemblyContaining<AuthDbContext>();
-    cfg.AddOpenBehavior(typeof(LoggingPipelineBehavior<,>));
-    cfg.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
-});
+    IEnumerable<Type> handlerTypes = assembly.GetTypes()
+        .Where(t => t is { IsAbstract: false, IsInterface: false })
+        .Where(t => t.GetInterfaces().Any(i =>
+            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDomainEventHandler<>)));
+
+    foreach (Type handlerType in handlerTypes)
+    {
+        foreach (Type iface in handlerType.GetInterfaces()
+            .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDomainEventHandler<>)))
+        {
+            services.AddScoped(iface, handlerType);
+        }
+    }
+}
+
+// Pipeline behaviors (execute in registration order)
+services.AddScoped<IDomainEventPipelineBehavior, LoggingEventBehavior>();
+services.AddScoped<IDomainEventPipelineBehavior, ValidationEventBehavior>();
 ```
 
-Scans module assemblies for `IRequestHandler<,>` and `INotificationHandler<>`. Registers two open generic pipeline behaviors:
+Scans module assemblies for `IDomainEventHandler<T>` implementations and registers two pipeline behaviors:
 
-| Behavior                     | Purpose                                                                                                  |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `LoggingPipelineBehavior`    | Logs request name, start/finish, and elapsed time via `Stopwatch`                                        |
-| `ValidationPipelineBehavior` | Runs all `IValidator<TRequest>` from DI; throws `AppErrors.Validation` with per-field details on failure |
+| Behavior                  | Purpose                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------- |
+| `LoggingEventBehavior`    | Logs event name, start/finish, and elapsed time via `Stopwatch`                                   |
+| `ValidationEventBehavior` | Runs all `IValidator<T>` from DI; throws `AppErrors.Validation` with per-field details on failure |
 
 Pipeline behaviors execute in registration order: logging wraps validation wraps the handler.
 
@@ -85,15 +99,15 @@ Pipeline behaviors execute in registration order: logging wraps validation wraps
 services.AddValidatorsFromAssemblyContaining<CatalogDbContext>(includeInternalTypes: true);
 ```
 
-Registers all `IValidator<T>` implementations from module assemblies. Validators are consumed by `ValidationPipelineBehavior`.
+Registers all `IValidator<T>` implementations from module assemblies. Validators are consumed by `ValidationEventBehavior`.
 
 ### 7. Domain event dispatcher
 
 ```csharp
-services.AddScoped<IDomainEventDispatcher, MediatRDomainEventDispatcher>();
+services.AddScoped<IDomainEventDispatcher, InProcessDomainEventDispatcher>();
 ```
 
-Bridges `TenantDbContext` (SharedKernel) → MediatR. The `TenantDbContext.SaveChangesAsync()` collects domain events from aggregate roots and dispatches them via this interface after persistence succeeds. Defined in SharedKernel so the DbContext doesn't depend on the full MediatR package.
+The `TenantDbContext.SaveChangesAsync()` collects domain events from aggregate roots and dispatches them via this interface after persistence succeeds. `InProcessDomainEventDispatcher` resolves `IDomainEventHandler<T>` instances from the DI container and runs them through the pipeline behaviors.
 
 ### 8. MassTransit + RabbitMQ
 
@@ -211,7 +225,7 @@ builder.Services.AddOpenApi(options =>
 
 1. Create the `Add{Module}Module` extension in the module's `Infrastructure` project.
 2. Uncomment / add the call in `AddJobsiteModules`.
-3. If the module has MediatR handlers, add its assembly to `cfg.RegisterServicesFromAssemblyContaining<>()`.
+3. If the module has domain event handlers, they are discovered automatically via assembly scanning for `IDomainEventHandler<T>`.
 4. If the module has FluentValidation validators, add its assembly to `AddValidatorsFromAssemblyContaining<>()`.
 5. If the module has MassTransit consumers, add them via `bus.AddConsumers(typeof(ModuleMarker).Assembly)`.
 6. Map endpoints in `Program.cs` via `app.Map{Module}Endpoints()`.

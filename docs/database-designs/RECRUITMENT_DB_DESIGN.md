@@ -367,7 +367,7 @@ Status transitions are driven by domain events from downstream modules. Recruitm
 ```
 1. Applicant submits application
 2. Application created (status = Submitted)
-3. ApplicationSubmittedEvent published (domain event, MediatR)
+3. ApplicationSubmittedEvent published (domain event, in-process event bus)
 4. Screening module consumes event → begins CV evaluation against job_evaluation_criteria
    → Updates application status to Screening
    → If job has AtApplication questions, candidate answers are stored and scored

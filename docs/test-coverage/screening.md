@@ -118,7 +118,7 @@ Tests the scoring logic for screening question answers — YesNo (binary), Multi
 
 ## `ApplicationSubmittedScreeningHandlerTests` (7 tests)
 
-Tests the MediatR domain event handler that creates a `ScreeningResult` and triggers the screening pipeline when an application is submitted.
+Tests the domain event handler that creates a `ScreeningResult` and triggers the screening pipeline when an application is submitted.
 
 | Test                                                                            | What It Verifies                                                                                              | Expected Outcome                                  |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
