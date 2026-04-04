@@ -19,12 +19,14 @@ using Jobsite.Modules.Recruitment.Infrastructure;
 using Jobsite.Modules.Recruitment.Infrastructure.Persistence;
 using Jobsite.Modules.Screening.Infrastructure;
 using Jobsite.Modules.Screening.Infrastructure.Persistence;
+using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using FluentValidation;
 using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Reflection;
 
 namespace Jobsite.Api.Extensions;
 
@@ -73,27 +75,19 @@ public static class ModuleServiceCollectionExtensions
         // 4. HttpContext accessor (needed by ITenantDbContextFactory for connection string resolution)
         services.AddHttpContextAccessor();
 
-        // 5. MediatR (scans all module assemblies)
-        services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssemblyContaining<CatalogDbContext>();
-            cfg.RegisterServicesFromAssemblyContaining<AuthDbContext>();
-            cfg.RegisterServicesFromAssemblyContaining<AdminDbContext>();
-            cfg.RegisterServicesFromAssemblyContaining<ProfilesDbContext>();
-            cfg.RegisterServicesFromAssemblyContaining<RecruitmentDbContext>();
-            cfg.RegisterServicesFromAssemblyContaining<ScreeningDbContext>();
-
-            cfg.AddOpenBehavior(typeof(LoggingPipelineBehavior<,>));
-            cfg.AddOpenBehavior(typeof(ValidationPipelineBehavior<,>));
-        });
+        // 5. In-process domain event bus (scans all module assemblies)
+        services.AddDomainEventBus(
+            typeof(CatalogDbContext).Assembly,
+            typeof(AuthDbContext).Assembly,
+            typeof(AdminDbContext).Assembly,
+            typeof(ProfilesDbContext).Assembly,
+            typeof(RecruitmentDbContext).Assembly,
+            typeof(ScreeningDbContext).Assembly);
 
         // 6. FluentValidation validators (assembly scanning)
         services.AddValidatorsFromAssemblyContaining<CatalogDbContext>(includeInternalTypes: true);
         services.AddValidatorsFromAssemblyContaining<AuthService>(includeInternalTypes: true);
         services.AddValidatorsFromAssemblyContaining<AdminSettingsService>(includeInternalTypes: true);
-
-        // 7. Domain event dispatcher (bridges SharedKernel → MediatR)
-        services.AddScoped<IDomainEventDispatcher, MediatRDomainEventDispatcher>();
 
         // 8. MassTransit + RabbitMQ (message broker for integration events)
         services.AddMassTransit(bus =>
@@ -139,5 +133,40 @@ public static class ModuleServiceCollectionExtensions
         // services.AddHRWorkflowsModule(configuration);
 
         return services;
+    }
+
+    /// <summary>
+    /// Registers all <see cref="IDomainEventHandler{T}"/> implementations from the given assemblies,
+    /// the domain event pipeline behaviors, and the in-process dispatcher.
+    /// </summary>
+    private static void AddDomainEventBus(
+        this IServiceCollection services, params Assembly[] assemblies)
+    {
+        // Register all IDomainEventHandler<T> implementations as scoped
+        Type openHandlerType = typeof(IDomainEventHandler<>);
+
+        foreach (Assembly assembly in assemblies)
+        {
+            foreach (Type type in assembly.GetTypes())
+            {
+                if (type.IsAbstract || type.IsInterface)
+                    continue;
+
+                IEnumerable<Type> handlerInterfaces = type.GetInterfaces()
+                    .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == openHandlerType);
+
+                foreach (Type handlerInterface in handlerInterfaces)
+                {
+                    services.AddScoped(handlerInterface, type);
+                }
+            }
+        }
+
+        // Pipeline behaviors (order matters: logging wraps validation wraps handlers)
+        services.AddScoped<IDomainEventPipelineBehavior, LoggingEventBehavior>();
+        services.AddScoped<IDomainEventPipelineBehavior, ValidationEventBehavior>();
+
+        // Domain event dispatcher
+        services.AddScoped<IDomainEventDispatcher, InProcessDomainEventDispatcher>();
     }
 }
