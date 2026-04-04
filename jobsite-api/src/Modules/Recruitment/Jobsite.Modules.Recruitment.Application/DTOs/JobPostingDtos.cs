@@ -9,6 +9,9 @@ public sealed class CreateJobPostingRequest
     /// <summary>Full job description.</summary>
     public required string Description { get; init; }
 
+    /// <summary>Free-form text describing job requirements. Used by AI to suggest evaluation criteria.</summary>
+    public string? Requirements { get; init; }
+
     /// <summary>Work location arrangement: OnSite, Remote, Hybrid.</summary>
     public required string LocationType { get; init; }
 
@@ -48,6 +51,7 @@ public sealed class UpdateJobPostingRequest
 {
     public string? Title { get; init; }
     public string? Description { get; init; }
+    public string? Requirements { get; init; }
     public string? LocationType { get; init; }
     public string? City { get; init; }
     public string? Country { get; init; }
@@ -67,6 +71,7 @@ public sealed class JobPostingResponse
     public Guid? ClientCompanyId { get; init; }
     public required string Title { get; init; }
     public required string Description { get; init; }
+    public string? Requirements { get; init; }
     public required string LocationType { get; init; }
     public string? City { get; init; }
     public string? Country { get; init; }

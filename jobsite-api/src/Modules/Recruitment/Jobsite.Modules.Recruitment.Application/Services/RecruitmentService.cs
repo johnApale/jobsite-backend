@@ -40,6 +40,7 @@ public sealed class RecruitmentService : IRecruitmentService
             ClientCompanyId = request.ClientCompanyId,
             Title = request.Title,
             Description = request.Description,
+            Requirements = request.Requirements,
             LocationType = request.LocationType,
             City = request.City,
             Country = request.Country,
@@ -95,6 +96,9 @@ public sealed class RecruitmentService : IRecruitmentService
 
         if (request.Description is not null)
             jobPosting.Description = request.Description;
+
+        if (request.Requirements is not null)
+            jobPosting.Requirements = request.Requirements;
 
         if (request.LocationType is not null)
             jobPosting.LocationType = request.LocationType;
@@ -171,6 +175,7 @@ public sealed class RecruitmentService : IRecruitmentService
             ClientCompanyId = jobPosting.ClientCompanyId,
             Title = jobPosting.Title,
             Description = jobPosting.Description,
+            Requirements = jobPosting.Requirements,
             LocationType = jobPosting.LocationType,
             City = jobPosting.City,
             Country = jobPosting.Country,
@@ -197,6 +202,7 @@ public sealed class RecruitmentService : IRecruitmentService
             ClientCompanyId = jobPosting.ClientCompanyId,
             Title = jobPosting.Title,
             Description = jobPosting.Description,
+            Requirements = jobPosting.Requirements,
             LocationType = jobPosting.LocationType,
             City = jobPosting.City,
             Country = jobPosting.Country,
