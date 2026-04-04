@@ -71,6 +71,38 @@
 
 ---
 
+## Recruitment Module
+
+### Deferred
+
+| Item                                 | Description                                                                                                                                                                                                                                                                                   |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EF Core Migration                    | `InitialRecruitmentSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.                                                                                                                                                                             |
+| Integration Tests                    | No `RecruitmentDbContext` integration tests, no repository integration tests (`IJobPostingRepository`, `IApplicationRepository`, `IClientCompanyRepository`). Requires Testcontainers fixture.                                                                                                |
+| Validator Unit Tests (7 missing)     | Missing tests for `UpdateJobPostingRequestValidator`, `CreateClientCompanyRequestValidator`, `UpdateClientCompanyRequestValidator`, `CreateCriteriaRequestValidator`, `UpdateCriteriaRequestValidator`, `CreateScreeningQuestionRequestValidator`, `UpdateScreeningQuestionRequestValidator`. |
+| Architecture Layer Dependency Tests  | `LayerDependencyTests.cs` does not include Recruitment module — only Tenancy and Profiles layers are covered.                                                                                                                                                                                 |
+| Endpoint Tests                       | No `WebApplicationFactory` HTTP pipeline tests for Recruitment endpoints (job posting CRUD, criteria, questions, applications).                                                                                                                                                               |
+| AI Criteria Suggestion Contract Test | `AiCriteriaSuggesterClient` tested with mock HTTP handler only — real contract test blocked until AI Service (Phase 6) is operational.                                                                                                                                                        |
+| AI Question Suggestion Contract Test | `AiQuestionSuggesterClient` tested with mock HTTP handler only — real contract test blocked until AI Service (Phase 6) is operational.                                                                                                                                                        |
+
+### Completed
+
+| Item                       | Resolution                                                                                                                                                                 |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client Company Entity      | `ClientCompany` entity with Active/Inactive status, CRUD service, and endpoint.                                                                                            |
+| Job Posting Entity         | `JobPosting` aggregate root with Draft → Published → Closed lifecycle, CRUD service, and endpoints.                                                                        |
+| Application Entity         | `Application` aggregate root with one-per-person-per-job enforcement, withdrawal flow, and `ApplicationSubmittedEvent`.                                                    |
+| Evaluation Criteria Entity | `JobEvaluationCriteria` with 6 categories, 3 evaluation methods, weight, and JSONB configuration.                                                                          |
+| Screening Questions Entity | `JobScreeningQuestion` with 3 question types, 2 timing options, expected answer and options JSONB.                                                                         |
+| Job Posting CRUD           | `POST/GET/PATCH /api/v1/recruitment/job-postings` with publish/close lifecycle transitions.                                                                                |
+| Criteria CRUD              | `POST/GET/PATCH/DELETE /api/v1/recruitment/job-postings/{id}/criteria` with AI-assisted suggestions.                                                                       |
+| Questions CRUD             | `POST/GET/PATCH/DELETE /api/v1/recruitment/job-postings/{id}/questions` with feature-gated AI suggestions.                                                                 |
+| Application Submission     | `POST /api/v1/recruitment/job-postings/{id}/applications` with resume ownership validation and question answers.                                                           |
+| Unit Tests                 | 99 tests: services (ApplicationService, RecruitmentService, ClientCompanyService, CriteriaService, ScreeningQuestionService), entities, validators, constants, AI clients. |
+| IUnitOfWork Disambiguation | Keyed service: `AddKeyedScoped<IUnitOfWork>("recruitment")` with `[FromKeyedServices]`.                                                                                    |
+
+---
+
 ## Profiles Module
 
 ### Deferred
