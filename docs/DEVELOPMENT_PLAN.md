@@ -1,6 +1,6 @@
 # D'Jobsite iConnect — Backend Development Plan
 
-> **Last updated:** 2026-04-03
+> **Last updated:** 2025-07-01
 >
 > This document outlines the phased development plan for the D'Jobsite iConnect backend — a modular monolith (C#/.NET 10) with a standalone AI Service microservice (Python/FastAPI).
 
@@ -20,12 +20,13 @@
 - **Phase 2 complete** — Admin module implemented: company settings CRUD (JSON merge patch), audit logging with 6 domain event handlers + tenant provisioning handler, cursor-based pagination. Dashboard endpoint deferred until pipeline modules exist
 - **Phase 3 complete** — Profiles module implemented: applicant profile CRUD (JSON merge patch), resume upload with file storage abstraction, async resume parsing via MassTransit/RabbitMQ (basic + AI), `UserRegisteredEvent` handler auto-creates profiles for Applicants, AI resume parser client with resilient HTTP + graceful fallback
 - **Phase 4 complete** — Recruitment module implemented: client company CRUD, job posting CRUD with Draft→Published→Closed lifecycle, evaluation criteria CRUD with AI-assisted suggestions, screening questions CRUD with feature-gated AI suggestions, application submission with one-per-person-per-job enforcement + `ApplicationSubmittedEvent` domain event, withdraw flow
-- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage (349 unit, 30 architecture, 58 integration)
+- **Phase 5 complete** — Screening module implemented: dual scoring engine (deterministic always + AI opt-in), three-tier routing (auto-advance/manual-review/auto-reject), screening question response scoring (MultipleChoice/YesNo deterministic + FreeText AI), assessment flow for AfterScreening questions, candidate transparency feedback, manual review workflow, `ApplicationSubmittedEvent` handler triggers screening pipeline, `AssessmentCompletedEvent` published to Admin audit log, 6 API endpoints with cursor-based pagination
+- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage (431 unit, 30 architecture, 58 integration)
 
 ### What Needs Implementation
 
-- Remaining module endpoints and business logic (Screening, Matching, HR Workflows)
-- EF Core migrations for Profiles, Recruitment modules and remaining modules
+- Remaining module endpoints and business logic (Matching, HR Workflows)
+- EF Core migrations for Profiles, Recruitment, Screening modules and remaining modules
 - Message broker integration (monolith ↔ AI Service) — deferred until AI Interview capability is built
 - AI Service endpoints: resume parsing, criteria generation, assessment question generation, AI screening
 - AI Interview Service endpoints, models, and media handling (deferred)
