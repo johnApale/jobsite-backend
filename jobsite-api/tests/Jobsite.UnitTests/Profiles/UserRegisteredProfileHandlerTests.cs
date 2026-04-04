@@ -34,7 +34,7 @@ public sealed class UserRegisteredProfileHandlerTests
             .Returns(false);
 
         // Act
-        await _sut.Handle(notification, CancellationToken.None);
+        await _sut.HandleAsync(notification, CancellationToken.None);
 
         // Assert
         _profileRepository.Received(1).Add(Arg.Is<ApplicantProfile>(p =>
@@ -60,7 +60,7 @@ public sealed class UserRegisteredProfileHandlerTests
         };
 
         // Act
-        await _sut.Handle(notification, CancellationToken.None);
+        await _sut.HandleAsync(notification, CancellationToken.None);
 
         // Assert
         _profileRepository.DidNotReceive().Add(Arg.Any<ApplicantProfile>());
@@ -82,7 +82,7 @@ public sealed class UserRegisteredProfileHandlerTests
             .Returns(true);
 
         // Act
-        await _sut.Handle(notification, CancellationToken.None);
+        await _sut.HandleAsync(notification, CancellationToken.None);
 
         // Assert
         _profileRepository.DidNotReceive().Add(Arg.Any<ApplicantProfile>());

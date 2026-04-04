@@ -7,7 +7,6 @@ using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -21,7 +20,7 @@ public sealed class AssessmentServiceTests
     private readonly IApplicationStatusUpdater _statusUpdater = Substitute.For<IApplicationStatusUpdater>();
     private readonly ITenantSettingsReader _settingsReader = Substitute.For<ITenantSettingsReader>();
     private readonly IAiAnswerScoringClient _aiClient = Substitute.For<IAiAnswerScoringClient>();
-    private readonly IPublisher _publisher = Substitute.For<IPublisher>();
+    private readonly IDomainEventDispatcher _dispatcher = Substitute.For<IDomainEventDispatcher>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly AssessmentService _service;
 
@@ -38,7 +37,7 @@ public sealed class AssessmentServiceTests
             _statusUpdater,
             _settingsReader,
             questionScoringService,
-            _publisher,
+            _dispatcher,
             _unitOfWork,
             Substitute.For<ILogger<AssessmentService>>());
     }
@@ -203,7 +202,7 @@ public sealed class AssessmentServiceTests
             applicationId, jobPostingId, applicantUserId, request, CancellationToken.None);
 
         // Assert
-        await _publisher.Received(1).Publish(
+        await _dispatcher.Received(1).DispatchAsync(
             Arg.Is<AssessmentCompletedEvent>(e =>
                 e.ApplicationId == applicationId &&
                 e.JobPostingId == jobPostingId &&

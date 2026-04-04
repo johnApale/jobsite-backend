@@ -26,7 +26,7 @@ public sealed class AuditEventHandlerTests
         };
 
         // Act
-        await handler.Handle(@event, CancellationToken.None);
+        await handler.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(
@@ -52,7 +52,7 @@ public sealed class AuditEventHandlerTests
         };
 
         // Act
-        await handler.Handle(@event, CancellationToken.None);
+        await handler.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(
@@ -77,7 +77,7 @@ public sealed class AuditEventHandlerTests
         };
 
         // Act
-        await handler.Handle(@event, CancellationToken.None);
+        await handler.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(
@@ -102,7 +102,7 @@ public sealed class AuditEventHandlerTests
         };
 
         // Act
-        await handler.Handle(@event, CancellationToken.None);
+        await handler.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(
@@ -126,7 +126,7 @@ public sealed class AuditEventHandlerTests
         };
 
         // Act
-        await handler.Handle(@event, CancellationToken.None);
+        await handler.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(
@@ -150,7 +150,7 @@ public sealed class AuditEventHandlerTests
         };
 
         // Act
-        await handler.Handle(@event, CancellationToken.None);
+        await handler.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(
@@ -177,7 +177,7 @@ public sealed class AuditEventHandlerTests
         };
 
         // Act
-        await handler.Handle(@event, CancellationToken.None);
+        await handler.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(

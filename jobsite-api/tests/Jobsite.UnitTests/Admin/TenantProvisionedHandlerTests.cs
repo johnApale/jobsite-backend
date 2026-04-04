@@ -37,7 +37,7 @@ public sealed class TenantProvisionedHandlerTests
         };
 
         // Act
-        await _sut.Handle(@event, CancellationToken.None);
+        await _sut.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         _settingsRepo.Received(1).Add(Arg.Is<CompanySettings>(s =>
@@ -67,7 +67,7 @@ public sealed class TenantProvisionedHandlerTests
         };
 
         // Act
-        await _sut.Handle(@event, CancellationToken.None);
+        await _sut.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         await _auditLogService.Received(1).LogAsync(
@@ -91,7 +91,7 @@ public sealed class TenantProvisionedHandlerTests
         };
 
         // Act
-        await _sut.Handle(@event, CancellationToken.None);
+        await _sut.HandleAsync(@event, CancellationToken.None);
 
         // Assert
         _settingsRepo.Received(1).Add(Arg.Is<CompanySettings>(s =>

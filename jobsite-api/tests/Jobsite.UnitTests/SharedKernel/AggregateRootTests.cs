@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Jobsite.SharedKernel.Domain;
-using MediatR;
 
 namespace Jobsite.UnitTests.SharedKernel;
 

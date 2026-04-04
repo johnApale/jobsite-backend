@@ -5,7 +5,6 @@ using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 
@@ -18,7 +17,7 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
     private readonly IScreeningService _screeningService = Substitute.For<IScreeningService>();
     private readonly IJobScreeningQuestionsReader _questionsReader = Substitute.For<IJobScreeningQuestionsReader>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
-    private readonly IPublisher _publisher = Substitute.For<IPublisher>();
+    private readonly IDomainEventDispatcher _dispatcher = Substitute.For<IDomainEventDispatcher>();
     private readonly ApplicationSubmittedScreeningHandler _handler;
 
     public ApplicationSubmittedScreeningHandlerTests()
@@ -29,7 +28,7 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             _screeningService,
             _questionsReader,
             _unitOfWork,
-            _publisher,
+            _dispatcher,
             Substitute.For<ILogger<ApplicationSubmittedScreeningHandler>>());
     }
 
@@ -67,7 +66,7 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             });
 
         // Act
-        await _handler.Handle(notification, CancellationToken.None);
+        await _handler.HandleAsync(notification, CancellationToken.None);
 
         // Assert — result was added with correct ApplicationId and Pending status
         _resultRepo.Received(1).Add(Arg.Is<ScreeningResult>(r =>
@@ -109,7 +108,7 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             });
 
         // Act
-        await _handler.Handle(notification, CancellationToken.None);
+        await _handler.HandleAsync(notification, CancellationToken.None);
 
         // Assert — two response entities added with correct field mapping
         _responseRepo.Received(2).Add(Arg.Any<ScreeningQuestionResponse>());
@@ -138,7 +137,7 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             });
 
         // Act
-        await _handler.Handle(notification, CancellationToken.None);
+        await _handler.HandleAsync(notification, CancellationToken.None);
 
         // Assert
         _resultRepo.Received(1).Add(Arg.Any<ScreeningResult>());
@@ -166,7 +165,7 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             });
 
         // Act
-        await _handler.Handle(notification, CancellationToken.None);
+        await _handler.HandleAsync(notification, CancellationToken.None);
 
         // Assert
         await _screeningService.Received(1).ProcessScreeningAsync(
@@ -195,10 +194,10 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             });
 
         // Act
-        await _handler.Handle(notification, CancellationToken.None);
+        await _handler.HandleAsync(notification, CancellationToken.None);
 
         // Assert — publishes CvScreeningCompletedEvent with PassedScreening=true
-        await _publisher.Received(1).Publish(
+        await _dispatcher.Received(1).DispatchAsync(
             Arg.Is<CvScreeningCompletedEvent>(e =>
                 e.ApplicationId == notification.ApplicationId &&
                 e.PassedScreening == true),
@@ -221,10 +220,10 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             });
 
         // Act
-        await _handler.Handle(notification, CancellationToken.None);
+        await _handler.HandleAsync(notification, CancellationToken.None);
 
         // Assert — AutoRejected → PassedScreening=false
-        await _publisher.Received(1).Publish(
+        await _dispatcher.Received(1).DispatchAsync(
             Arg.Is<CvScreeningCompletedEvent>(e =>
                 e.ApplicationId == notification.ApplicationId &&
                 e.PassedScreening == false),
@@ -246,10 +245,10 @@ public sealed class ApplicationSubmittedScreeningHandlerTests
             });
 
         // Act
-        await _handler.Handle(notification, CancellationToken.None);
+        await _handler.HandleAsync(notification, CancellationToken.None);
 
         // Assert — no event published for failed screening
-        await _publisher.DidNotReceive().Publish(
+        await _dispatcher.DidNotReceive().DispatchAsync(
             Arg.Any<CvScreeningCompletedEvent>(), Arg.Any<CancellationToken>());
     }
 }
