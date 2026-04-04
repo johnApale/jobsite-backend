@@ -62,7 +62,7 @@ All errors follow a canonical envelope. See [Errors](errors.md) for the full sch
 | Auth         | `/api/v1/auth`        | Implemented | [auth.md](auth.md)         |
 | Admin        | `/api/v1/admin`       | Implemented | [admin.md](admin.md)       |
 | Profiles     | `/api/v1/profiles`    | Implemented | [profiles.md](profiles.md) |
-| Recruitment  | `/api/v1/recruitment` | Planned     | —                          |
+| Recruitment  | `/api/v1/recruitment` | Implemented | [recruitment.md](recruitment.md) |
 | Screening    | `/api/v1/screening`   | Planned     | —                          |
 | Matching     | `/api/v1/matching`    | Planned     | —                          |
 | HR Workflows | `/api/v1/hr`          | Planned     | —                          |

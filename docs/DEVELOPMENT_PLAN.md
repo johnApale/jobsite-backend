@@ -19,12 +19,13 @@
 - **Phase 1 complete** — Auth module fully implemented with JWT, refresh tokens, OAuth, role-based auth
 - **Phase 2 complete** — Admin module implemented: company settings CRUD (JSON merge patch), audit logging with 6 domain event handlers + tenant provisioning handler, cursor-based pagination. Dashboard endpoint deferred until pipeline modules exist
 - **Phase 3 complete** — Profiles module implemented: applicant profile CRUD (JSON merge patch), resume upload with file storage abstraction, async resume parsing via MassTransit/RabbitMQ (basic + AI), `UserRegisteredEvent` handler auto-creates profiles for Applicants, AI resume parser client with resilient HTTP + graceful fallback
-- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage (250 unit, 30 architecture, 58 integration)
+- **Phase 4 complete** — Recruitment module implemented: client company CRUD, job posting CRUD with Draft→Published→Closed lifecycle, evaluation criteria CRUD with AI-assisted suggestions, screening questions CRUD with feature-gated AI suggestions, application submission with one-per-person-per-job enforcement + `ApplicationSubmittedEvent` domain event, withdraw flow
+- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage (349 unit, 30 architecture, 58 integration)
 
 ### What Needs Implementation
 
-- Remaining module endpoints and business logic (Recruitment, Screening, Matching, HR Workflows)
-- EF Core migrations for Profiles module and remaining modules
+- Remaining module endpoints and business logic (Screening, Matching, HR Workflows)
+- EF Core migrations for Profiles, Recruitment modules and remaining modules
 - Message broker integration (monolith ↔ AI Service) — deferred until AI Interview capability is built
 - AI Service endpoints: resume parsing, criteria generation, assessment question generation, AI screening
 - AI Interview Service endpoints, models, and media handling (deferred)
