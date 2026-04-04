@@ -12,8 +12,17 @@ public sealed class AuthDbContextFactory : IDesignTimeDbContextFactory<AuthDbCon
 {
     public AuthDbContext CreateDbContext(string[] args)
     {
+        // Resolve Jobsite.Api directory from either the project dir (dotnet ef --project)
+        // or the startup-project dir (dotnet ef --startup-project).
+        string cwd = Directory.GetCurrentDirectory();
+        string apiDir = Path.Combine(cwd, "..", "..", "..", "Jobsite.Api");
+        if (!Directory.Exists(apiDir))
+        {
+            apiDir = cwd; // Already in Jobsite.Api (startup-project sets CWD)
+        }
+
         IConfigurationRoot configuration = new ConfigurationBuilder()
-            .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "Jobsite.Api"))
+            .SetBasePath(apiDir)
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile("appsettings.Development.json", optional: true)
             .AddEnvironmentVariables()
