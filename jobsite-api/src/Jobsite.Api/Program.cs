@@ -6,6 +6,7 @@ using Jobsite.Modules.Admin.Api;
 using Jobsite.Modules.Auth.Api;
 using Jobsite.Modules.Profiles.Api;
 using Jobsite.Modules.Recruitment.Api;
+using Jobsite.Modules.Screening.Api;
 using Jobsite.Modules.Tenancy.Api;
 using Scalar.AspNetCore;
 using Serilog;
@@ -87,6 +88,7 @@ try
     app.MapAdminEndpoints();
     app.MapProfilesEndpoints();
     app.MapRecruitmentEndpoints();
+    app.MapScreeningEndpoints();
 
     app.Run();
 }
