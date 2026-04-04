@@ -2,6 +2,7 @@ using FluentValidation;
 using Jobsite.Modules.Recruitment.Application.Interfaces;
 using Jobsite.Modules.Recruitment.Application.Services;
 using Jobsite.Modules.Recruitment.Infrastructure.AiIntegration;
+using Jobsite.Modules.Recruitment.Infrastructure.CrossModule;
 using Jobsite.Modules.Recruitment.Infrastructure.Persistence;
 using Jobsite.Modules.Recruitment.Infrastructure.Persistence.Repositories;
 using Jobsite.SharedKernel.Persistence;
@@ -31,6 +32,11 @@ public static class RecruitmentModuleServiceCollectionExtensions
         services.AddScoped<IClientCompanyRepository, ClientCompanyRepository>();
         services.AddScoped<ICriteriaRepository, CriteriaRepository>();
         services.AddScoped<IScreeningQuestionRepository, ScreeningQuestionRepository>();
+
+        // Cross-module readers (consumed by Screening module via SharedKernel interfaces)
+        services.AddScoped<IJobCriteriaReader, JobCriteriaReader>();
+        services.AddScoped<IJobScreeningQuestionsReader, JobScreeningQuestionsReader>();
+        services.AddScoped<IApplicationStatusUpdater, ApplicationStatusUpdater>();
 
         // Services
         services.AddScoped<IRecruitmentService, RecruitmentService>();

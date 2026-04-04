@@ -2,6 +2,7 @@ using FluentValidation;
 using Jobsite.Modules.Profiles.Application.Interfaces;
 using Jobsite.Modules.Profiles.Application.Services;
 using Jobsite.Modules.Profiles.Infrastructure.AiIntegration;
+using Jobsite.Modules.Profiles.Infrastructure.CrossModule;
 using Jobsite.Modules.Profiles.Infrastructure.Parsing;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence.Repositories;
@@ -36,6 +37,7 @@ public static class ProfilesModuleServiceCollectionExtensions
 
         // Cross-module ownership verification (consumed by Recruitment via SharedKernel interface)
         services.AddScoped<IResumeOwnershipVerifier, ResumeOwnershipVerifier>();
+        services.AddScoped<IApplicantDataReader, ApplicantDataReader>();
 
         // Services
         services.AddScoped<IProfileService, ProfileService>();
