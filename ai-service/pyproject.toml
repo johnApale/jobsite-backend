@@ -16,6 +16,7 @@ dependencies = [
     "httpx>=0.28",
     "python-jose[cryptography]>=3.3",
     "bcrypt>=4.2",
+    "structlog>=24.0",
 ]
 
 [project.optional-dependencies]
@@ -36,3 +37,7 @@ select = ["E", "F", "I", "N", "W", "UP"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
