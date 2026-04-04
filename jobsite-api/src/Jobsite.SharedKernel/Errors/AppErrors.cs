@@ -32,14 +32,18 @@ public static class AppErrors
     public static AppError ProfileNotFound => new("PROFILE_NOT_FOUND", 404, "Profile not found");
     public static AppError ResumeNotFound => new("RESUME_NOT_FOUND", 404, "Resume not found");
     public static AppError SettingsNotFound => new("SETTINGS_NOT_FOUND", 404, "Company settings not found for this tenant");
+    public static AppError ScreeningResultNotFound => new("SCREENING_RESULT_NOT_FOUND", 404, "Screening result not found");
 
     // ── 409 Conflict ─────────────────────────────────────────────────────
     public static AppError ProfileAlreadyExists => new("PROFILE_ALREADY_EXISTS", 409, "Profile already exists for this user");
     public static AppError ApplicationAlreadyWithdrawn => new("APPLICATION_ALREADY_WITHDRAWN", 409, "Application has already been withdrawn");
     public static AppError OfferAlreadyAccepted => new("OFFER_ALREADY_ACCEPTED", 409, "Offer has already been accepted");
+    public static AppError ScreeningAlreadyCompleted => new("SCREENING_ALREADY_COMPLETED", 409, "Screening has already been completed for this application");
+    public static AppError AssessmentAlreadySubmitted => new("ASSESSMENT_ALREADY_SUBMITTED", 409, "Assessment answers have already been submitted for this application");
 
     // ── 422 Unprocessable Entity ─────────────────────────────────────────
     public static AppError UnprocessableEntity => new("UNPROCESSABLE_ENTITY", 422, "Business logic prevents this operation");
+    public static AppError AssessmentNotAvailable => new("ASSESSMENT_NOT_AVAILABLE", 422, "Assessment is not available for this application");
 
     // ── 429 Too Many Requests ────────────────────────────────────────────
     public static AppError RateLimited => new("RATE_LIMITED", 429, "Rate limit exceeded");
