@@ -1,14 +1,14 @@
 using Jobsite.Modules.Admin.Application.Interfaces;
 using Jobsite.Modules.Admin.Domain.Constants;
+using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
-using MediatR;
 
 namespace Jobsite.Modules.Admin.Application.EventHandlers;
 
 /// <summary>
 /// Records an audit log entry when a job offer is extended.
 /// </summary>
-public sealed class OfferExtendedAuditHandler : INotificationHandler<OfferExtendedEvent>
+public sealed class OfferExtendedAuditHandler : IDomainEventHandler<OfferExtendedEvent>
 {
     private readonly IAuditLogService _auditLogService;
 
@@ -17,7 +17,7 @@ public sealed class OfferExtendedAuditHandler : INotificationHandler<OfferExtend
         _auditLogService = auditLogService;
     }
 
-    public async Task Handle(OfferExtendedEvent notification, CancellationToken ct)
+    public async Task HandleAsync(OfferExtendedEvent domainEvent, CancellationToken ct)
     {
         await _auditLogService.LogAsync(
             actorId: Guid.Empty,
@@ -25,11 +25,11 @@ public sealed class OfferExtendedAuditHandler : INotificationHandler<OfferExtend
             actorRole: "System",
             action: AuditAction.OfferExtended,
             entityType: AuditEntityType.JobOffer,
-            entityId: notification.OfferId,
+            entityId: domainEvent.OfferId,
             details: new
             {
-                application_id = notification.ApplicationId,
-                offered_at = notification.OfferedAt
+                application_id = domainEvent.ApplicationId,
+                offered_at = domainEvent.OfferedAt
             },
             ipAddress: null,
             userAgent: null,

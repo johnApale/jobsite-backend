@@ -6,7 +6,6 @@ using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +25,7 @@ public sealed class AssessmentService : IAssessmentService
     private readonly IApplicationStatusUpdater _statusUpdater;
     private readonly ITenantSettingsReader _settingsReader;
     private readonly QuestionScoringService _questionScoringService;
-    private readonly IPublisher _publisher;
+    private readonly IDomainEventDispatcher _dispatcher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AssessmentService> _logger;
 
@@ -37,7 +36,7 @@ public sealed class AssessmentService : IAssessmentService
         IApplicationStatusUpdater statusUpdater,
         ITenantSettingsReader settingsReader,
         QuestionScoringService questionScoringService,
-        IPublisher publisher,
+        IDomainEventDispatcher dispatcher,
         [FromKeyedServices("screening")] IUnitOfWork unitOfWork,
         ILogger<AssessmentService> logger)
     {
@@ -47,7 +46,7 @@ public sealed class AssessmentService : IAssessmentService
         _statusUpdater = statusUpdater;
         _settingsReader = settingsReader;
         _questionScoringService = questionScoringService;
-        _publisher = publisher;
+        _dispatcher = dispatcher;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -127,7 +126,7 @@ public sealed class AssessmentService : IAssessmentService
         }
 
         // Publish event
-        await _publisher.Publish(new AssessmentCompletedEvent
+        await _dispatcher.DispatchAsync(new AssessmentCompletedEvent
         {
             ApplicationId = applicationId,
             JobPostingId = jobPostingId,

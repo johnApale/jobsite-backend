@@ -1,14 +1,14 @@
 using Jobsite.Modules.Admin.Application.Interfaces;
 using Jobsite.Modules.Admin.Domain.Constants;
+using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
-using MediatR;
 
 namespace Jobsite.Modules.Admin.Application.EventHandlers;
 
 /// <summary>
 /// Records an audit log entry when CV screening completes.
 /// </summary>
-public sealed class CvScreeningCompletedAuditHandler : INotificationHandler<CvScreeningCompletedEvent>
+public sealed class CvScreeningCompletedAuditHandler : IDomainEventHandler<CvScreeningCompletedEvent>
 {
     private readonly IAuditLogService _auditLogService;
 
@@ -17,7 +17,7 @@ public sealed class CvScreeningCompletedAuditHandler : INotificationHandler<CvSc
         _auditLogService = auditLogService;
     }
 
-    public async Task Handle(CvScreeningCompletedEvent notification, CancellationToken ct)
+    public async Task HandleAsync(CvScreeningCompletedEvent domainEvent, CancellationToken ct)
     {
         await _auditLogService.LogAsync(
             actorId: Guid.Empty,
@@ -25,12 +25,12 @@ public sealed class CvScreeningCompletedAuditHandler : INotificationHandler<CvSc
             actorRole: "System",
             action: AuditAction.CvScreeningCompleted,
             entityType: AuditEntityType.ScreeningResult,
-            entityId: notification.ScreeningResultId,
+            entityId: domainEvent.ScreeningResultId,
             details: new
             {
-                application_id = notification.ApplicationId,
-                passed_screening = notification.PassedScreening,
-                completed_at = notification.CompletedAt
+                application_id = domainEvent.ApplicationId,
+                passed_screening = domainEvent.PassedScreening,
+                completed_at = domainEvent.CompletedAt
             },
             ipAddress: null,
             userAgent: null,

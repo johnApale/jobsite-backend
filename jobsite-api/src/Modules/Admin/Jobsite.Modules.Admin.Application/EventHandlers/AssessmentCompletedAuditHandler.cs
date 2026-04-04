@@ -1,11 +1,11 @@
 using Jobsite.Modules.Admin.Application.Interfaces;
 using Jobsite.Modules.Admin.Domain.Constants;
+using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
-using MediatR;
 
 namespace Jobsite.Modules.Admin.Application.EventHandlers;
 
-public sealed class AssessmentCompletedAuditHandler : INotificationHandler<AssessmentCompletedEvent>
+public sealed class AssessmentCompletedAuditHandler : IDomainEventHandler<AssessmentCompletedEvent>
 {
     private readonly IAuditLogService _auditLogService;
 
@@ -14,20 +14,20 @@ public sealed class AssessmentCompletedAuditHandler : INotificationHandler<Asses
         _auditLogService = auditLogService;
     }
 
-    public async Task Handle(AssessmentCompletedEvent notification, CancellationToken ct)
+    public async Task HandleAsync(AssessmentCompletedEvent domainEvent, CancellationToken ct)
     {
         await _auditLogService.LogAsync(
-            actorId: notification.ApplicantUserId,
+            actorId: domainEvent.ApplicantUserId,
             actorEmail: "system",
             actorRole: "Applicant",
             action: AuditAction.AssessmentCompleted,
             entityType: AuditEntityType.ScreeningResult,
-            entityId: notification.ApplicationId,
+            entityId: domainEvent.ApplicationId,
             details: new
             {
-                job_posting_id = notification.JobPostingId,
-                assessment_score = notification.AssessmentScore,
-                completed_at = notification.CompletedAt
+                job_posting_id = domainEvent.JobPostingId,
+                assessment_score = domainEvent.AssessmentScore,
+                completed_at = domainEvent.CompletedAt
             },
             ipAddress: null,
             userAgent: null,

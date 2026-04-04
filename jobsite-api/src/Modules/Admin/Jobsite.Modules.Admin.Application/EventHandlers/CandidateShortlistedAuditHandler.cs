@@ -1,14 +1,14 @@
 using Jobsite.Modules.Admin.Application.Interfaces;
 using Jobsite.Modules.Admin.Domain.Constants;
+using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
-using MediatR;
 
 namespace Jobsite.Modules.Admin.Application.EventHandlers;
 
 /// <summary>
 /// Records an audit log entry when a candidate is shortlisted.
 /// </summary>
-public sealed class CandidateShortlistedAuditHandler : INotificationHandler<CandidateShortlistedEvent>
+public sealed class CandidateShortlistedAuditHandler : IDomainEventHandler<CandidateShortlistedEvent>
 {
     private readonly IAuditLogService _auditLogService;
 
@@ -17,7 +17,7 @@ public sealed class CandidateShortlistedAuditHandler : INotificationHandler<Cand
         _auditLogService = auditLogService;
     }
 
-    public async Task Handle(CandidateShortlistedEvent notification, CancellationToken ct)
+    public async Task HandleAsync(CandidateShortlistedEvent domainEvent, CancellationToken ct)
     {
         await _auditLogService.LogAsync(
             actorId: Guid.Empty,
@@ -25,12 +25,12 @@ public sealed class CandidateShortlistedAuditHandler : INotificationHandler<Cand
             actorRole: "System",
             action: AuditAction.CandidateShortlisted,
             entityType: AuditEntityType.Application,
-            entityId: notification.ApplicationId,
+            entityId: domainEvent.ApplicationId,
             details: new
             {
-                job_posting_id = notification.JobPostingId,
-                applicant_user_id = notification.ApplicantUserId,
-                shortlisted_at = notification.ShortlistedAt
+                job_posting_id = domainEvent.JobPostingId,
+                applicant_user_id = domainEvent.ApplicantUserId,
+                shortlisted_at = domainEvent.ShortlistedAt
             },
             ipAddress: null,
             userAgent: null,

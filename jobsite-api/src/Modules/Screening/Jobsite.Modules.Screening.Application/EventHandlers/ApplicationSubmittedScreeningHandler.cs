@@ -1,22 +1,22 @@
 using Jobsite.Modules.Screening.Application.Interfaces;
 using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
+using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Jobsite.Modules.Screening.Application.EventHandlers;
 
-public sealed class ApplicationSubmittedScreeningHandler : INotificationHandler<ApplicationSubmittedEvent>
+public sealed class ApplicationSubmittedScreeningHandler : IDomainEventHandler<ApplicationSubmittedEvent>
 {
     private readonly IScreeningResultRepository _resultRepository;
     private readonly IScreeningQuestionResponseRepository _responseRepository;
     private readonly IScreeningService _screeningService;
     private readonly IJobScreeningQuestionsReader _questionsReader;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IPublisher _publisher;
+    private readonly IDomainEventDispatcher _dispatcher;
     private readonly ILogger<ApplicationSubmittedScreeningHandler> _logger;
 
     public ApplicationSubmittedScreeningHandler(
@@ -25,7 +25,7 @@ public sealed class ApplicationSubmittedScreeningHandler : INotificationHandler<
         IScreeningService screeningService,
         IJobScreeningQuestionsReader questionsReader,
         [FromKeyedServices("screening")] IUnitOfWork unitOfWork,
-        IPublisher publisher,
+        IDomainEventDispatcher dispatcher,
         ILogger<ApplicationSubmittedScreeningHandler> logger)
     {
         _resultRepository = resultRepository;
@@ -33,34 +33,34 @@ public sealed class ApplicationSubmittedScreeningHandler : INotificationHandler<
         _screeningService = screeningService;
         _questionsReader = questionsReader;
         _unitOfWork = unitOfWork;
-        _publisher = publisher;
+        _dispatcher = dispatcher;
         _logger = logger;
     }
 
-    public async Task Handle(ApplicationSubmittedEvent notification, CancellationToken ct)
+    public async Task HandleAsync(ApplicationSubmittedEvent domainEvent, CancellationToken ct)
     {
         _logger.LogInformation(
             "Handling ApplicationSubmittedEvent for application {ApplicationId}",
-            notification.ApplicationId);
+            domainEvent.ApplicationId);
 
         // 1. Create the ScreeningResult (shared PK with application)
         ScreeningResult result = new()
         {
-            ApplicationId = notification.ApplicationId,
+            ApplicationId = domainEvent.ApplicationId,
             Status = ScreeningStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
         _resultRepository.Add(result);
 
         // 2. Store AtApplication question answers
-        if (notification.QuestionAnswers.Count > 0)
+        if (domainEvent.QuestionAnswers.Count > 0)
         {
             DateTime now = DateTime.UtcNow;
-            foreach (QuestionAnswerPayload answer in notification.QuestionAnswers)
+            foreach (QuestionAnswerPayload answer in domainEvent.QuestionAnswers)
             {
                 ScreeningQuestionResponse response = new()
                 {
-                    ApplicationId = notification.ApplicationId,
+                    ApplicationId = domainEvent.ApplicationId,
                     QuestionId = answer.QuestionId,
                     ResponseText = answer.ResponseText,
                     ResponseData = answer.ResponseData,
@@ -74,23 +74,23 @@ public sealed class ApplicationSubmittedScreeningHandler : INotificationHandler<
 
         // 3. Run the screening pipeline
         await _screeningService.ProcessScreeningAsync(
-            notification.ApplicationId,
-            notification.JobPostingId,
-            notification.ApplicantUserId,
+            domainEvent.ApplicationId,
+            domainEvent.JobPostingId,
+            domainEvent.ApplicantUserId,
             resumeId: null, // Resume ID is resolved inside the pipeline via IApplicantDataReader
             ct);
 
         // 4. Reload result to get final status
-        ScreeningResult? completed = await _resultRepository.GetByApplicationIdAsync(notification.ApplicationId, ct);
+        ScreeningResult? completed = await _resultRepository.GetByApplicationIdAsync(domainEvent.ApplicationId, ct);
 
         if (completed is not null && completed.Status == ScreeningStatus.Completed)
         {
             bool passed = completed.Outcome is ScreeningOutcome.AutoAdvanced
                 or ScreeningOutcome.ManualReview;
 
-            await _publisher.Publish(new CvScreeningCompletedEvent
+            await _dispatcher.DispatchAsync(new CvScreeningCompletedEvent
             {
-                ApplicationId = notification.ApplicationId,
+                ApplicationId = domainEvent.ApplicationId,
                 ScreeningResultId = completed.ApplicationId, // shared PK
                 PassedScreening = passed,
                 CompletedAt = completed.CompletedAt ?? DateTime.UtcNow

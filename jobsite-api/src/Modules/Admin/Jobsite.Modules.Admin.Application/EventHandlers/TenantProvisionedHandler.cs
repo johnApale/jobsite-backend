@@ -3,9 +3,9 @@ using Jobsite.Modules.Admin.Application.DTOs.Settings;
 using Jobsite.Modules.Admin.Application.Interfaces;
 using Jobsite.Modules.Admin.Domain.Constants;
 using Jobsite.Modules.Admin.Domain.Entities;
+using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +15,7 @@ namespace Jobsite.Modules.Admin.Application.EventHandlers;
 /// Seeds default <see cref="CompanySettings"/> when a new tenant is provisioned.
 /// Uses the tenant's connection string from the event to create a scoped DbContext.
 /// </summary>
-public sealed class TenantProvisionedHandler : INotificationHandler<TenantProvisionedEvent>
+public sealed class TenantProvisionedHandler : IDomainEventHandler<TenantProvisionedEvent>
 {
     private readonly ICompanySettingsRepository _settingsRepository;
     private readonly IAuditLogService _auditLogService;
@@ -39,9 +39,9 @@ public sealed class TenantProvisionedHandler : INotificationHandler<TenantProvis
         _logger = logger;
     }
 
-    public async Task Handle(TenantProvisionedEvent notification, CancellationToken ct)
+    public async Task HandleAsync(TenantProvisionedEvent domainEvent, CancellationToken ct)
     {
-        _logger.LogInformation("Seeding default company settings for tenant {TenantId}", notification.TenantId);
+        _logger.LogInformation("Seeding default company settings for tenant {TenantId}", domainEvent.TenantId);
 
         CompanySettings settings = new()
         {
@@ -73,12 +73,12 @@ public sealed class TenantProvisionedHandler : INotificationHandler<TenantProvis
             actorRole: "System",
             action: AuditAction.TenantProvisioned,
             entityType: AuditEntityType.Tenant,
-            entityId: notification.TenantId,
-            details: new { tenant_name = notification.TenantName },
+            entityId: domainEvent.TenantId,
+            details: new { tenant_name = domainEvent.TenantName },
             ipAddress: null,
             userAgent: null,
             ct);
 
-        _logger.LogInformation("Default company settings seeded for tenant {TenantId}", notification.TenantId);
+        _logger.LogInformation("Default company settings seeded for tenant {TenantId}", domainEvent.TenantId);
     }
 }
