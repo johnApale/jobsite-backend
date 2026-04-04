@@ -166,10 +166,22 @@
 
 ### AI Service pytest Suite (`ai-service/tests/`)
 
+### Completed
+
+| Item                   | Resolution                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| FastAPI Endpoint Tests | 11 test cases in `test_api.py` covering all 6 endpoints (happy path 200 + validation 422). Auth overridden via dependency injection.        |
+| Auth Tests             | 5 tests in `test_auth.py` — valid/expired/invalid JWT, missing tenant_id, missing role claims.                                              |
+| Error Envelope Tests   | 5 tests in `test_errors.py` — status codes, envelope format, request_id propagation, health endpoint, error codes.                          |
+| Service Unit Tests     | 16 tests in `test_services.py` — AiLoggingService (4), ResumeService (4), CriteriaService (2), AssessmentService (2), ScreeningService (4). |
+| Resume Caching Tests   | 4 tests in `test_caching.py` — cache hit/miss, 30-day TTL, cross-tenant cache sharing.                                                      |
+| Schema Tests           | 6 tests in `test_schemas.py` — exclude_none behavior, snake_case serialization, PascalCase enum values, optional field defaults.            |
+
+### Deferred
+
 | Item                          | Description                                                                                                                              |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| FastAPI Endpoint Tests        | pytest + httpx `AsyncClient` tests for all AI Service endpoints (scoring, feedback, parsing, suggestions).                               |
-| SQLAlchemy Model Tests        | Verify Alembic migrations create correct tables (`interview_sessions`, `interview_questions`, etc.) against Testcontainers PostgreSQL.   |
+| SQLAlchemy Model Tests        | Verify Alembic migrations create correct tables (`ai_api_logs`, `parsed_resume_cache`) against Testcontainers PostgreSQL.                |
 | AI Provider Integration Tests | Test AI provider abstraction (OpenAI/Azure OpenAI) with mock responses — verify prompt construction, token limits, and response parsing. |
 | Message Broker Consumer Tests | Test `CandidateReadyForInterviewEvent` consumer creates interview session with correct tenant filtering and question generation.         |
 | Tenant ID Filtering Tests     | Verify shared-database tenant isolation — write via tenant A, query via tenant B → zero results.                                         |
