@@ -49,6 +49,7 @@ For agency tenants, `client_company_id` links the job to the external company be
 | client_company_id | uuid          | nullable, FK → client_companies.id | The client company this job is for. NULL if the tenant is hiring for themselves (non-agency) |
 | title             | varchar(200)  | NOT NULL                           | Job title (e.g., "Senior .NET Developer")                                                    |
 | description       | text          | NOT NULL                           | Full job description. Free-form rich text for the applicant-facing listing                   |
+| requirements      | text          | nullable                           | Free-form text describing job requirements. Used by AI to suggest evaluation criteria        |
 | location_type     | varchar(20)   | NOT NULL                           | Enum: `OnSite`, `Remote`, `Hybrid`                                                           |
 | city              | varchar(100)  | nullable                           | Required for `OnSite` and `Hybrid`. NULL for fully remote                                    |
 | country           | varchar(100)  | nullable                           | Required for `OnSite` and `Hybrid`. NULL for fully remote                                    |
