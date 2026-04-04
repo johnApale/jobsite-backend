@@ -159,4 +159,31 @@ public sealed class AuditEventHandlerTests
             offerId, Arg.Any<object?>(), null, null,
             Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task Handle_AssessmentCompletedEvent_CreatesAuditLog()
+    {
+        // Arrange
+        AssessmentCompletedAuditHandler handler = new(_auditLogService);
+        Guid applicationId = Guid.NewGuid();
+        Guid applicantId = Guid.NewGuid();
+        AssessmentCompletedEvent @event = new()
+        {
+            ApplicationId = applicationId,
+            JobPostingId = Guid.NewGuid(),
+            ApplicantUserId = applicantId,
+            AssessmentScore = 85.5m,
+            CompletedAt = DateTime.UtcNow
+        };
+
+        // Act
+        await handler.Handle(@event, CancellationToken.None);
+
+        // Assert
+        await _auditLogService.Received(1).LogAsync(
+            applicantId, "system", "Applicant",
+            AuditAction.AssessmentCompleted, AuditEntityType.ScreeningResult,
+            applicationId, Arg.Any<object?>(), null, null,
+            Arg.Any<CancellationToken>());
+    }
 }

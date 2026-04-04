@@ -41,6 +41,9 @@
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Domain\Jobsite.Modules.Recruitment.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Application\Jobsite.Modules.Recruitment.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Infrastructure\Jobsite.Modules.Recruitment.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Domain\Jobsite.Modules.Screening.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Application\Jobsite.Modules.Screening.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Infrastructure\Jobsite.Modules.Screening.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Jobsite.Api\Jobsite.Api.csproj" />
   </ItemGroup>
 
