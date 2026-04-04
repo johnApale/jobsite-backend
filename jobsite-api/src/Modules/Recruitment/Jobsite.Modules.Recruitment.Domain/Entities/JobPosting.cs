@@ -18,6 +18,9 @@ public sealed class JobPosting : AggregateRoot
     /// <summary>Full job description. Free-form rich text for the applicant-facing listing.</summary>
     public string Description { get; set; } = null!;
 
+    /// <summary>Free-form text describing job requirements. Used by AI to suggest evaluation criteria.</summary>
+    public string? Requirements { get; set; }
+
     /// <summary>Work location arrangement: OnSite, Remote, Hybrid. Constrained by CHECK.</summary>
     public string LocationType { get; set; } = null!;
 

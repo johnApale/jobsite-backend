@@ -39,6 +39,8 @@ public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPostin
         builder.Property(j => j.Description)
             .IsRequired();
 
+        builder.Property(j => j.Requirements);
+
         builder.Property(j => j.LocationType)
             .HasMaxLength(20)
             .IsRequired();
