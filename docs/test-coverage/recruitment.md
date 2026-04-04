@@ -371,3 +371,69 @@ Tests FluentValidation rules for the `UpdateQuestionRequest` merge-patch DTO.
 | `Validate_NegativeDisplayOrder_Fails` | Negative display order is rejected                 | Validation error |
 
 **Why:** Same merge-patch guarding pattern as other update validators. Prevents partial updates from introducing invalid question types or timing values that would break the assessment flow.
+
+---
+
+## `JobCriteriaReaderTests` (4 tests)
+
+Tests `JobCriteriaReader` — the cross-module boundary service that provides job evaluation criteria to the Screening module. Uses InMemory EF Core for `RecruitmentDbContext`.
+
+| Test                                                          | What It Verifies                            | Expected Outcome          |
+| ------------------------------------------------------------- | ------------------------------------------- | ------------------------- |
+| `GetCriteriaForJobAsync_ExistingJob_ReturnsCriteriaSnapshots` | Criteria mapped to `CriteriaSnapshot` DTOs  | Returns 2 snapshots       |
+| `GetCriteriaForJobAsync_NoCriteria_ReturnsEmptyList`          | Job with no criteria returns empty list     | Empty list, no exception  |
+| `GetCriteriaForJobAsync_OrdersByDisplayOrder`                 | Results ordered by `DisplayOrder`           | Items in 0, 1, 2 order    |
+| `GetCriteriaForJobAsync_MapsAllFields`                        | All DTO fields correctly mapped from entity | All snapshot fields match |
+
+**Why:** Cross-module boundary services are the only communication path between Recruitment and Screening. Incorrect mapping or ordering would cause screening to evaluate the wrong criteria.
+
+---
+
+## `ApplicationStatusUpdaterTests` (5 tests)
+
+Tests `ApplicationStatusUpdater` — the cross-module boundary service that allows Screening to update application status. Uses InMemory EF Core for `RecruitmentDbContext`.
+
+| Test                                                       | What It Verifies                                   | Expected Outcome             |
+| ---------------------------------------------------------- | -------------------------------------------------- | ---------------------------- |
+| `UpdateStatusAsync_ValidApplication_UpdatesStatusAndSaves` | Status updated and persisted                       | Status matches new value     |
+| `UpdateStatusAsync_SetsRejectionReason_WhenProvided`       | Rejection reason and stage set on rejection        | Both fields populated        |
+| `UpdateStatusAsync_SetsUpdatedAt`                          | UpdatedAt timestamp updated                        | Timestamp >= test start time |
+| `UpdateStatusAsync_NonExistentApplication_ThrowsAppError`  | Missing application throws `APPLICATION_NOT_FOUND` | Throws `AppError`            |
+| `UpdateStatusAsync_NullRejectionFields_SetsNullValues`     | Passing null rejection fields sets them to null    | Both fields are null         |
+
+**Why:** The Screening module relies on this service to advance or reject applications. A bug here would silently fail to update application status, leaving candidates in limbo.
+
+---
+
+## `JobScreeningQuestionsReaderTests` (5 tests)
+
+Tests `JobScreeningQuestionsReader` — the cross-module boundary service that provides screening questions to the Screening module. Uses InMemory EF Core for `RecruitmentDbContext`.
+
+| Test                                                           | What It Verifies                                    | Expected Outcome         |
+| -------------------------------------------------------------- | --------------------------------------------------- | ------------------------ |
+| `GetQuestionsForJobAsync_ExistingJob_ReturnsQuestionSnapshots` | Questions mapped to `QuestionSnapshot` DTOs         | Returns 2 snapshots      |
+| `GetQuestionsForJobAsync_NoQuestions_ReturnsEmptyList`         | Job with no questions returns empty list            | Empty list, no exception |
+| `GetQuestionsForJobAsync_OrdersByDisplayOrder`                 | Results ordered by `DisplayOrder`                   | Items in 0, 1, 2 order   |
+| `HasAfterScreeningQuestionsAsync_HasQuestions_ReturnsTrue`     | Job with AfterScreening questions returns true      | Returns `true`           |
+| `HasAfterScreeningQuestionsAsync_NoQuestions_ReturnsFalse`     | Job with only AtApplication questions returns false | Returns `false`          |
+
+**Why:** The `HasAfterScreeningQuestionsAsync` method determines whether the pipeline advances to an assessment stage. A false negative would skip assessment questions entirely.
+
+---
+
+## Coverage Gaps
+
+### Integration Test Gaps
+
+| Area                       | Gap                                                                                                                                                      | Priority |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **Repository Integration** | No Testcontainers tests for `IJobPostingRepository`, `IApplicationRepository`, `IClientCompanyRepository` — only DbContext-level tests exist (22 tests). | High     |
+| **Endpoint Tests**         | No `WebApplicationFactory` HTTP pipeline tests for `RecruitmentEndpoints.cs` (job posting CRUD, criteria, questions, applications).                      | Medium   |
+| **EF Core Migration**      | `InitialRecruitmentSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.                                        | Medium   |
+
+### Blocked by AI Service (Phase 6)
+
+| Area                                    | Gap                                                                                                  |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **AI Criteria Suggester Contract Test** | `AiCriteriaSuggesterClient` tested with mock HTTP handler only — no real AI Service endpoint to hit. |
+| **AI Question Suggester Contract Test** | `AiQuestionSuggesterClient` tested with mock HTTP handler only — no real AI Service endpoint to hit. |

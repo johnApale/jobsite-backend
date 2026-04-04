@@ -6,10 +6,10 @@
 
 | Project                   | Tests   | Status                                    |
 | ------------------------- | ------- | ----------------------------------------- |
-| Jobsite.UnitTests         | 564     | ✅ All passing                            |
+| Jobsite.UnitTests         | 611     | ✅ All passing                            |
 | Jobsite.ArchitectureTests | 35      | ✅ All passing                            |
 | Jobsite.IntegrationTests  | 97      | ✅ All passing (all tests require Docker) |
-| **Total**                 | **696** |                                           |
+| **Total**                 | **743** |                                           |
 
 ---
 
@@ -21,8 +21,8 @@
 | Tenancy            | 25    | [tenancy.md](tenancy.md)                       |
 | Auth               | 53    | [auth.md](auth.md)                             |
 | Admin              | 39    | [admin.md](admin.md)                           |
-| Profiles           | 46    | [profiles.md](profiles.md)                     |
-| Recruitment        | 159   | [recruitment.md](recruitment.md)               |
+| Profiles           | 83    | [profiles.md](profiles.md)                     |
+| Recruitment        | 189   | [recruitment.md](recruitment.md)               |
 | Screening          | 144   | [screening.md](screening.md)                   |
 | Middleware         | 21    | [middleware.md](middleware.md)                 |
 | Pipeline Behaviors | 7     | [pipeline-behaviors.md](pipeline-behaviors.md) |
@@ -34,16 +34,22 @@
 
 ## Coverage Gaps & Next Steps
 
+### Profiles Module (Phase 3) Gaps
+
+| Area                              | Gap                                                                                                                         | Priority |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **ProfilesDbContext Integration** | No Testcontainers tests for entity CRUD, column mappings, CHECK constraints, JSONB fields, cross-schema FK to `auth.users`. | High     |
+| **Repository Integration Tests**  | No integration tests for `IApplicantProfileRepository` or `IResumeRepository` — only tested via mocked service-layer tests. | High     |
+| **Profile Endpoint Tests**        | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD or resume endpoints.                                        | Medium   |
+| **MassTransit Consumer E2E**      | No end-to-end test with Testcontainers RabbitMQ for resume upload → parse pipeline.                                         | Medium   |
+
 ### Recruitment Module (Phase 4) Gaps
 
-| Area                                       | Gap                                                                                                                                                                                                             | Priority |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| ~~**Recruitment Integration Tests**~~      | ~~No `RecruitmentDbContext` integration tests~~ — ✅ **Resolved:** 22 tests in `RecruitmentDbContextTests` covering schema, persistence, CHECK constraints, JSONB, indexes, unique constraints, cascade deletes | ~~High~~ |
-| **Recruitment Repository Tests**           | No repository integration tests for `IJobPostingRepository`, `IApplicationRepository`, `IClientCompanyRepository`                                                                                               | High     |
-| ~~**Validator Tests (7 missing)**~~        | ~~No unit tests for Update/Create validators~~ — ✅ **Resolved:** 70 tests across 7 new validator test classes                                                                                                  | ~~High~~ |
-| ~~**Recruitment Layer Dependency Tests**~~ | ~~`LayerDependencyTests.cs` only covers Tenancy and Profiles~~ — ✅ **Resolved:** 5 tests added for Recruitment Domain/Application layer enforcement                                                            | ~~Med~~  |
-| **Recruitment Endpoint Tests**             | No `WebApplicationFactory` tests for Recruitment endpoints (job posting CRUD, criteria, questions, applications)                                                                                                | Medium   |
-| **EF Core Migration**                      | `InitialRecruitmentSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning                                                                                                | Medium   |
+| Area                             | Gap                                                                                                                                                                                      | Priority |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **Recruitment Repository Tests** | No repository integration tests for `IJobPostingRepository`, `IApplicationRepository`, `IClientCompanyRepository` — only DbContext-level tests exist (22 in `RecruitmentDbContextTests`) | High     |
+| **Recruitment Endpoint Tests**   | No `WebApplicationFactory` tests for Recruitment endpoints (job posting CRUD, criteria, questions, applications)                                                                         | Medium   |
+| **EF Core Migration**            | `InitialRecruitmentSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning                                                                         | Medium   |
 
 ### Cross-Module Gaps
 
@@ -68,6 +74,7 @@ These items depend on the AI Service (Python/FastAPI) which is not yet implement
 | **AI Answer Scoring Client Contract Test** | `AiAnswerScoringClient` tested with mock HTTP handler only — no real answer scoring endpoint        |
 | **AI Candidate Feedback Contract Test**    | `AiCandidateFeedbackClient` tested with mock HTTP handler only — no real feedback endpoint          |
 | **AI Resume Parser Contract Test**         | `AiResumeParserClient` tested with mock HTTP handler only — no real resume parsing endpoint         |
+| **Full Resume Parse Pipeline E2E**         | End-to-end resume upload → basic parse → AI parse → persist requires operational AI Service         |
 | **Full Screening Pipeline E2E**            | End-to-end screening with real AI scoring requires operational AI Service                           |
 
 ### Blocked by Incomplete Modules

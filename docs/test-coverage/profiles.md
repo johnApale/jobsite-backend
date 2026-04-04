@@ -6,7 +6,7 @@
 
 ---
 
-## `ProfileConstantsTests` (8 tests)
+## `ProfileConstantsTests` (14 tests)
 
 Tests `FileType.IsValid()` and `SkillLevel.IsValid()` constant validators. Values must match database CHECK constraints and are used for input validation throughout the module.
 
@@ -21,7 +21,7 @@ Tests `FileType.IsValid()` and `SkillLevel.IsValid()` constant validators. Value
 
 ---
 
-## `ProfileServiceTests` (5 tests)
+## `ProfileServiceTests` (6 tests)
 
 Tests `ProfileService` — the application service for profile CRUD. Uses NSubstitute to mock `IApplicantProfileRepository` and keyed `IUnitOfWork`.
 
@@ -38,7 +38,7 @@ Tests `ProfileService` — the application service for profile CRUD. Uses NSubst
 
 ---
 
-## `ResumeServiceTests` (8 tests)
+## `ResumeServiceTests` (9 tests)
 
 Tests `ResumeService` — upload, listing, and retrieval. Uses NSubstitute to mock `IResumeRepository`, `IFileStorage`, `IEventPublisher`, and keyed `IUnitOfWork`.
 
@@ -72,7 +72,7 @@ Tests the MediatR handler that auto-creates an empty `ApplicantProfile` when a u
 
 ---
 
-## `CreateProfileRequestValidatorTests` (9 tests)
+## `CreateProfileRequestValidatorTests` (11 tests)
 
 Tests `CreateProfileRequestValidator` — FluentValidation rules for new profile creation.
 
@@ -122,3 +122,94 @@ Tests `AiResumeParserClient` — the HTTP client for the AI Service's resume par
 | `ParseAsync_InvalidJson_ReturnsNull`          | Malformed JSON response returns null                              | Returns `null`   |
 
 **Why:** The AI parser client must never throw exceptions to the consumer. All failure modes must be handled gracefully with null return, allowing the basic parser output to be used as the sole result. This ensures resume processing is never blocked by AI Service availability.
+
+---
+
+## `ResumeUploadedConsumerTests` (8 tests)
+
+Tests `ResumeUploadedConsumer` — the MassTransit consumer that runs basic + AI resume parsing asynchronously. Uses InMemory EF Core for `ProfilesDbContext` and NSubstitute for `IResumeParser`, `IAiResumeParser`, `ITenantConnectionResolver`, and `ITenantDbContextFactory`.
+
+| Test                                                 | What It Verifies                                                       | Expected Outcome                                |
+| ---------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| `Consume_ValidEvent_RunsBasicParserAndPersists`      | Happy path: basic parser text + skills stored on resume                | ParsedText, ExtractedSkills set, IsParsed true  |
+| `Consume_AiParserAvailable_StoresAiParsedContent`    | AI parser returns structured data, serialized as JSON                  | AiParsedContent contains skill data             |
+| `Consume_AiParserUnavailable_FallsBackToBasicOnly`   | AI parser returns null, resume still saved with basic parse            | IsParsed true, AiParsedContent null             |
+| `Consume_BasicParserFails_SetsParseErrorAndRethrows` | Parser exception stored on resume, then rethrown for MassTransit retry | ParseError set, exception propagated            |
+| `Consume_ResumeNotFound_LogsWarningAndReturns`       | Resume ID not in DB, parser never called                               | Parser not invoked                              |
+| `Consume_AlreadyParsed_SkipsProcessing`              | Resume with IsParsed=true is skipped                                   | Parser not invoked                              |
+| `Consume_ValidEvent_ResolvesCorrectTenantConnection` | Tenant connection resolved from event's TenantId                       | GetConnectionStringAsync called with correct ID |
+| `Consume_SuccessfulParse_SetsParsedAtTimestamp`      | ParsedAt timestamp set on successful parse                             | ParsedAt is not null, >= test start time        |
+
+**Why:** The consumer is the core of the async resume parsing pipeline. It must handle AI parser unavailability gracefully, persist errors for retry, and correctly resolve tenant databases for multi-tenant isolation.
+
+---
+
+## `BasicResumeParserTests` (8 tests)
+
+Tests `BasicResumeParser` — PDF text extraction (PdfPig), DOCX extraction (OpenXml), and keyword skill matching. Uses real temp files created with PdfPig `PdfDocumentBuilder` and OpenXml `WordprocessingDocument`.
+
+| Test                                                         | What It Verifies                                       | Expected Outcome                        |
+| ------------------------------------------------------------ | ------------------------------------------------------ | --------------------------------------- |
+| `ParseAsync_ValidPdf_ExtractsText`                           | PdfPig extracts text from a generated PDF              | ParsedText contains expected text       |
+| `ParseAsync_ValidDocx_ExtractsText`                          | OpenXml extracts text from a generated DOCX            | ParsedText contains expected text       |
+| `ParseAsync_TextWithKnownSkills_ExtractsMatchingSkills`      | Text containing "C#, Python, SQL" matches known skills | ExtractedSkills JSON contains all three |
+| `ParseAsync_TextWithNoSkills_ReturnsNullSkills`              | Text with no skill keywords returns null               | ExtractedSkills is null                 |
+| `ParseAsync_SkillMatchingIsCaseInsensitive`                  | "python" matches "Python" in the skills list           | ExtractedSkills contains "Python"       |
+| `ParseAsync_UnsupportedFileType_ThrowsNotSupportedException` | Non-PDF/DOCX file type rejected                        | Throws `NotSupportedException`          |
+| `ParseAsync_FileNotFound_ThrowsFileNotFoundException`        | Missing file throws before type check                  | Throws `FileNotFoundException`          |
+| `ParseAsync_DocxFile_ExtractsSkillsFromDocx`                 | DOCX file with skills extracts correct matches         | ExtractedSkills contains matches        |
+
+**Why:** Resume parsing is the data backbone for screening. PdfPig and OpenXml are real libraries with nuanced behavior — in-memory test files validate the extraction pipeline end-to-end without external dependencies.
+
+---
+
+## `LocalFileStorageTests` (6 tests)
+
+Tests `LocalFileStorage` — the `IFileStorage` implementation for local filesystem uploads. Uses temp directories with cleanup in `Dispose()`.
+
+| Test                                                | What It Verifies                                 | Expected Outcome                 |
+| --------------------------------------------------- | ------------------------------------------------ | -------------------------------- |
+| `UploadAsync_ValidFile_WritesToDisk`                | File bytes written to expected path              | File exists with correct content |
+| `UploadAsync_SanitizesFilename_RemovesInvalidChars` | Invalid filename chars replaced with underscores | No invalid chars in output       |
+| `UploadAsync_LongFilename_TruncatesTo200Chars`      | 300-char filename truncated to 200               | Sanitized part ≤ 200 chars       |
+| `UploadAsync_CreatesDirectoryIfNotExists`           | "resumes" subdirectory auto-created              | Directory exists                 |
+| `DeleteAsync_ExistingFile_RemovesFromDisk`          | Uploaded file successfully deleted               | File no longer exists            |
+| `DeleteAsync_NonExistentFile_DoesNotThrow`          | Missing file silently ignored                    | No exception thrown              |
+
+**Why:** File storage is a security-sensitive boundary. Filename sanitization prevents path traversal, and the truncation test guards against filesystem limits. Delete idempotency prevents errors during retry scenarios.
+
+---
+
+## `ResumeParseRecoveryServiceTests` (5 tests)
+
+Tests `ResumeParseRecoveryService` — a `BackgroundService` that re-publishes `ResumeUploadedEvent` for resumes interrupted during previous runs. Uses InMemory EF Core and NSubstitute for `IServiceScopeFactory`, `ITenantConnectionResolver`, and `IEventPublisher`.
+
+| Test                                                  | What It Verifies                             | Expected Outcome              |
+| ----------------------------------------------------- | -------------------------------------------- | ----------------------------- |
+| `ExecuteAsync_UnparsedResumesExist_RepublishesEvents` | Finds 2 unparsed resumes, publishes 2 events | 2 events published            |
+| `ExecuteAsync_NoUnparsedResumes_PublishesNothing`     | Already-parsed resumes produce no events     | Zero events published         |
+| `ExecuteAsync_MultipleTenants_ProcessesAllTenants`    | Iterates across 2 tenant connections         | Events published for both     |
+| `ExecuteAsync_TenantFails_ContinuesWithOtherTenants`  | Exception in tenant A doesn't block tenant B | Tenant B still processed      |
+| `ExecuteAsync_OnlyReprocessesNotParsedAndNoError`     | Resumes with ParseError set are skipped      | Only clean unparsed re-queued |
+
+**Why:** The recovery service ensures resume parsing resilience — if the app crashes mid-parse, unparsed resumes are automatically re-queued on restart. Multi-tenant fault isolation is critical.
+
+---
+
+## Coverage Gaps
+
+### Integration Test Gaps
+
+| Area                         | Gap                                                                                                                         | Priority |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **ProfilesDbContext**        | No Testcontainers tests for entity CRUD, column mappings, CHECK constraints, JSONB fields, cross-schema FK to `auth.users`. | High     |
+| **Repository Tests**         | No integration tests for `IApplicantProfileRepository` or `IResumeRepository` — only tested via mocked service-layer tests. | High     |
+| **Endpoint Tests**           | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD (`GET/POST/PATCH /api/v1/profiles/me`) or resume endpoints. | Medium   |
+| **MassTransit Consumer E2E** | No end-to-end test with Testcontainers RabbitMQ for the resume upload → parse pipeline.                                     | Medium   |
+
+### Blocked by AI Service (Phase 6)
+
+| Area                               | Gap                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **AI Resume Parser Contract Test** | `AiResumeParserClient` tested with mock HTTP handler only — no real AI Service resume parsing endpoint. |
+| **Full Resume Parse Pipeline E2E** | End-to-end resume upload → basic parse → AI parse → persist requires operational AI Service.            |
