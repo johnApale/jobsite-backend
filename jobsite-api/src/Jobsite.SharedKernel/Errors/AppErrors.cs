@@ -33,6 +33,9 @@ public static class AppErrors
     public static AppError ResumeNotFound => new("RESUME_NOT_FOUND", 404, "Resume not found");
     public static AppError SettingsNotFound => new("SETTINGS_NOT_FOUND", 404, "Company settings not found for this tenant");
     public static AppError ScreeningResultNotFound => new("SCREENING_RESULT_NOT_FOUND", 404, "Screening result not found");
+    public static AppError CandidateMatchNotFound => new("CANDIDATE_MATCH_NOT_FOUND", 404, "Candidate match not found");
+    public static AppError ShortlistNotFound => new("SHORTLIST_NOT_FOUND", 404, "Shortlist not found");
+    public static AppError ShortlistCandidateNotFound => new("SHORTLIST_CANDIDATE_NOT_FOUND", 404, "Candidate not found on shortlist");
 
     // ── 409 Conflict ─────────────────────────────────────────────────────
     public static AppError ProfileAlreadyExists => new("PROFILE_ALREADY_EXISTS", 409, "Profile already exists for this user");
@@ -40,6 +43,8 @@ public static class AppErrors
     public static AppError OfferAlreadyAccepted => new("OFFER_ALREADY_ACCEPTED", 409, "Offer has already been accepted");
     public static AppError ScreeningAlreadyCompleted => new("SCREENING_ALREADY_COMPLETED", 409, "Screening has already been completed for this application");
     public static AppError AssessmentAlreadySubmitted => new("ASSESSMENT_ALREADY_SUBMITTED", 409, "Assessment answers have already been submitted for this application");
+    public static AppError CandidateAlreadyOnShortlist => new("CANDIDATE_ALREADY_ON_SHORTLIST", 409, "Candidate is already on this shortlist");
+    public static AppError ShortlistAlreadyFinalized => new("SHORTLIST_ALREADY_FINALIZED", 409, "Shortlist has already been finalized");
 
     // ── 422 Unprocessable Entity ─────────────────────────────────────────
     public static AppError UnprocessableEntity => new("UNPROCESSABLE_ENTITY", 422, "Business logic prevents this operation");
