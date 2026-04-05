@@ -21,7 +21,8 @@
 - **Phase 3 complete** — Profiles module implemented: applicant profile CRUD (JSON merge patch), resume upload with file storage abstraction, async resume parsing via MassTransit/RabbitMQ (basic + AI), `UserRegisteredEvent` handler auto-creates profiles for Applicants, AI resume parser client with resilient HTTP + graceful fallback
 - **Phase 4 complete** — Recruitment module implemented: client company CRUD, job posting CRUD with Draft→Published→Closed lifecycle, evaluation criteria CRUD with AI-assisted suggestions, screening questions CRUD with feature-gated AI suggestions, application submission with one-per-person-per-job enforcement + `ApplicationSubmittedEvent` domain event, withdraw flow
 - **Phase 5 complete** — Screening module implemented: dual scoring engine (deterministic always + AI opt-in), three-tier routing (auto-advance/manual-review/auto-reject), screening question response scoring (MultipleChoice/YesNo deterministic + FreeText AI), assessment flow for AfterScreening questions, candidate transparency feedback, manual review workflow, `ApplicationSubmittedEvent` handler triggers screening pipeline, `AssessmentCompletedEvent` published to Admin audit log, 6 API endpoints with cursor-based pagination
-- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage (431 unit, 30 architecture, 58 integration)
+- **Phase 7 complete** — Matching module implemented: weighted composite score computation (screening + assessment with tenant-configurable weights), `CvScreeningCompletedEvent` and `AssessmentCompletedEvent` handlers create/update `CandidateMatch` records, shortlist generation (top-N by composite score), manual candidate add/remove on draft shortlists, finalization with `CandidateShortlistedEvent` dispatch and application status updates, 7 API endpoints with cursor-based pagination
+- **Test projects** — Unit, Integration, and Architecture test projects with comprehensive coverage (650 unit, 35 architecture, 97 integration)
 
 ### What Needs Implementation
 
@@ -195,9 +196,11 @@
 
 ---
 
-### Phase 7 — Matching Module
+### Phase 7 — Matching Module ✅
 
 > Combine screening and assessment scores to rank candidates and build shortlists.
+>
+> **Status:** Complete — 39 unit tests, all passing. See [matching.md](test-coverage/matching.md) for test coverage.
 
 | #   | Task                          | Layer                   | Details                                                                                                                                                            |
 | --- | ----------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

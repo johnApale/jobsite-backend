@@ -133,6 +133,37 @@
 
 ---
 
+## Matching Module
+
+### Deferred
+
+| Item                        | Description                                                                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| EF Core Migration           | `InitialMatchingSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.               |
+| Integration Tests           | No Testcontainers tests for `MatchingDbContext`, `ICandidateMatchRepository`, or `IShortlistRepository`. No endpoint tests.  |
+| Auto-Generate Shortlist     | `auto_generate_shortlist` setting in `MatchingSettings` is read but not yet wired to trigger automatic shortlist generation. |
+| Shortlist Approval Workflow | No hiring manager approval/rejection of individual shortlist candidates — only full shortlist finalization.                  |
+
+### Completed
+
+| Item                              | Resolution                                                                                                                                               |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CandidateMatch Entity             | `CandidateMatch` with shared PK (ApplicationId), screening/assessment/composite scores, rank, MatchStrength.                                             |
+| Shortlist Entity                  | `Shortlist` aggregate root with `ShortlistCandidate` collection, Draft/Finalized lifecycle.                                                              |
+| Score Aggregation Service         | Weighted composite score computation with tenant-configurable screening/assessment weights from `MatchingSettings`.                                      |
+| CvScreeningCompletedEvent Handler | Consumes event from Screening → creates `CandidateMatch` with idempotency check. Uses cross-module readers for application data.                         |
+| AssessmentCompletedEvent Handler  | Updates existing `CandidateMatch` with assessment score, recomputes composite.                                                                           |
+| Shortlist Generation              | Top-N candidates by composite score, Algorithm source attribution, ranked candidates.                                                                    |
+| Shortlist Management              | Manual candidate add/remove on draft shortlists, soft-delete, duplicate detection.                                                                       |
+| Shortlist Finalization            | Status lock, `CandidateShortlistedEvent` dispatch per candidate, application status update to "Shortlisted" via `IApplicationStatusUpdater`.             |
+| Cross-Module Readers              | `IScreeningScoreReader` (SharedKernel → Screening.Infrastructure), `IApplicationDataReader` (SharedKernel → Recruitment.Infrastructure).                 |
+| API Endpoints                     | 7 endpoints: GET match, GET matches, POST generate shortlist, GET shortlist, GET shortlists, POST add candidate, DELETE remove candidate, POST finalize. |
+| Unit Tests                        | 39 tests: constants (4), score aggregation (8), matching service (5), shortlist service (11), event handlers (7), validators (4).                        |
+| Architecture Tests                | Module isolation and naming convention tests updated to reference Matching types.                                                                        |
+| IUnitOfWork Disambiguation        | Keyed service: `AddKeyedScoped<IUnitOfWork>("matching")` with `[FromKeyedServices]`.                                                                     |
+
+---
+
 ## Testing — Deferred Until AI Service Is Running
 
 > These tests require the AI Service (Python/FastAPI) to be operational. They cannot be written as unit tests with mocks — they validate the real integration contracts, end-to-end pipelines, and the AI Service's own behavior.
