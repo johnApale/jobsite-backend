@@ -7,6 +7,8 @@ using Jobsite.Modules.Auth.Domain.Constants;
 using Jobsite.Modules.Auth.Domain.Entities;
 using Jobsite.Modules.Profiles.Application.DTOs;
 using Jobsite.Modules.Profiles.Domain.Entities;
+using Jobsite.Modules.Matching.Domain.Constants;
+using Jobsite.Modules.Matching.Domain.Entities;
 using Jobsite.Modules.Recruitment.Application.DTOs;
 using Jobsite.Modules.Recruitment.Domain.Constants;
 using Jobsite.Modules.Recruitment.Domain.Entities;
@@ -396,5 +398,63 @@ public static class TestData
         Timing = timing ?? QuestionTiming.AtApplication,
         IsRequired = true,
         Weight = 10.0m
+    };
+
+    // ── Matching ──────────────────────────────────────────────────────────
+
+    public static CandidateMatch CreateCandidateMatch(
+        Guid? applicationId = null,
+        Guid? jobPostingId = null,
+        Guid? applicantUserId = null,
+        decimal? screeningScore = null,
+        decimal? assessmentScore = null,
+        decimal? compositeScore = null,
+        string? matchStrength = null) => new()
+    {
+        ApplicationId = applicationId ?? Guid.NewGuid(),
+        JobPostingId = jobPostingId ?? Guid.NewGuid(),
+        ApplicantUserId = applicantUserId ?? Guid.NewGuid(),
+        ScreeningScore = screeningScore ?? 75m,
+        AssessmentScore = assessmentScore,
+        CompositeScore = compositeScore ?? screeningScore ?? 75m,
+        MatchStrength = matchStrength ?? MatchStrength.Good,
+        ScreeningCompletedAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static Shortlist CreateShortlist(
+        Guid? jobPostingId = null,
+        string? status = null,
+        string? generatedBy = null,
+        int? totalCandidates = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        JobPostingId = jobPostingId ?? Guid.NewGuid(),
+        Status = status ?? ShortlistStatus.Draft,
+        GeneratedBy = generatedBy ?? ShortlistCandidateSource.Algorithm,
+        TotalCandidates = totalCandidates ?? 0,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static ShortlistCandidate CreateShortlistCandidate(
+        Guid? shortlistId = null,
+        Guid? applicationId = null,
+        Guid? applicantUserId = null,
+        decimal? compositeScore = null,
+        int? rank = null,
+        string? source = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        ShortlistId = shortlistId ?? Guid.NewGuid(),
+        ApplicationId = applicationId ?? Guid.NewGuid(),
+        ApplicantUserId = applicantUserId ?? Guid.NewGuid(),
+        CompositeScore = compositeScore ?? 80m,
+        Rank = rank ?? 1,
+        Source = source ?? ShortlistCandidateSource.Algorithm,
+        AddedAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
     };
 }
