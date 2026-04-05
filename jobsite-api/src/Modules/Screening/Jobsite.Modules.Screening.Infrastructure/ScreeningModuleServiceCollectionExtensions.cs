@@ -3,6 +3,7 @@ using Jobsite.Modules.Screening.Application.Interfaces;
 using Jobsite.Modules.Screening.Application.Services;
 using Jobsite.Modules.Screening.Application.Validators;
 using Jobsite.Modules.Screening.Infrastructure.AiIntegration;
+using Jobsite.Modules.Screening.Infrastructure.CrossModule;
 using Jobsite.Modules.Screening.Infrastructure.Persistence;
 using Jobsite.Modules.Screening.Infrastructure.Persistence.Repositories;
 using Jobsite.SharedKernel.Persistence;
@@ -76,6 +77,9 @@ public static class ScreeningModuleServiceCollectionExtensions
 
         // Keyed UnitOfWork
         services.AddKeyedScoped<IUnitOfWork, ScreeningUnitOfWork>("screening");
+
+        // Cross-module readers (consumed by Matching module)
+        services.AddScoped<IScreeningScoreReader, ScreeningScoreReader>();
 
         // Validators
         services.AddValidatorsFromAssemblyContaining<SubmitAssessmentRequestValidator>();
