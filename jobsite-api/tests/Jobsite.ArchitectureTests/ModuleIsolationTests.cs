@@ -41,7 +41,7 @@ public sealed class ModuleIsolationTests
         ["Jobsite.Modules.Profiles"] = typeof(Jobsite.Modules.Profiles.Domain.Entities.ApplicantProfile).Assembly,
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Domain.Entities.ClientCompany).Assembly,
         ["Jobsite.Modules.Screening"] = typeof(Jobsite.Modules.Screening.Domain.Entities.ScreeningResult).Assembly,
-        ["Jobsite.Modules.Matching"] = typeof(Jobsite.Modules.Matching.Domain.Class1).Assembly,
+        ["Jobsite.Modules.Matching"] = typeof(Jobsite.Modules.Matching.Domain.Entities.CandidateMatch).Assembly,
         ["Jobsite.Modules.HRWorkflows"] = typeof(Jobsite.Modules.HRWorkflows.Domain.Class1).Assembly,
     };
 
@@ -53,7 +53,7 @@ public sealed class ModuleIsolationTests
         ["Jobsite.Modules.Profiles"] = typeof(Jobsite.Modules.Profiles.Infrastructure.Persistence.ProfilesDbContext).Assembly,
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Infrastructure.Persistence.RecruitmentDbContext).Assembly,
         ["Jobsite.Modules.Screening"] = typeof(Jobsite.Modules.Screening.Infrastructure.Persistence.ScreeningDbContext).Assembly,
-        ["Jobsite.Modules.Matching"] = typeof(Jobsite.Modules.Matching.Infrastructure.Class1).Assembly,
+        ["Jobsite.Modules.Matching"] = typeof(Jobsite.Modules.Matching.Infrastructure.Persistence.MatchingDbContext).Assembly,
         ["Jobsite.Modules.HRWorkflows"] = typeof(Jobsite.Modules.HRWorkflows.Infrastructure.Class1).Assembly,
     };
 

@@ -31,7 +31,7 @@ public sealed class NamingConventionTests
         typeof(Jobsite.Modules.Profiles.Domain.Entities.ApplicantProfile).Assembly,
         typeof(Jobsite.Modules.Recruitment.Domain.Entities.ClientCompany).Assembly,
         typeof(Jobsite.Modules.Screening.Domain.Entities.ScreeningResult).Assembly,
-        typeof(Jobsite.Modules.Matching.Domain.Class1).Assembly,
+        typeof(Jobsite.Modules.Matching.Domain.Entities.CandidateMatch).Assembly,
         typeof(Jobsite.Modules.HRWorkflows.Domain.Class1).Assembly,
     ];
 
@@ -43,7 +43,7 @@ public sealed class NamingConventionTests
         typeof(Jobsite.Modules.Profiles.Infrastructure.Persistence.ProfilesDbContext).Assembly,
         typeof(Jobsite.Modules.Recruitment.Infrastructure.Persistence.RecruitmentDbContext).Assembly,
         typeof(Jobsite.Modules.Screening.Infrastructure.Persistence.ScreeningDbContext).Assembly,
-        typeof(Jobsite.Modules.Matching.Infrastructure.Class1).Assembly,
+        typeof(Jobsite.Modules.Matching.Infrastructure.Persistence.MatchingDbContext).Assembly,
         typeof(Jobsite.Modules.HRWorkflows.Infrastructure.Class1).Assembly,
     ];
 
