@@ -10,6 +10,6 @@ public static class LocationType
     public const string Remote = "Remote";
     public const string Hybrid = "Hybrid";
 
-    public static bool IsValid(string locationType) =>
+    public static bool IsValid(string? locationType) =>
         locationType is OnSite or Remote or Hybrid;
 }

@@ -12,6 +12,6 @@ public static class EmploymentType
     public const string Temporary = "Temporary";
     public const string Internship = "Internship";
 
-    public static bool IsValid(string employmentType) =>
+    public static bool IsValid(string? employmentType) =>
         employmentType is FullTime or PartTime or Contract or Temporary or Internship;
 }
