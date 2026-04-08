@@ -17,7 +17,6 @@
 | Email Verification Flow | `email_verified` flag is set but no verification email is sent. Needs email service integration. |
 | Password Reset Flow     | No forgot-password / reset-password endpoints yet.                                               |
 | Account Lockout         | No brute-force protection (failed attempt tracking / lockout).                                   |
-| Rate Limiting           | No per-endpoint rate limiting on auth endpoints.                                                 |
 
 ### Completed
 
@@ -26,6 +25,7 @@
 | EF Core Migration          | `InitialAuthSchema` migration generated and applied. Tables: `auth.users`, `auth.refresh_tokens`, `auth.user_external_logins`. |
 | Integration Tests          | 29 Auth integration tests added (UserRepository, RefreshTokenRepository, AuthDbContext).                                       |
 | IUnitOfWork Disambiguation | Resolved via keyed services: `AddKeyedScoped<IUnitOfWork>("auth")` / `("catalog")` with `[FromKeyedServices]`.                 |
+| Rate Limiting              | `"auth"` rate limiting policy (per-IP, 10 req/min) applied to all auth endpoints via `.RequireRateLimiting("auth")`.           |
 
 ---
 
@@ -33,17 +33,17 @@
 
 ### Deferred
 
-| Item                       | Description                                                                                                         |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Dashboard Stats Endpoint   | `GET /api/v1/admin/dashboard` — aggregate pipeline statistics. Deferred until Recruitment/Screening modules exist.  |
-| Platform Admin Controller  | System-wide operations against the Catalog DB (e.g., tenant listing). Not part of per-tenant admin.                 |
-| Tenant Provisioning Wiring | `TenantProvisionedEvent` handler exists but tenant service does not yet publish it. Needs wiring in Tenancy module. |
+| Item                      | Description                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Dashboard Stats Endpoint  | `GET /api/v1/admin/dashboard` — aggregate pipeline statistics. Deferred until Recruitment/Screening modules exist. |
+| Platform Admin Controller | System-wide operations against the Catalog DB (e.g., tenant listing). Not part of per-tenant admin.                |
 
 ### Completed
 
 | Item                        | Resolution                                                                                                                                                        |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Company Settings Entity     | Singleton per-tenant `CompanySettings` entity with 6 JSONB settings columns + timezone/currency.                                                                  |
+| Tenant Provisioning Wiring  | `TenantProvisioner` now publishes `TenantProvisionedEvent` after successful provisioning, triggering default `CompanySettings` seeding.                            |
 | Audit Log Entity            | Append-only `AuditLog` entity with denormalized actor data (survives user deletion).                                                                              |
 | EF Core Migration           | `InitialAdminSchema` migration: `admin.company_settings`, `admin.audit_logs` with 4 indexes.                                                                      |
 | Settings CRUD Endpoints     | `GET/PATCH /api/v1/admin/settings` with JSON merge patch semantics and FluentValidation.                                                                          |
