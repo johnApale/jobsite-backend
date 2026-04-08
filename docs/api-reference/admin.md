@@ -41,7 +41,7 @@ GET /api/v1/admin/dashboard
     "completed_screenings": 100,
     "pending_screenings": 15,
     "failed_screenings": 5,
-    "average_score": 72.50,
+    "average_score": 72.5,
     "auto_advanced_count": 60,
     "auto_rejected_count": 20,
     "manual_review_count": 20

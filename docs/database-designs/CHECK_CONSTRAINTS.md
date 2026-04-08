@@ -31,7 +31,7 @@ ALTER TABLE catalog.tenants
 ```sql
 ALTER TABLE auth.users
   ADD CONSTRAINT chk_users_role
-  CHECK (role IN ('Applicant', 'Recruiter', 'HiringManager', 'Interviewer', 'AgencyAdmin'));
+  CHECK (role IN ('Applicant', 'Recruiter', 'HiringManager', 'Interviewer', 'AgencyAdmin', 'PlatformAdmin'));
 
 ALTER TABLE auth.users
   ADD CONSTRAINT chk_users_status

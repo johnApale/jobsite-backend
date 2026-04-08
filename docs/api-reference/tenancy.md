@@ -203,12 +203,12 @@ List all tenants with optional filters and cursor-based pagination.
 
 #### Query Parameters
 
-| Parameter   | Type     | Required | Description                                          |
-| ----------- | -------- | -------- | ---------------------------------------------------- |
-| `status`    | `string` | No       | Filter by tenant status (e.g., `Active`, `Suspended`)|
-| `search`    | `string` | No       | Search by tenant name or subdomain                   |
-| `cursor`    | `string` | No       | Opaque cursor from previous response's `next_cursor` |
-| `page_size` | `int`    | No       | Results per page (default: 20)                       |
+| Parameter   | Type     | Required | Description                                           |
+| ----------- | -------- | -------- | ----------------------------------------------------- |
+| `status`    | `string` | No       | Filter by tenant status (e.g., `Active`, `Suspended`) |
+| `search`    | `string` | No       | Search by tenant name or subdomain                    |
+| `cursor`    | `string` | No       | Opaque cursor from previous response's `next_cursor`  |
+| `page_size` | `int`    | No       | Results per page (default: 20)                        |
 
 #### Response — `200 OK`
 
@@ -281,10 +281,10 @@ Returns the updated `TenantResponse` with `status: "Suspended"` and `deactivated
 
 #### Errors
 
-| Code              | Status | Condition                                |
-| ----------------- | ------ | ---------------------------------------- |
-| `TENANT_NOT_FOUND`| 404    | Tenant does not exist                    |
-| `INVALID_REQUEST` | 400    | Tenant is not in `Active` status         |
+| Code               | Status | Condition                        |
+| ------------------ | ------ | -------------------------------- |
+| `TENANT_NOT_FOUND` | 404    | Tenant does not exist            |
+| `INVALID_REQUEST`  | 400    | Tenant is not in `Active` status |
 
 ---
 
@@ -306,7 +306,7 @@ Returns the updated `TenantResponse` with `status: "Active"` and `deactivated_at
 
 #### Errors
 
-| Code              | Status | Condition                                |
-| ----------------- | ------ | ---------------------------------------- |
-| `TENANT_NOT_FOUND`| 404    | Tenant does not exist                    |
-| `INVALID_REQUEST` | 400    | Tenant is not in `Suspended` status      |
+| Code               | Status | Condition                           |
+| ------------------ | ------ | ----------------------------------- |
+| `TENANT_NOT_FOUND` | 404    | Tenant does not exist               |
+| `INVALID_REQUEST`  | 400    | Tenant is not in `Suspended` status |

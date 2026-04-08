@@ -108,3 +108,17 @@ Tests FluentValidation rules for the `UpdateCompanySettingsRequest` merge-patch 
 | `Validate_ValidCompleteRequest_IsValid`           | Fully populated valid request passes all rules   | `IsValid` is true          |
 
 **Why:** The validator enforces business constraints (threshold ranges, currency format, password policy bounds) that protect database CHECK constraints and application invariants.
+
+---
+
+## `DashboardServiceTests` (3 tests)
+
+Tests `DashboardService`, the service that aggregates pipeline statistics from Recruitment, Screening, and Matching modules via cross-module readers.
+
+| Test                                                 | What It Verifies                                                             | Expected Outcome                                        |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `GetStatsAsync_ReturnsAggregatedStats`               | All stats from 3 modules are correctly mapped into the response              | All recruitment, screening, and matching fields match    |
+| `GetStatsAsync_WithNullAverageScore_ReturnsNullScore`| Empty tenant with no screenings returns null average score and zero counts   | `AverageScore` is null, all counts are 0                |
+| `GetStatsAsync_CallsAllReaders`                      | All three cross-module readers are invoked exactly once                      | Each reader received exactly 1 call                     |
+
+**Why:** The dashboard endpoint is the primary overview for agency admins. It aggregates data from 3 independent modules via SharedKernel reader interfaces. If any reader isn't called or its data is mis-mapped, the dashboard shows incorrect pipeline statistics.

@@ -91,9 +91,10 @@ The following routes skip tenant resolution entirely:
 | ------------------- | ------------------------------------------------------- |
 | `/health`           | Infrastructure health probe                             |
 | `/ready`            | Infrastructure readiness probe                          |
-| `/api/v1/tenants/*` | Tenant registration and lookup (operates on Catalog DB) |
-| `/scalar`           | API documentation UI                                    |
-| `/openapi`          | OpenAPI specification                                   |
+| `/api/v1/tenants/*`  | Tenant registration and lookup (operates on Catalog DB)  |
+| `/api/v1/platform/*` | Platform admin operations (operates on Catalog DB)       |
+| `/scalar`            | API documentation UI                                     |
+| `/openapi`           | OpenAPI specification                                    |
 
 ### Tenant Resolution Errors
 

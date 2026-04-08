@@ -37,7 +37,7 @@ Tests correlation ID propagation for distributed tracing across the monolith and
 
 ---
 
-## `TenantResolutionMiddlewareTests` (12 tests)
+## `TenantResolutionMiddlewareTests` (13 tests)
 
 Tests the tenant resolution middleware that extracts the subdomain from the `Host` header, checks the tenant cache, looks up the tenant, and stores it in `HttpContext.Items`. Uses NSubstitute to mock `ITenantRepository` and `ITenantCache`.
 
@@ -45,6 +45,7 @@ Tests the tenant resolution middleware that extracts the subdomain from the `Hos
 | ---------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------- |
 | `InvokeAsync_HealthRoute_BypassesTenantResolution`         | `/health` is skipped — no tenant lookup                                  | Next called, repository not invoked                                   |
 | `InvokeAsync_TenantsApiRoute_BypassesTenantResolution`     | `/api/v1/tenants/*` is skipped — tenant registration doesn't need tenant | Next called                                                           |
+| `InvokeAsync_PlatformAdminRoute_BypassesTenantResolution`  | `/api/v1/platform/*` is skipped — platform admin operates on Catalog DB  | Next called, repository not invoked                                   |
 | `InvokeAsync_OpenApiRoute_BypassesTenantResolution`        | `/openapi/*` is skipped — API docs accessible without tenant             | Next called                                                           |
 | `InvokeAsync_LocalhostWithoutSubdomain_Returns400`         | `localhost` has no subdomain — returns 400 with `INVALID_REQUEST`        | Status 400, body contains `INVALID_REQUEST`                           |
 | `InvokeAsync_ValidSubdomainNotFound_Returns404`            | Subdomain exists but tenant not in DB or cache — returns 404             | Status 404, body contains `TENANT_NOT_FOUND`                          |

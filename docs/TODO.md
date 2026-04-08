@@ -37,19 +37,19 @@ _(none)_
 
 ### Completed
 
-| Item                        | Resolution                                                                                                                                                        |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Item                        | Resolution                                                                                                                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Dashboard Stats Endpoint    | `GET /api/v1/admin/dashboard` returns aggregate stats from Recruitment, Screening, and Matching via cross-module readers (`IRecruitmentStatsReader`, `IScreeningStatsReader`, `IMatchingStatsReader`). |
-| Platform Admin Controller   | `GET/POST /api/v1/platform/tenants` with list, get, suspend, and reactivate endpoints. `RequirePlatformAdmin` authorization policy. `PlatformAdmin` role added to `UserRole` constants. |
-| Company Settings Entity     | Singleton per-tenant `CompanySettings` entity with 6 JSONB settings columns + timezone/currency.                                                                  |
-| Tenant Provisioning Wiring  | `TenantProvisioner` now publishes `TenantProvisionedEvent` after successful provisioning, triggering default `CompanySettings` seeding.                           |
-| Audit Log Entity            | Append-only `AuditLog` entity with denormalized actor data (survives user deletion).                                                                              |
-| EF Core Migration           | `InitialAdminSchema` migration: `admin.company_settings`, `admin.audit_logs` with 4 indexes.                                                                      |
-| Settings CRUD Endpoints     | `GET/PATCH /api/v1/admin/settings` with JSON merge patch semantics and FluentValidation.                                                                          |
-| Audit Log Query Endpoint    | `GET /api/v1/admin/audit-logs` with cursor-based pagination, action/actor/entity/date filters.                                                                    |
-| Domain Event Audit Handlers | 6 domain event handlers for `UserRegistered`, `ApplicationSubmitted`, `CvScreeningCompleted`, `CandidateShortlisted`, `FinalInterviewScheduled`, `OfferExtended`. |
-| Tenant Provisioned Handler  | Seeds default `CompanySettings` row (including 4 default evaluation criteria) when tenant is provisioned.                                                         |
-| IUnitOfWork Disambiguation  | Keyed service: `AddKeyedScoped<IUnitOfWork>("admin")` with `[FromKeyedServices]`.                                                                                 |
+| Platform Admin Controller   | `GET/POST /api/v1/platform/tenants` with list, get, suspend, and reactivate endpoints. `RequirePlatformAdmin` authorization policy. `PlatformAdmin` role added to `UserRole` constants.                |
+| Company Settings Entity     | Singleton per-tenant `CompanySettings` entity with 6 JSONB settings columns + timezone/currency.                                                                                                       |
+| Tenant Provisioning Wiring  | `TenantProvisioner` now publishes `TenantProvisionedEvent` after successful provisioning, triggering default `CompanySettings` seeding.                                                                |
+| Audit Log Entity            | Append-only `AuditLog` entity with denormalized actor data (survives user deletion).                                                                                                                   |
+| EF Core Migration           | `InitialAdminSchema` migration: `admin.company_settings`, `admin.audit_logs` with 4 indexes.                                                                                                           |
+| Settings CRUD Endpoints     | `GET/PATCH /api/v1/admin/settings` with JSON merge patch semantics and FluentValidation.                                                                                                               |
+| Audit Log Query Endpoint    | `GET /api/v1/admin/audit-logs` with cursor-based pagination, action/actor/entity/date filters.                                                                                                         |
+| Domain Event Audit Handlers | 6 domain event handlers for `UserRegistered`, `ApplicationSubmitted`, `CvScreeningCompleted`, `CandidateShortlisted`, `FinalInterviewScheduled`, `OfferExtended`.                                      |
+| Tenant Provisioned Handler  | Seeds default `CompanySettings` row (including 4 default evaluation criteria) when tenant is provisioned.                                                                                              |
+| IUnitOfWork Disambiguation  | Keyed service: `AddKeyedScoped<IUnitOfWork>("admin")` with `[FromKeyedServices]`.                                                                                                                      |
 
 ---
 

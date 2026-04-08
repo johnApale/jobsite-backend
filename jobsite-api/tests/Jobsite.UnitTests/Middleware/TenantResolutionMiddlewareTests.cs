@@ -211,6 +211,28 @@ public sealed class TenantResolutionMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_PlatformAdminRoute_BypassesTenantResolution()
+    {
+        // Arrange
+        DefaultHttpContext context = new();
+        context.Request.Path = "/api/v1/platform/tenants";
+        bool nextCalled = false;
+
+        TenantResolutionMiddleware middleware = new(ctx =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        // Act
+        await middleware.InvokeAsync(context, _tenantRepository, _tenantCache);
+
+        // Assert
+        nextCalled.Should().BeTrue();
+        await _tenantRepository.DidNotReceive().GetBySubdomainAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task InvokeAsync_TenantInCache_ReturnsCachedWithoutHittingRepository()
     {
         // Arrange
