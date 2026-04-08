@@ -5,6 +5,7 @@ using Jobsite.Modules.Profiles.Domain.Entities;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Jobsite.Modules.Profiles.Application.Services;
 
@@ -12,18 +13,28 @@ public sealed class ProfileService : IProfileService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNameCaseInsensitive = true
     };
 
     private readonly IApplicantProfileRepository _profileRepository;
+    private readonly IResumeRepository _resumeRepository;
+    private readonly ITenantSettingsReader _settingsReader;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<ProfileService> _logger;
 
     public ProfileService(
         IApplicantProfileRepository profileRepository,
-        [FromKeyedServices("profiles")] IUnitOfWork unitOfWork)
+        IResumeRepository resumeRepository,
+        ITenantSettingsReader settingsReader,
+        [FromKeyedServices("profiles")] IUnitOfWork unitOfWork,
+        ILogger<ProfileService> logger)
     {
         _profileRepository = profileRepository;
+        _resumeRepository = resumeRepository;
+        _settingsReader = settingsReader;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<ProfileResponse> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
@@ -58,6 +69,7 @@ public sealed class ProfileService : IProfileService
         };
 
         _profileRepository.Add(profile);
+        await EvaluateProfileCompletionAsync(profile, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return MapToResponse(profile);
@@ -95,9 +107,114 @@ public sealed class ProfileService : IProfileService
         if (request.Documents is not null)
             profile.Documents = SerializeJson(request.Documents);
 
+        await EvaluateProfileCompletionAsync(profile, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
         return MapToResponse(profile);
+    }
+
+    internal async Task EvaluateProfileCompletionAsync(ApplicantProfile profile, CancellationToken ct)
+    {
+        ProfileSettings? settings =
+            await _settingsReader.GetSettingAsync<ProfileSettings>("profile_settings", ct);
+
+        if (settings is null)
+            return;
+
+        bool isComplete = CheckRequiredFields(profile, settings)
+            && CheckSkillsCount(profile, settings)
+            && CheckRequiredSocialLinks(profile, settings)
+            && CheckRequiredDocuments(profile, settings);
+
+        if (isComplete && settings.ResumeRequired)
+            isComplete = await _resumeRepository.HasAnyByUserIdAsync(profile.Id, ct);
+
+        if (isComplete && profile.ProfileCompletedAt is null)
+        {
+            profile.ProfileCompletedAt = DateTime.UtcNow;
+            _logger.LogInformation("Profile completed for user {UserId}", profile.Id);
+        }
+        else if (!isComplete && profile.ProfileCompletedAt is not null)
+        {
+            profile.ProfileCompletedAt = null;
+            _logger.LogInformation("Profile completion revoked for user {UserId}", profile.Id);
+        }
+    }
+
+    private static bool CheckRequiredFields(ApplicantProfile profile, ProfileSettings settings)
+    {
+        foreach (string field in settings.RequiredProfileFields)
+        {
+            bool hasValue = field.ToLowerInvariant() switch
+            {
+                "phone" => !string.IsNullOrWhiteSpace(profile.Phone),
+                "city" => !string.IsNullOrWhiteSpace(profile.City),
+                "country" => !string.IsNullOrWhiteSpace(profile.Country),
+                "skills" => !string.IsNullOrWhiteSpace(profile.Skills),
+                "social_links" => !string.IsNullOrWhiteSpace(profile.SocialLinks),
+                "documents" => !string.IsNullOrWhiteSpace(profile.Documents),
+                _ => true
+            };
+
+            if (!hasValue) return false;
+        }
+
+        return true;
+    }
+
+    private static bool CheckSkillsCount(ApplicantProfile profile, ProfileSettings settings)
+    {
+        if (settings.MinimumSkillsCount <= 0)
+            return true;
+
+        if (string.IsNullOrWhiteSpace(profile.Skills))
+            return false;
+
+        List<SkillDto>? skills = DeserializeJson<List<SkillDto>>(profile.Skills);
+        return skills is not null && skills.Count >= settings.MinimumSkillsCount;
+    }
+
+    private static bool CheckRequiredSocialLinks(ApplicantProfile profile, ProfileSettings settings)
+    {
+        if (settings.RequiredSocialLinks.Count == 0)
+            return true;
+
+        if (string.IsNullOrWhiteSpace(profile.SocialLinks))
+            return false;
+
+        SocialLinksDto? links = DeserializeJson<SocialLinksDto>(profile.SocialLinks);
+        if (links is null) return false;
+
+        foreach (string link in settings.RequiredSocialLinks)
+        {
+            bool hasValue = link.ToLowerInvariant() switch
+            {
+                "linkedin" => !string.IsNullOrWhiteSpace(links.LinkedIn),
+                "github" => !string.IsNullOrWhiteSpace(links.GitHub),
+                "portfolio" => !string.IsNullOrWhiteSpace(links.Portfolio),
+                _ => true
+            };
+
+            if (!hasValue) return false;
+        }
+
+        return true;
+    }
+
+    private static bool CheckRequiredDocuments(ApplicantProfile profile, ProfileSettings settings)
+    {
+        if (settings.RequiredDocuments.Count == 0)
+            return true;
+
+        if (string.IsNullOrWhiteSpace(profile.Documents))
+            return false;
+
+        List<DocumentDto>? docs = DeserializeJson<List<DocumentDto>>(profile.Documents);
+        if (docs is null) return false;
+
+        HashSet<string> uploadedTypes = new(docs.Select(d => d.Type), StringComparer.OrdinalIgnoreCase);
+
+        return settings.RequiredDocuments.All(req => uploadedTypes.Contains(req));
     }
 
     private static ProfileResponse MapToResponse(ApplicantProfile profile)

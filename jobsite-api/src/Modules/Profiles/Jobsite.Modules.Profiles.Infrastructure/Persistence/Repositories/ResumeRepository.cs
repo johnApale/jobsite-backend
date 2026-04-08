@@ -45,6 +45,13 @@ public sealed class ResumeRepository : IResumeRepository
             .FirstOrDefaultAsync(r => r.UserId == userId && r.IsLatest, ct);
     }
 
+    public async Task<bool> HasAnyByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await _db.Resumes
+            .AsNoTracking()
+            .AnyAsync(r => r.UserId == userId, ct);
+    }
+
     public async Task MarkPreviousAsNotLatestAsync(Guid userId, CancellationToken ct = default)
     {
         await _db.Resumes

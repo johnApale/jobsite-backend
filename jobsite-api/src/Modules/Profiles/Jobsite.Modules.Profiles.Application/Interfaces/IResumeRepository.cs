@@ -19,6 +19,9 @@ public interface IResumeRepository
     /// <summary>Get the latest resume for a user (read-only).</summary>
     Task<Resume?> GetLatestByUserIdAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>Check if the user has at least one uploaded resume.</summary>
+    Task<bool> HasAnyByUserIdAsync(Guid userId, CancellationToken ct = default);
+
     /// <summary>Mark all existing resumes for the user as not latest.</summary>
     Task MarkPreviousAsNotLatestAsync(Guid userId, CancellationToken ct = default);
 
