@@ -173,7 +173,43 @@ public static class MatchingEndpoints
             })
             .WithName("FinalizeShortlist")
             .WithSummary("Finalize a shortlist")
-            .WithDescription("Locks the shortlist, updates application statuses to 'Shortlisted', and publishes CandidateShortlistedEvent for each candidate.")
+            .WithDescription("Locks the shortlist, updates application statuses to 'Shortlisted' for approved candidates, and publishes CandidateShortlistedEvent for each.")
+            .RequireAuthorization("RequireRecruiterOrAdmin")
+            .Produces<ShortlistResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
+
+        group.MapPatch("/{shortlistId:guid}/candidates/{candidateId:guid}/approve", async (
+                Guid shortlistId,
+                Guid candidateId,
+                IShortlistService service,
+                CancellationToken ct) =>
+            {
+                ShortlistResponse response =
+                    await service.ApproveCandidateAsync(shortlistId, candidateId, ct);
+                return Results.Ok(response);
+            })
+            .WithName("ApproveCandidateOnShortlist")
+            .WithSummary("Approve a candidate on a shortlist")
+            .WithDescription("Marks a candidate as approved on a draft shortlist. Only approved candidates proceed on finalization.")
+            .RequireAuthorization("RequireRecruiterOrAdmin")
+            .Produces<ShortlistResponse>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
+
+        group.MapPatch("/{shortlistId:guid}/candidates/{candidateId:guid}/reject", async (
+                Guid shortlistId,
+                Guid candidateId,
+                IShortlistService service,
+                CancellationToken ct) =>
+            {
+                ShortlistResponse response =
+                    await service.RejectCandidateAsync(shortlistId, candidateId, ct);
+                return Results.Ok(response);
+            })
+            .WithName("RejectCandidateOnShortlist")
+            .WithSummary("Reject a candidate on a shortlist")
+            .WithDescription("Marks a candidate as rejected on a draft shortlist. Rejected candidates are excluded from finalization.")
             .RequireAuthorization("RequireRecruiterOrAdmin")
             .Produces<ShortlistResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound)

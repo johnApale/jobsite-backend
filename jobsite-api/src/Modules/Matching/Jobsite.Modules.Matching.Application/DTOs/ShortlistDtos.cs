@@ -9,6 +9,7 @@ public sealed class ShortlistCandidateResponse
     public required decimal CompositeScore { get; init; }
     public required int Rank { get; init; }
     public required string Source { get; init; }
+    public required string Status { get; init; }
     public required DateTime AddedAt { get; init; }
     public DateTime? RemovedAt { get; init; }
 }

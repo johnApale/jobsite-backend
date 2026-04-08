@@ -13,6 +13,8 @@ public sealed class ShortlistCandidateConfiguration : IEntityTypeConfiguration<S
         {
             t.HasCheckConstraint("chk_shortlist_candidates_source",
                 $"source IN ('{ShortlistCandidateSource.Algorithm}', '{ShortlistCandidateSource.Manual}')");
+            t.HasCheckConstraint("chk_shortlist_candidates_status",
+                $"status IN ('{ShortlistCandidateStatus.Pending}', '{ShortlistCandidateStatus.Approved}', '{ShortlistCandidateStatus.Rejected}')");
         });
 
         builder.HasKey(c => c.Id);
@@ -37,6 +39,11 @@ public sealed class ShortlistCandidateConfiguration : IEntityTypeConfiguration<S
 
         builder.Property(c => c.Source)
             .HasMaxLength(20)
+            .IsRequired();
+
+        builder.Property(c => c.Status)
+            .HasMaxLength(20)
+            .HasDefaultValue(ShortlistCandidateStatus.Pending)
             .IsRequired();
 
         builder.Property(c => c.AddedAt)

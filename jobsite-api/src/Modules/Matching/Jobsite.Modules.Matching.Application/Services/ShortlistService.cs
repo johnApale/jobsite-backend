@@ -212,6 +212,62 @@ public sealed class ShortlistService : IShortlistService
             applicationId, shortlistId);
     }
 
+    public async Task<ShortlistResponse> ApproveCandidateAsync(
+        Guid shortlistId, Guid candidateId, CancellationToken ct = default)
+    {
+        Shortlist? shortlist = await _shortlistRepository.GetByIdForUpdateAsync(shortlistId, ct);
+        if (shortlist is null)
+            throw AppErrors.ShortlistNotFound;
+
+        if (shortlist.Status == ShortlistStatus.Finalized)
+            throw AppErrors.ShortlistAlreadyFinalized;
+
+        ShortlistCandidate? candidate = shortlist.Candidates
+            .FirstOrDefault(c => c.Id == candidateId && c.RemovedAt is null);
+        if (candidate is null)
+            throw AppErrors.ShortlistCandidateNotFound;
+
+        candidate.Status = ShortlistCandidateStatus.Approved;
+        candidate.UpdatedAt = DateTime.UtcNow;
+        shortlist.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Approved candidate {CandidateId} on shortlist {ShortlistId}",
+            candidateId, shortlistId);
+
+        return MapToResponse(shortlist);
+    }
+
+    public async Task<ShortlistResponse> RejectCandidateAsync(
+        Guid shortlistId, Guid candidateId, CancellationToken ct = default)
+    {
+        Shortlist? shortlist = await _shortlistRepository.GetByIdForUpdateAsync(shortlistId, ct);
+        if (shortlist is null)
+            throw AppErrors.ShortlistNotFound;
+
+        if (shortlist.Status == ShortlistStatus.Finalized)
+            throw AppErrors.ShortlistAlreadyFinalized;
+
+        ShortlistCandidate? candidate = shortlist.Candidates
+            .FirstOrDefault(c => c.Id == candidateId && c.RemovedAt is null);
+        if (candidate is null)
+            throw AppErrors.ShortlistCandidateNotFound;
+
+        candidate.Status = ShortlistCandidateStatus.Rejected;
+        candidate.UpdatedAt = DateTime.UtcNow;
+        shortlist.UpdatedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation(
+            "Rejected candidate {CandidateId} on shortlist {ShortlistId}",
+            candidateId, shortlistId);
+
+        return MapToResponse(shortlist);
+    }
+
     public async Task<ShortlistResponse> FinalizeShortlistAsync(
         Guid shortlistId, Guid userId, CancellationToken ct = default)
     {
@@ -230,11 +286,15 @@ public sealed class ShortlistService : IShortlistService
 
         await _unitOfWork.SaveChangesAsync(ct);
 
-        // Publish CandidateShortlistedEvent for each active candidate and update application status
-        List<ShortlistCandidate> activeCandidates =
-            shortlist.Candidates.Where(c => c.RemovedAt is null).ToList();
+        // Publish CandidateShortlistedEvent for each approved candidate and update application status
+        List<ShortlistCandidate> approvedCandidates =
+            shortlist.Candidates.Where(c => c.RemovedAt is null
+                && c.Status == ShortlistCandidateStatus.Approved).ToList();
 
-        foreach (ShortlistCandidate candidate in activeCandidates)
+        if (approvedCandidates.Count == 0)
+            throw AppErrors.InvalidRequest.WithMessage("Cannot finalize shortlist with no approved candidates");
+
+        foreach (ShortlistCandidate candidate in approvedCandidates)
         {
             await _statusUpdater.UpdateStatusAsync(
                 candidate.ApplicationId,
@@ -253,8 +313,8 @@ public sealed class ShortlistService : IShortlistService
         }
 
         _logger.LogInformation(
-            "Finalized shortlist {ShortlistId} with {Count} candidates for job {JobPostingId}",
-            shortlistId, activeCandidates.Count, shortlist.JobPostingId);
+            "Finalized shortlist {ShortlistId} with {Count} approved candidates for job {JobPostingId}",
+            shortlistId, approvedCandidates.Count, shortlist.JobPostingId);
 
         return MapToResponse(shortlist);
     }
@@ -314,6 +374,7 @@ public sealed class ShortlistService : IShortlistService
             CompositeScore = candidate.CompositeScore,
             Rank = candidate.Rank,
             Source = candidate.Source,
+            Status = candidate.Status,
             AddedAt = candidate.AddedAt,
             RemovedAt = candidate.RemovedAt
         };

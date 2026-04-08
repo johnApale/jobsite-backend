@@ -446,7 +446,8 @@ public static class TestData
         Guid? applicantUserId = null,
         decimal? compositeScore = null,
         int? rank = null,
-        string? source = null) => new()
+        string? source = null,
+        string? status = null) => new()
     {
         Id = Guid.NewGuid(),
         ShortlistId = shortlistId ?? Guid.NewGuid(),
@@ -455,6 +456,7 @@ public static class TestData
         CompositeScore = compositeScore ?? 80m,
         Rank = rank ?? 1,
         Source = source ?? ShortlistCandidateSource.Algorithm,
+        Status = status ?? ShortlistCandidateStatus.Pending,
         AddedAt = DateTime.UtcNow,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow

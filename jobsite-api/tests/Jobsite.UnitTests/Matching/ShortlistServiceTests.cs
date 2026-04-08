@@ -252,7 +252,7 @@ public sealed class ShortlistServiceTests
     // ── FinalizeShortlistAsync ───────────────────────────────────────────
 
     [Fact]
-    public async Task FinalizeShortlist_DraftWithCandidates_UpdatesStatusAndDispatchesEvents()
+    public async Task FinalizeShortlist_DraftWithApprovedCandidates_UpdatesStatusAndDispatchesEvents()
     {
         // Arrange
         Guid userId = Guid.NewGuid();
@@ -261,8 +261,8 @@ public sealed class ShortlistServiceTests
         Shortlist shortlist = TestData.CreateShortlist();
         shortlist.Candidates = new List<ShortlistCandidate>
         {
-            TestData.CreateShortlistCandidate(shortlistId: shortlist.Id, applicationId: app1),
-            TestData.CreateShortlistCandidate(shortlistId: shortlist.Id, applicationId: app2),
+            TestData.CreateShortlistCandidate(shortlistId: shortlist.Id, applicationId: app1, status: ShortlistCandidateStatus.Approved),
+            TestData.CreateShortlistCandidate(shortlistId: shortlist.Id, applicationId: app2, status: ShortlistCandidateStatus.Approved),
         };
 
         _shortlistRepo.GetByIdForUpdateAsync(shortlist.Id, Arg.Any<CancellationToken>())
@@ -277,13 +277,36 @@ public sealed class ShortlistServiceTests
         result.FinalizedBy.Should().Be(userId);
         result.FinalizedAt.Should().NotBeNull();
 
-        // Status updates dispatched for each candidate
+        // Status updates dispatched for each approved candidate
         await _statusUpdater.Received(2).UpdateStatusAsync(
             Arg.Any<Guid>(), "Shortlisted", null, null, Arg.Any<CancellationToken>());
 
-        // Events dispatched for each candidate
+        // Events dispatched for each approved candidate
         await _dispatcher.Received(2).DispatchAsync(
             Arg.Any<CandidateShortlistedEvent>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task FinalizeShortlist_NoPendingOrRejectedOnly_ThrowsInvalidRequest()
+    {
+        // Arrange
+        Shortlist shortlist = TestData.CreateShortlist();
+        shortlist.Candidates = new List<ShortlistCandidate>
+        {
+            TestData.CreateShortlistCandidate(shortlistId: shortlist.Id, status: ShortlistCandidateStatus.Pending),
+            TestData.CreateShortlistCandidate(shortlistId: shortlist.Id, status: ShortlistCandidateStatus.Rejected),
+        };
+
+        _shortlistRepo.GetByIdForUpdateAsync(shortlist.Id, Arg.Any<CancellationToken>())
+            .Returns(shortlist);
+
+        // Act
+        Func<Task> act = () => _service.FinalizeShortlistAsync(
+            shortlist.Id, Guid.NewGuid(), CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("INVALID_REQUEST");
     }
 
     [Fact]
@@ -296,6 +319,105 @@ public sealed class ShortlistServiceTests
 
         // Act
         Func<Task> act = () => _service.FinalizeShortlistAsync(
+            shortlist.Id, Guid.NewGuid(), CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.StatusCode.Should().Be(409);
+    }
+
+    // ── ApproveCandidateAsync ────────────────────────────────────────────
+
+    [Fact]
+    public async Task ApproveCandidate_DraftShortlist_SetsStatusToApproved()
+    {
+        // Arrange
+        ShortlistCandidate candidate = TestData.CreateShortlistCandidate();
+        Shortlist shortlist = TestData.CreateShortlist();
+        shortlist.Candidates = new List<ShortlistCandidate> { candidate };
+
+        _shortlistRepo.GetByIdForUpdateAsync(shortlist.Id, Arg.Any<CancellationToken>())
+            .Returns(shortlist);
+
+        // Act
+        Modules.Matching.Application.DTOs.ShortlistResponse result =
+            await _service.ApproveCandidateAsync(shortlist.Id, candidate.Id, CancellationToken.None);
+
+        // Assert
+        candidate.Status.Should().Be(ShortlistCandidateStatus.Approved);
+        result.Candidates[0].Status.Should().Be(ShortlistCandidateStatus.Approved);
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ApproveCandidate_FinalizedShortlist_ThrowsConflict()
+    {
+        // Arrange
+        Shortlist shortlist = TestData.CreateShortlist(status: ShortlistStatus.Finalized);
+        _shortlistRepo.GetByIdForUpdateAsync(shortlist.Id, Arg.Any<CancellationToken>())
+            .Returns(shortlist);
+
+        // Act
+        Func<Task> act = () => _service.ApproveCandidateAsync(
+            shortlist.Id, Guid.NewGuid(), CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.StatusCode.Should().Be(409);
+    }
+
+    [Fact]
+    public async Task ApproveCandidate_NonexistentCandidate_ThrowsNotFound()
+    {
+        // Arrange
+        Shortlist shortlist = TestData.CreateShortlist();
+        shortlist.Candidates = new List<ShortlistCandidate>();
+        _shortlistRepo.GetByIdForUpdateAsync(shortlist.Id, Arg.Any<CancellationToken>())
+            .Returns(shortlist);
+
+        // Act
+        Func<Task> act = () => _service.ApproveCandidateAsync(
+            shortlist.Id, Guid.NewGuid(), CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.StatusCode.Should().Be(404);
+    }
+
+    // ── RejectCandidateAsync ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task RejectCandidate_DraftShortlist_SetsStatusToRejected()
+    {
+        // Arrange
+        ShortlistCandidate candidate = TestData.CreateShortlistCandidate();
+        Shortlist shortlist = TestData.CreateShortlist();
+        shortlist.Candidates = new List<ShortlistCandidate> { candidate };
+
+        _shortlistRepo.GetByIdForUpdateAsync(shortlist.Id, Arg.Any<CancellationToken>())
+            .Returns(shortlist);
+
+        // Act
+        Modules.Matching.Application.DTOs.ShortlistResponse result =
+            await _service.RejectCandidateAsync(shortlist.Id, candidate.Id, CancellationToken.None);
+
+        // Assert
+        candidate.Status.Should().Be(ShortlistCandidateStatus.Rejected);
+        result.Candidates.Should().HaveCount(1);
+        result.Candidates[0].Status.Should().Be(ShortlistCandidateStatus.Rejected);
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RejectCandidate_FinalizedShortlist_ThrowsConflict()
+    {
+        // Arrange
+        Shortlist shortlist = TestData.CreateShortlist(status: ShortlistStatus.Finalized);
+        _shortlistRepo.GetByIdForUpdateAsync(shortlist.Id, Arg.Any<CancellationToken>())
+            .Returns(shortlist);
+
+        // Act
+        Func<Task> act = () => _service.RejectCandidateAsync(
             shortlist.Id, Guid.NewGuid(), CancellationToken.None);
 
         // Assert

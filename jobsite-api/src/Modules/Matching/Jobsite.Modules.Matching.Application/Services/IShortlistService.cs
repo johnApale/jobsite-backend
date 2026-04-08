@@ -18,6 +18,12 @@ public interface IShortlistService
     Task RemoveCandidateAsync(
         Guid shortlistId, Guid applicationId, CancellationToken ct = default);
 
+    Task<ShortlistResponse> ApproveCandidateAsync(
+        Guid shortlistId, Guid candidateId, CancellationToken ct = default);
+
+    Task<ShortlistResponse> RejectCandidateAsync(
+        Guid shortlistId, Guid candidateId, CancellationToken ct = default);
+
     Task<ShortlistResponse> FinalizeShortlistAsync(
         Guid shortlistId, Guid userId, CancellationToken ct = default);
 }

@@ -26,6 +26,9 @@ public sealed class ShortlistCandidate : Entity
     /// <summary>How the candidate was added: Algorithm or Manual.</summary>
     public string Source { get; set; } = null!;
 
+    /// <summary>Approval status: Pending, Approved, or Rejected.</summary>
+    public string Status { get; set; } = Constants.ShortlistCandidateStatus.Pending;
+
     /// <summary>When the candidate was added to the shortlist.</summary>
     public DateTime AddedAt { get; set; }
 
