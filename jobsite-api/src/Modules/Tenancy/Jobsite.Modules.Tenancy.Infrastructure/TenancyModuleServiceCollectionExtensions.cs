@@ -33,9 +33,8 @@ public static class TenancyModuleServiceCollectionExtensions
         // Unit of Work (scoped to catalog DB, keyed for disambiguation)
         services.AddKeyedScoped<IUnitOfWork, CatalogUnitOfWork>("catalog");
 
-        // Caching
-        services.AddMemoryCache();
-        services.AddSingleton<ITenantCache, MemoryTenantCache>();
+        // Caching (uses IDistributedCache — Redis or memory depending on host DI)
+        services.AddSingleton<ITenantCache, DistributedTenantCache>();
 
         // Provisioning
         services.AddScoped<ITenantProvisioner, TenantProvisioner>();
