@@ -51,7 +51,6 @@
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | **Recruitment Repository Tests** | No repository integration tests for `IJobPostingRepository`, `IApplicationRepository`, `IClientCompanyRepository` — only DbContext-level tests exist (22 in `RecruitmentDbContextTests`) | High     |
 | **Recruitment Endpoint Tests**   | No `WebApplicationFactory` tests for Recruitment endpoints (job posting CRUD, criteria, questions, applications)                                                                         | Medium   |
-| **EF Core Migration**            | `InitialRecruitmentSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning                                                                         | Medium   |
 
 ### Cross-Module Gaps
 

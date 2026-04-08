@@ -184,7 +184,7 @@ Tests `AuditLogRepository` against a real PostgreSQL database. Validates cursor-
 
 ### Fixture
 
-- `RecruitmentIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `RecruitmentDbContext` via `EnsureCreatedAsync` (no migration files, EF creates schema from entity configurations). Exposes `ConnectionString` for raw SQL tests.
+- `RecruitmentIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `RecruitmentDbContext` via `EnsureCreatedAsync` (migration files exist in `InitialRecruitmentSchema`, but fixture uses `EnsureCreatedAsync` for simplicity). Exposes `ConnectionString` for raw SQL tests.
 - `RecruitmentIntegrationCollection` — xUnit `[Collection("Recruitment")]` for shared container across Recruitment test classes
 
 ### `RecruitmentDbContextTests` (22 tests)
@@ -224,7 +224,7 @@ Tests RecruitmentDbContext schema creation, table mapping, CHECK constraints, in
 
 ### Fixture
 
-- `ScreeningIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `ScreeningDbContext` via `EnsureCreatedAsync` (no migration files, EF creates schema from entity configurations). Exposes `ConnectionString` for raw SQL tests.
+- `ScreeningIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `ScreeningDbContext` via `EnsureCreatedAsync` (migration files exist in `InitialScreeningSchema`, but fixture uses `EnsureCreatedAsync` for simplicity). Exposes `ConnectionString` for raw SQL tests.
 - `ScreeningIntegrationCollection` — xUnit `[Collection("Screening")]` for shared container across Screening test classes
 
 ### `ScreeningDbContextTests` (10 tests)

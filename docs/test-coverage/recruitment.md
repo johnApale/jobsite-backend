@@ -429,7 +429,6 @@ Tests `JobScreeningQuestionsReader` — the cross-module boundary service that p
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
 | **Repository Integration** | No Testcontainers tests for `IJobPostingRepository`, `IApplicationRepository`, `IClientCompanyRepository` — only DbContext-level tests exist (22 tests). | High     |
 | **Endpoint Tests**         | No `WebApplicationFactory` HTTP pipeline tests for `RecruitmentEndpoints.cs` (job posting CRUD, criteria, questions, applications).                      | Medium   |
-| **EF Core Migration**      | `InitialRecruitmentSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.                                        | Medium   |
 
 ### Blocked by AI Service (Phase 6)
 

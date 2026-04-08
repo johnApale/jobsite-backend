@@ -77,7 +77,6 @@
 
 | Item                                 | Description                                                                                                                                                                                 |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EF Core Migration                    | `InitialRecruitmentSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.                                                                           |
 | Repository Integration Tests         | 22 `RecruitmentDbContextTests` exist, but no repository-level integration tests for `IJobPostingRepository`, `IApplicationRepository`, `IClientCompanyRepository`. Requires Testcontainers. |
 | Endpoint Tests                       | No `WebApplicationFactory` HTTP pipeline tests for Recruitment endpoints (job posting CRUD, criteria, questions, applications).                                                             |
 | AI Criteria Suggestion Contract Test | `AiCriteriaSuggesterClient` tested with mock HTTP handler only — real contract test blocked until AI Service (Phase 6) is operational.                                                      |
@@ -100,6 +99,7 @@
 | Integration Tests          | 22 `RecruitmentDbContextTests` covering schema, persistence, CHECK constraints, JSONB, indexes, unique constraints, cascade deletes.                                                                                                                                                                                                  |
 | Architecture Tests         | 5 Recruitment layer dependency tests in `LayerDependencyTests.cs`; module isolation already covered by `ModuleIsolationTests.cs`.                                                                                                                                                                                                     |
 | IUnitOfWork Disambiguation | Keyed service: `AddKeyedScoped<IUnitOfWork>("recruitment")` with `[FromKeyedServices]`.                                                                                                                                                                                                                                               |
+| EF Core Migration          | `InitialRecruitmentSchema` migration generated. Tables: `recruitment.client_companies`, `recruitment.job_postings`, `recruitment.applications`, `recruitment.job_evaluation_criteria`, `recruitment.job_screening_questions` with 10 CHECK constraints and 16 indexes.                                                                |
 
 ---
 
@@ -109,7 +109,6 @@
 
 | Item                          | Description                                                                                                                                                      |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EF Core Migration             | `InitialProfilesSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.                                                   |
 | Profile Completion Evaluation | `ProfileCompletedAt` flag is present but evaluation logic (checking against Admin `ProfileSettings` required fields) is deferred until Admin settings are wired. |
 | Cloud File Storage            | `IFileStorage` abstraction exists with `LocalFileStorage` implementation. Azure Blob / S3 implementation deferred to hardening phase.                            |
 | Integration Tests             | No Testcontainers tests for `ProfilesDbContext`, `IApplicantProfileRepository`, or `IResumeRepository`. No endpoint tests via `WebApplicationFactory`.           |
@@ -130,6 +129,7 @@
 | Unit Tests                  | 83 tests: ProfileService, ResumeService, validators, event handler, constants, AI parser client, ResumeUploadedConsumer (8), BasicResumeParser (8), LocalFileStorage (6), ResumeParseRecoveryService (5). |
 | Architecture Tests          | 5 Profiles layer dependency tests added to `LayerDependencyTests.cs`; module isolation already covered by `ModuleIsolationTests.cs`.                                                                      |
 | IUnitOfWork Disambiguation  | Keyed service: `AddKeyedScoped<IUnitOfWork>("profiles")` with `[FromKeyedServices]`.                                                                                                                      |
+| EF Core Migration           | `InitialProfilesSchema` migration generated. Tables: `profiles.applicant_profiles`, `profiles.resumes` with 1 CHECK constraint and 4 indexes.                                                             |
 
 ---
 
@@ -139,28 +139,28 @@
 
 | Item                        | Description                                                                                                                  |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| EF Core Migration           | `InitialMatchingSchema` migration not yet generated — requires running PostgreSQL with tenant DB provisioning.               |
 | Integration Tests           | No Testcontainers tests for `MatchingDbContext`, `ICandidateMatchRepository`, or `IShortlistRepository`. No endpoint tests.  |
 | Auto-Generate Shortlist     | `auto_generate_shortlist` setting in `MatchingSettings` is read but not yet wired to trigger automatic shortlist generation. |
 | Shortlist Approval Workflow | No hiring manager approval/rejection of individual shortlist candidates — only full shortlist finalization.                  |
 
 ### Completed
 
-| Item                              | Resolution                                                                                                                                               |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CandidateMatch Entity             | `CandidateMatch` with shared PK (ApplicationId), screening/assessment/composite scores, rank, MatchStrength.                                             |
-| Shortlist Entity                  | `Shortlist` aggregate root with `ShortlistCandidate` collection, Draft/Finalized lifecycle.                                                              |
-| Score Aggregation Service         | Weighted composite score computation with tenant-configurable screening/assessment weights from `MatchingSettings`.                                      |
-| CvScreeningCompletedEvent Handler | Consumes event from Screening → creates `CandidateMatch` with idempotency check. Uses cross-module readers for application data.                         |
-| AssessmentCompletedEvent Handler  | Updates existing `CandidateMatch` with assessment score, recomputes composite.                                                                           |
-| Shortlist Generation              | Top-N candidates by composite score, Algorithm source attribution, ranked candidates.                                                                    |
-| Shortlist Management              | Manual candidate add/remove on draft shortlists, soft-delete, duplicate detection.                                                                       |
-| Shortlist Finalization            | Status lock, `CandidateShortlistedEvent` dispatch per candidate, application status update to "Shortlisted" via `IApplicationStatusUpdater`.             |
-| Cross-Module Readers              | `IScreeningScoreReader` (SharedKernel → Screening.Infrastructure), `IApplicationDataReader` (SharedKernel → Recruitment.Infrastructure).                 |
-| API Endpoints                     | 7 endpoints: GET match, GET matches, POST generate shortlist, GET shortlist, GET shortlists, POST add candidate, DELETE remove candidate, POST finalize. |
-| Unit Tests                        | 39 tests: constants (4), score aggregation (8), matching service (5), shortlist service (11), event handlers (7), validators (4).                        |
-| Architecture Tests                | Module isolation and naming convention tests updated to reference Matching types.                                                                        |
-| IUnitOfWork Disambiguation        | Keyed service: `AddKeyedScoped<IUnitOfWork>("matching")` with `[FromKeyedServices]`.                                                                     |
+| Item                              | Resolution                                                                                                                                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CandidateMatch Entity             | `CandidateMatch` with shared PK (ApplicationId), screening/assessment/composite scores, rank, MatchStrength.                                                                      |
+| Shortlist Entity                  | `Shortlist` aggregate root with `ShortlistCandidate` collection, Draft/Finalized lifecycle.                                                                                       |
+| Score Aggregation Service         | Weighted composite score computation with tenant-configurable screening/assessment weights from `MatchingSettings`.                                                               |
+| CvScreeningCompletedEvent Handler | Consumes event from Screening → creates `CandidateMatch` with idempotency check. Uses cross-module readers for application data.                                                  |
+| AssessmentCompletedEvent Handler  | Updates existing `CandidateMatch` with assessment score, recomputes composite.                                                                                                    |
+| Shortlist Generation              | Top-N candidates by composite score, Algorithm source attribution, ranked candidates.                                                                                             |
+| Shortlist Management              | Manual candidate add/remove on draft shortlists, soft-delete, duplicate detection.                                                                                                |
+| Shortlist Finalization            | Status lock, `CandidateShortlistedEvent` dispatch per candidate, application status update to "Shortlisted" via `IApplicationStatusUpdater`.                                      |
+| Cross-Module Readers              | `IScreeningScoreReader` (SharedKernel → Screening.Infrastructure), `IApplicationDataReader` (SharedKernel → Recruitment.Infrastructure).                                          |
+| API Endpoints                     | 7 endpoints: GET match, GET matches, POST generate shortlist, GET shortlist, GET shortlists, POST add candidate, DELETE remove candidate, POST finalize.                          |
+| Unit Tests                        | 39 tests: constants (4), score aggregation (8), matching service (5), shortlist service (11), event handlers (7), validators (4).                                                 |
+| Architecture Tests                | Module isolation and naming convention tests updated to reference Matching types.                                                                                                 |
+| IUnitOfWork Disambiguation        | Keyed service: `AddKeyedScoped<IUnitOfWork>("matching")` with `[FromKeyedServices]`.                                                                                              |
+| EF Core Migration                 | `InitialMatchingSchema` migration generated. Tables: `matching.candidate_matches`, `matching.shortlists`, `matching.shortlist_candidates` with 3 CHECK constraints and 8 indexes. |
 
 ---
 
