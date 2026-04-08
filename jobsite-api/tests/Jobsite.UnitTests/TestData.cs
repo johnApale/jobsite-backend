@@ -8,6 +8,8 @@ using Jobsite.Modules.Auth.Domain.Entities;
 using Jobsite.Modules.Profiles.Application.DTOs;
 using Jobsite.Modules.Profiles.Domain.Entities;
 using Jobsite.Modules.Matching.Domain.Constants;
+using Jobsite.Modules.HRWorkflows.Domain.Constants;
+using Jobsite.Modules.HRWorkflows.Domain.Entities;
 using Jobsite.Modules.Matching.Domain.Entities;
 using Jobsite.Modules.Recruitment.Application.DTOs;
 using Jobsite.Modules.Recruitment.Domain.Constants;
@@ -454,6 +456,68 @@ public static class TestData
         Rank = rank ?? 1,
         Source = source ?? ShortlistCandidateSource.Algorithm,
         AddedAt = DateTime.UtcNow,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    // ── HR Workflows Module ─────────────────────────────────────────────
+
+    public static FinalInterview CreateFinalInterview(
+        Guid? applicationId = null,
+        string? status = null,
+        string? interviewType = null,
+        DateTime? scheduledAt = null,
+        int? durationMinutes = null,
+        Guid? scheduledBy = null,
+        string? overallRecommendation = null) => new()
+    {
+        ApplicationId = applicationId ?? Guid.NewGuid(),
+        Status = status ?? InterviewStatus.Scheduled,
+        InterviewType = interviewType ?? InterviewType.Video,
+        ScheduledAt = scheduledAt ?? DateTime.UtcNow.AddDays(7),
+        DurationMinutes = durationMinutes ?? 60,
+        ScheduledBy = scheduledBy ?? Guid.NewGuid(),
+        OverallRecommendation = overallRecommendation,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    };
+
+    public static InterviewPanelist CreateInterviewPanelist(
+        Guid? interviewId = null,
+        Guid? interviewerId = null,
+        decimal? rating = null,
+        string? recommendation = null,
+        DateTime? feedbackSubmittedAt = null) => new()
+    {
+        Id = Guid.NewGuid(),
+        InterviewId = interviewId ?? Guid.NewGuid(),
+        InterviewerId = interviewerId ?? Guid.NewGuid(),
+        Rating = rating,
+        Recommendation = recommendation,
+        FeedbackSubmittedAt = feedbackSubmittedAt,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    public static JobOffer CreateJobOffer(
+        Guid? applicationId = null,
+        Guid? clientCompanyId = null,
+        string? status = null,
+        decimal? salary = null,
+        string? salaryCurrency = null,
+        string? salaryPeriod = null,
+        string? employmentType = null,
+        Guid? extendedBy = null,
+        DateTime? expiresAt = null) => new()
+    {
+        ApplicationId = applicationId ?? Guid.NewGuid(),
+        ClientCompanyId = clientCompanyId,
+        Status = status ?? OfferStatus.Draft,
+        Salary = salary ?? 100000m,
+        SalaryCurrency = salaryCurrency ?? "USD",
+        SalaryPeriod = salaryPeriod ?? SalaryPeriod.Annual,
+        EmploymentType = employmentType ?? OfferEmploymentType.FullTime,
+        ExtendedBy = extendedBy ?? Guid.NewGuid(),
+        ExpiresAt = expiresAt,
         CreatedAt = DateTime.UtcNow,
         UpdatedAt = DateTime.UtcNow
     };
