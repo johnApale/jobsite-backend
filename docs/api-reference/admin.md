@@ -10,6 +10,60 @@ All admin endpoints require **tenant resolution** (subdomain in `Host` header) a
 
 ## Endpoints
 
+### Get Dashboard Statistics
+
+Retrieve aggregate pipeline statistics across recruitment, screening, and matching modules.
+
+```
+GET /api/v1/admin/dashboard
+```
+
+**Authorization:** `RequireAgencyAdmin`
+
+**Response:** `200 OK`
+
+```json
+{
+  "recruitment": {
+    "total_job_postings": 25,
+    "active_job_postings": 12,
+    "closed_job_postings": 8,
+    "total_applications": 150,
+    "submitted_applications": 30,
+    "screening_applications": 20,
+    "shortlisted_applications": 15,
+    "rejected_applications": 40,
+    "hired_applications": 10,
+    "withdrawn_applications": 5
+  },
+  "screening": {
+    "total_screenings": 120,
+    "completed_screenings": 100,
+    "pending_screenings": 15,
+    "failed_screenings": 5,
+    "average_score": 72.50,
+    "auto_advanced_count": 60,
+    "auto_rejected_count": 20,
+    "manual_review_count": 20
+  },
+  "matching": {
+    "total_shortlists": 10,
+    "draft_shortlists": 3,
+    "finalized_shortlists": 7,
+    "total_candidate_matches": 85
+  }
+}
+```
+
+**Errors:**
+
+| Code           | Status | Condition                             |
+| -------------- | ------ | ------------------------------------- |
+| `UNAUTHORIZED` | 401    | Missing or invalid JWT                |
+| `FORBIDDEN`    | 403    | User does not have `AgencyAdmin` role |
+
+---
+
 ### Get Settings
 
 Retrieve the current tenant company settings.

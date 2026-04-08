@@ -185,3 +185,128 @@ POST /register → Tenant created (Provisioning) → SaveChanges → ProvisionAs
 4. **On failure**: If any step fails, the tenant's status is set to `ProvisioningFailed` and the error is logged. The tenant middleware will reject requests to `ProvisioningFailed` tenants with a 403.
 
 Tenants in `Provisioning` or `ProvisioningFailed` status cannot be accessed via subdomain — the `TenantResolutionMiddleware` only allows `Active` tenants through.
+
+---
+
+## Platform Admin Endpoints
+
+Platform admin endpoints provide system-wide tenant management. They operate on the shared **Catalog database** and require the `RequirePlatformAdmin` authorization policy.
+
+**Base path:** `/api/v1/platform/tenants`
+**Tag:** `PlatformAdmin`
+
+### `GET /api/v1/platform/tenants`
+
+List all tenants with optional filters and cursor-based pagination.
+
+**Authorization:** `RequirePlatformAdmin`
+
+#### Query Parameters
+
+| Parameter   | Type     | Required | Description                                          |
+| ----------- | -------- | -------- | ---------------------------------------------------- |
+| `status`    | `string` | No       | Filter by tenant status (e.g., `Active`, `Suspended`)|
+| `search`    | `string` | No       | Search by tenant name or subdomain                   |
+| `cursor`    | `string` | No       | Opaque cursor from previous response's `next_cursor` |
+| `page_size` | `int`    | No       | Results per page (default: 20)                       |
+
+#### Response — `200 OK`
+
+```json
+{
+  "items": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Acme Staffing",
+      "subdomain": "acme",
+      "status": "Active",
+      "owner_name": "Jane Smith",
+      "owner_email": "jane@acmestaffing.com",
+      "contact_name": "Jane Smith",
+      "contact_email": "jane@acmestaffing.com",
+      "provisioned_at": "2026-03-15T10:30:00Z",
+      "branding": null
+    }
+  ],
+  "next_cursor": "660e8400-e29b-41d4-a716-446655440000",
+  "has_more": true
+}
+```
+
+---
+
+### `GET /api/v1/platform/tenants/{id}`
+
+Retrieve full tenant metadata by ID for platform administration.
+
+**Authorization:** `RequirePlatformAdmin`
+
+#### Path Parameters
+
+| Parameter | Type   | Description |
+| --------- | ------ | ----------- |
+| `id`      | `uuid` | Tenant ID   |
+
+#### Response — `200 OK`
+
+Same shape as `TenantResponse` schema above.
+
+#### Response — `404 Not Found`
+
+```json
+{
+  "code": "TENANT_NOT_FOUND",
+  "message": "Tenant not found",
+  "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+---
+
+### `POST /api/v1/platform/tenants/{id}/suspend`
+
+Suspend an active tenant, preventing all access.
+
+**Authorization:** `RequirePlatformAdmin`
+
+#### Path Parameters
+
+| Parameter | Type   | Description |
+| --------- | ------ | ----------- |
+| `id`      | `uuid` | Tenant ID   |
+
+#### Response — `200 OK`
+
+Returns the updated `TenantResponse` with `status: "Suspended"` and `deactivated_at` set.
+
+#### Errors
+
+| Code              | Status | Condition                                |
+| ----------------- | ------ | ---------------------------------------- |
+| `TENANT_NOT_FOUND`| 404    | Tenant does not exist                    |
+| `INVALID_REQUEST` | 400    | Tenant is not in `Active` status         |
+
+---
+
+### `POST /api/v1/platform/tenants/{id}/reactivate`
+
+Reactivate a previously suspended tenant.
+
+**Authorization:** `RequirePlatformAdmin`
+
+#### Path Parameters
+
+| Parameter | Type   | Description |
+| --------- | ------ | ----------- |
+| `id`      | `uuid` | Tenant ID   |
+
+#### Response — `200 OK`
+
+Returns the updated `TenantResponse` with `status: "Active"` and `deactivated_at` cleared.
+
+#### Errors
+
+| Code              | Status | Condition                                |
+| ----------------- | ------ | ---------------------------------------- |
+| `TENANT_NOT_FOUND`| 404    | Tenant does not exist                    |
+| `INVALID_REQUEST` | 400    | Tenant is not in `Suspended` status      |

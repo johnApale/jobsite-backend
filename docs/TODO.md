@@ -33,15 +33,14 @@ _(none)_
 
 ### Deferred
 
-| Item                      | Description                                                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Dashboard Stats Endpoint  | `GET /api/v1/admin/dashboard` — aggregate pipeline statistics. Deferred until Recruitment/Screening modules exist. |
-| Platform Admin Controller | System-wide operations against the Catalog DB (e.g., tenant listing). Not part of per-tenant admin.                |
+_(none)_
 
 ### Completed
 
 | Item                        | Resolution                                                                                                                                                        |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard Stats Endpoint    | `GET /api/v1/admin/dashboard` returns aggregate stats from Recruitment, Screening, and Matching via cross-module readers (`IRecruitmentStatsReader`, `IScreeningStatsReader`, `IMatchingStatsReader`). |
+| Platform Admin Controller   | `GET/POST /api/v1/platform/tenants` with list, get, suspend, and reactivate endpoints. `RequirePlatformAdmin` authorization policy. `PlatformAdmin` role added to `UserRole` constants. |
 | Company Settings Entity     | Singleton per-tenant `CompanySettings` entity with 6 JSONB settings columns + timezone/currency.                                                                  |
 | Tenant Provisioning Wiring  | `TenantProvisioner` now publishes `TenantProvisionedEvent` after successful provisioning, triggering default `CompanySettings` seeding.                           |
 | Audit Log Entity            | Append-only `AuditLog` entity with denormalized actor data (survives user deletion).                                                                              |
