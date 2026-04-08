@@ -109,6 +109,7 @@ try
 
     // Module endpoints
     app.MapTenancyEndpoints();
+    app.MapPlatformAdminEndpoints();
     app.MapAuthEndpoints();
     app.MapAdminEndpoints();
     app.MapProfilesEndpoints();

@@ -11,7 +11,8 @@ public static class UserRole
     public const string HiringManager = "HiringManager";
     public const string Interviewer = "Interviewer";
     public const string AgencyAdmin = "AgencyAdmin";
+    public const string PlatformAdmin = "PlatformAdmin";
 
     public static bool IsValid(string role) =>
-        role is Applicant or Recruiter or HiringManager or Interviewer or AgencyAdmin;
+        role is Applicant or Recruiter or HiringManager or Interviewer or AgencyAdmin or PlatformAdmin;
 }

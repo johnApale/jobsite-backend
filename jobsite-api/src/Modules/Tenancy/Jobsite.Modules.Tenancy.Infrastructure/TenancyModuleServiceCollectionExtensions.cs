@@ -41,6 +41,7 @@ public static class TenancyModuleServiceCollectionExtensions
 
         // Services
         services.AddScoped<ITenantService, TenantService>();
+        services.AddScoped<IPlatformAdminService, PlatformAdminService>();
 
         return services;
     }

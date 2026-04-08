@@ -19,6 +19,13 @@ public interface ITenantRepository
     /// <summary>Check if a company name is already taken.</summary>
     Task<bool> NameExistsAsync(string name, CancellationToken ct = default);
 
+    /// <summary>Paginated list of tenants with optional filters.</summary>
+    Task<(List<Tenant> Items, bool HasMore)> GetListAsync(
+        string? status, string? search, string? cursor, int pageSize, CancellationToken ct = default);
+
+    /// <summary>Get a tracked tenant by ID for updates.</summary>
+    Task<Tenant?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default);
+
     /// <summary>Persist a new tenant.</summary>
     void Add(Tenant tenant);
 }

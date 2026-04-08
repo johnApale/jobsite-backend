@@ -14,6 +14,7 @@ public static class AuthorizationPolicies
     public const string RequireHiringManager = "RequireHiringManager";
     public const string RequireInterviewer = "RequireInterviewer";
     public const string RequireAgencyAdmin = "RequireAgencyAdmin";
+    public const string RequirePlatformAdmin = "RequirePlatformAdmin";
 
     /// <summary>
     /// Register role-based authorization policies.
@@ -34,6 +35,9 @@ public static class AuthorizationPolicies
 
         builder.AddPolicy(RequireAgencyAdmin, policy =>
             policy.RequireClaim("role", UserRole.AgencyAdmin));
+
+        builder.AddPolicy(RequirePlatformAdmin, policy =>
+            policy.RequireClaim("role", UserRole.PlatformAdmin));
 
         return builder;
     }
