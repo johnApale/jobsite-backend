@@ -134,6 +134,56 @@ Tests FluentValidation validators for request DTOs.
 
 ---
 
+## `MatchingDbContextTests` — Integration (16 tests)
+
+Tests MatchingDbContext schema creation, entity CRUD, CHECK constraints, unique constraints, cascade deletes, and indexes against a real PostgreSQL container via Testcontainers.
+
+| Test                                                                 | What It Verifies                                                            | Expected Outcome                              |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------- |
+| `Schema_MatchingSchemaExists`                                        | The `matching` PostgreSQL schema is created by EF Core                      | Schema found in `information_schema.schemata` |
+| `CandidateMatch_Persists_AllFieldsCorrectly`                         | All fields persist including decimal(5,2) scores and timestamps             | All fields match after persist + re-query     |
+| `CandidateMatch_SharedPrimaryKey_ValueGeneratedNever`                | ApplicationId used as PK is the exact GUID provided, not auto-generated     | PK matches provided GUID                      |
+| `CandidateMatch_CheckConstraint_RejectsInvalidMatchStrength`         | CHECK constraint `chk_matches_match_strength` rejects "SuperStrong"         | Throws `DbUpdateException`                    |
+| `Shortlist_Persists_AllFieldsCorrectly`                              | All shortlist fields persist including finalization data                    | All fields match after persist + re-query     |
+| `Shortlist_DefaultValues_DraftStatus`                                | Status defaults to Draft, finalization fields are null                      | Defaults applied correctly                    |
+| `Shortlist_CheckConstraint_RejectsInvalidStatus`                     | CHECK constraint `chk_shortlists_status` rejects "InvalidStatus"            | Throws `DbUpdateException`                    |
+| `ShortlistCandidate_Persists_AllFieldsCorrectly`                     | All candidate fields persist including source and status                    | All fields match after persist + re-query     |
+| `ShortlistCandidate_DefaultStatus_IsPending`                         | Status defaults to Pending when not explicitly set                          | Status = Pending                              |
+| `ShortlistCandidate_CheckConstraint_RejectsInvalidSource`            | CHECK constraint `chk_shortlist_candidates_source` rejects "InvalidSource"  | Throws `DbUpdateException`                    |
+| `ShortlistCandidate_CheckConstraint_RejectsInvalidStatus`            | CHECK constraint `chk_shortlist_candidates_status` rejects "InvalidStatus"  | Throws `DbUpdateException`                    |
+| `ShortlistCandidate_UniqueConstraint_PreventseDuplicateShortlistApp` | Unique index rejects duplicate (ShortlistId, ApplicationId) pair            | Throws `DbUpdateException`                    |
+| `CascadeDelete_DeletingShortlist_DeletesCandidates`                  | Cascade delete removes candidates when shortlist is deleted                 | Candidates no longer found                    |
+| `CandidateMatches_Indexes_Exist`                                     | All 4 candidate_matches indexes exist                                       | All index names found in `pg_indexes`         |
+| `Shortlists_Indexes_Exist`                                           | Both shortlists indexes exist (job_posting_id, status)                      | All index names found in `pg_indexes`         |
+| `ShortlistCandidates_Indexes_Exist`                                  | Both shortlist_candidates indexes exist (application_id, unique constraint) | All index names found in `pg_indexes`         |
+
+**Why:** EF Core configurations for decimal precision, shared primary keys (ValueGeneratedNever), CHECK constraints, unique constraints, and cascade deletes can only be validated against real PostgreSQL. The shared PK test is particularly important because it validates the cross-schema relationship pattern with `recruitment.applications`.
+
+---
+
+## `MatchingRepositoryTests` — Integration (12 tests)
+
+Tests `CandidateMatchRepository` and `ShortlistRepository` against a real PostgreSQL container. Validates CRUD operations, tracking behavior, ordering, filtering, and Include behavior.
+
+| Test                                                                       | What It Verifies                                          | Expected Outcome                          |
+| -------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------- |
+| `GetByApplicationIdAsync_Exists_ReturnsMatch`                              | AsNoTracking lookup returns the correct match             | Match found, fields match                 |
+| `GetByApplicationIdAsync_NotExists_ReturnsNull`                            | Missing application ID returns null                       | Returns null                              |
+| `GetByApplicationIdForUpdateAsync_ReturnsTrackedEntity`                    | Tracked entity can be mutated and saved                   | Assessment score update persists          |
+| `GetByJobPostingIdAsync_ReturnsOrderedByCompositeScoreDescending`          | Matches ordered by CompositeScore descending              | Highest score first (90, 65, 40)          |
+| `GetByJobPostingIdAsync_DifferentJobPosting_ReturnsEmpty`                  | Different job posting ID returns empty list               | Returns empty list                        |
+| `ShortlistRepo_GetByIdAsync_IncludesCandidates`                            | Include(Candidates) eager-loads candidate navigation      | Shortlist with 2 candidates loaded        |
+| `ShortlistRepo_GetByIdAsync_NotExists_ReturnsNull`                         | Missing shortlist ID returns null                         | Returns null                              |
+| `ShortlistRepo_GetByIdForUpdateAsync_ReturnsTrackedEntityWithCandidates`   | Tracked entity with loaded candidates can be mutated      | Status update persists, candidates loaded |
+| `ShortlistRepo_GetDraftByJobPostingIdAsync_ReturnsDraftOnly`               | Only Draft shortlists returned, Finalized excluded        | Returns Draft shortlist                   |
+| `ShortlistRepo_GetDraftByJobPostingIdAsync_NoDraft_ReturnsNull`            | No Draft shortlist for job posting returns null           | Returns null                              |
+| `ShortlistRepo_GetByJobPostingIdAsync_ReturnsOrderedByCreatedAtDescending` | Shortlists ordered by CreatedAt descending (newest first) | Newest shortlist appears first            |
+| `ShortlistRepo_GetByJobPostingIdAsync_DifferentJob_ReturnsEmpty`           | Different job posting ID returns empty list               | Returns empty list                        |
+
+**Why:** Repository integration tests catch EF Core Include/navigation behavior, query translation for composite ordering, and tracked vs untracked entity distinctions that unit tests with mocks cannot verify. The Draft filter test is critical for the shortlist workflow — it ensures only one active draft exists per job posting.
+
+---
+
 ## Summary
 
 | Test Class                                 | Tests  | Coverage Area                                              |
@@ -145,4 +195,6 @@ Tests FluentValidation validators for request DTOs.
 | `CvScreeningCompletedMatchingHandlerTests` | 9      | Cross-module event: screening → matching + auto-generation |
 | `AssessmentCompletedMatchingHandlerTests`  | 2      | Cross-module event: assessment → matching                  |
 | `MatchingValidatorTests`                   | 4      | Request validation                                         |
-| **Total**                                  | **51** | **7 test files**                                           |
+| `MatchingDbContextTests` (integration)     | 16     | Schema, persistence, CHECK constraints, indexes, cascades  |
+| `MatchingRepositoryTests` (integration)    | 12     | Repository CRUD, ordering, filtering, Include behavior     |
+| **Total**                                  | **79** | **9 test files**                                           |

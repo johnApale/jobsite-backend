@@ -42,6 +42,12 @@
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Domain\Jobsite.Modules.Recruitment.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Application\Jobsite.Modules.Recruitment.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Infrastructure\Jobsite.Modules.Recruitment.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Profiles\Jobsite.Modules.Profiles.Domain\Jobsite.Modules.Profiles.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Profiles\Jobsite.Modules.Profiles.Application\Jobsite.Modules.Profiles.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Profiles\Jobsite.Modules.Profiles.Infrastructure\Jobsite.Modules.Profiles.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Matching\Jobsite.Modules.Matching.Domain\Jobsite.Modules.Matching.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Matching\Jobsite.Modules.Matching.Application\Jobsite.Modules.Matching.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Matching\Jobsite.Modules.Matching.Infrastructure\Jobsite.Modules.Matching.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

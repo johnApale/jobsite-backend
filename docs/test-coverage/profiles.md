@@ -202,14 +202,56 @@ Tests `ResumeParseRecoveryService` — a `BackgroundService` that re-publishes `
 
 ---
 
+## `ProfilesDbContextTests` — Integration (10 tests)
+
+Tests ProfilesDbContext schema creation, entity CRUD, CHECK constraints, JSONB column mapping, cascade deletes, and indexes against a real PostgreSQL container via Testcontainers.
+
+| Test                                               | What It Verifies                                                    | Expected Outcome                              |
+| -------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------- |
+| `Schema_ProfilesSchemaExists`                      | The `profiles` PostgreSQL schema is created by EF Core              | Schema found in `information_schema.schemata` |
+| `ApplicantProfile_Persists_AllFieldsCorrectly`     | All fields persist including JSONB Skills, SocialLinks, Documents   | All fields match after persist + re-query     |
+| `ApplicantProfile_DefaultValues_AppliedByDatabase` | Timestamps auto-set, nullable fields are null                       | Defaults applied correctly                    |
+| `Resume_Persists_AllFieldsCorrectly`               | All resume fields persist including parsing state and JSONB columns | All fields match after persist + re-query     |
+| `Resume_DefaultValues_AppliedByDatabase`           | IsLatest defaults to false, IsParsed defaults to false              | Defaults applied correctly                    |
+| `Resume_CheckConstraint_RejectsInvalidFileType`    | CHECK constraint `chk_resumes_file_type` rejects "EXE"              | Throws `DbUpdateException`                    |
+| `Resume_CheckConstraint_AcceptsValidFileTypes`     | PDF and DOCX both accepted by CHECK constraint                      | Both resumes persist                          |
+| `CascadeDelete_DeletingProfile_DeletesResumes`     | Cascade delete removes resumes when profile is deleted              | Resumes no longer found                       |
+| `ApplicantProfiles_Indexes_Exist`                  | Index `ix_applicant_profiles_city_country` exists                   | Index found in `pg_indexes`                   |
+| `Resumes_Indexes_Exist`                            | All 3 resume indexes exist (user_id, is_parsed, user_id_is_latest)  | All index names found in `pg_indexes`         |
+
+**Why:** EF Core JSONB mapping, CHECK constraints, cascade deletes, and index configurations can only be validated against real PostgreSQL. Unit tests with mocks cannot catch column type mismatches or missing configurations.
+
+---
+
+## `ProfilesRepositoryTests` — Integration (12 tests)
+
+Tests `ApplicantProfileRepository` and `ResumeRepository` against a real PostgreSQL container. Validates CRUD operations, tracking behavior, ordering, and bulk updates.
+
+| Test                                                               | What It Verifies                                                  | Expected Outcome                        |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- | --------------------------------------- |
+| `GetByUserIdAsync_Exists_ReturnsProfile`                           | AsNoTracking lookup returns the correct profile                   | Profile found, fields match             |
+| `GetByUserIdAsync_NotExists_ReturnsNull`                           | Missing user ID returns null                                      | Returns null                            |
+| `GetByUserIdForUpdateAsync_ReturnsTrackedEntity`                   | Tracked entity can be mutated and saved                           | City update persists after save         |
+| `ExistsByUserIdAsync_TrueWhenExists`                               | Existence check returns true for existing, false for non-existing | Correct boolean for both cases          |
+| `ResumeRepo_GetByIdAsync_Exists_ReturnsResume`                     | AsNoTracking lookup returns the correct resume                    | Resume found, fields match              |
+| `ResumeRepo_GetByIdAsync_NotExists_ReturnsNull`                    | Missing resume ID returns null                                    | Returns null                            |
+| `ResumeRepo_GetByIdForUpdateAsync_ReturnsTrackedEntity`            | Tracked resume can be mutated and saved                           | IsParsed and ParsedText update persists |
+| `ResumeRepo_GetByUserIdAsync_ReturnsOrderedByCreatedAtDescending`  | Resumes ordered by CreatedAt descending (newest first)            | Newest resume appears first             |
+| `ResumeRepo_GetLatestByUserIdAsync_ReturnsLatestResume`            | Returns only the resume with IsLatest = true                      | Latest resume returned                  |
+| `ResumeRepo_GetLatestByUserIdAsync_NoLatest_ReturnsNull`           | No resume with IsLatest = true returns null                       | Returns null                            |
+| `ResumeRepo_HasAnyByUserIdAsync_TrueWhenExists`                    | Existence check returns true for existing, false for non-existing | Correct boolean for both cases          |
+| `ResumeRepo_MarkPreviousAsNotLatestAsync_ClearsPreviousLatestFlag` | ExecuteUpdate clears IsLatest on all user's resumes               | All resumes have IsLatest = false       |
+
+**Why:** Repository integration tests catch EF Core query translation issues, AsNoTracking vs tracked entity behavior, ExecuteUpdate bulk operations, and ordering logic that only surface against real PostgreSQL.
+
+---
+
 ## Coverage Gaps
 
 ### Integration Test Gaps
 
 | Area                         | Gap                                                                                                                         | Priority |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **ProfilesDbContext**        | No Testcontainers tests for entity CRUD, column mappings, CHECK constraints, JSONB fields, cross-schema FK to `auth.users`. | High     |
-| **Repository Tests**         | No integration tests for `IApplicantProfileRepository` or `IResumeRepository` — only tested via mocked service-layer tests. | High     |
 | **Endpoint Tests**           | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD (`GET/POST/PATCH /api/v1/profiles/me`) or resume endpoints. | Medium   |
 | **MassTransit Consumer E2E** | No end-to-end test with Testcontainers RabbitMQ for the resume upload → parse pipeline.                                     | Medium   |
 | **AzureBlobFileStorage**     | No integration tests for Azure Blob Storage `IFileStorage` implementation. `LocalFileStorage` has 6 unit tests.             | Low      |

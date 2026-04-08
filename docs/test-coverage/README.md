@@ -8,8 +8,8 @@
 | ------------------------- | ------- | ----------------------------------------- |
 | Jobsite.UnitTests         | 686     | ✅ All passing                            |
 | Jobsite.ArchitectureTests | 35      | ✅ All passing                            |
-| Jobsite.IntegrationTests  | 97      | ✅ All passing (all tests require Docker) |
-| **Total**                 | **818** |                                           |
+| Jobsite.IntegrationTests  | 147     | ✅ All passing (all tests require Docker) |
+| **Total**                 | **868** |                                           |
 
 ---
 
@@ -21,29 +21,27 @@
 | Tenancy            | 25    | [tenancy.md](tenancy.md)                       |
 | Auth               | 89    | [auth.md](auth.md)                             |
 | Admin              | 39    | [admin.md](admin.md)                           |
-| Profiles           | 83    | [profiles.md](profiles.md)                     |
+| Profiles           | 105   | [profiles.md](profiles.md)                     |
 | Recruitment        | 189   | [recruitment.md](recruitment.md)               |
 | Screening          | 144   | [screening.md](screening.md)                   |
-| Matching           | 39    | [matching.md](matching.md)                     |
+| Matching           | 79    | [matching.md](matching.md)                     |
 | HR Workflows       | 36    | [hr-workflows.md](hr-workflows.md)             |
 | Middleware         | 21    | [middleware.md](middleware.md)                 |
 | Pipeline Behaviors | 7     | [pipeline-behaviors.md](pipeline-behaviors.md) |
 | Infrastructure     | 2     | [infrastructure.md](infrastructure.md)         |
 | Architecture Tests | 35    | [architecture.md](architecture.md)             |
-| Integration Tests  | 97    | [integration.md](integration.md)               |
+| Integration Tests  | 147   | [integration.md](integration.md)               |
 
 ---
 
 ## Coverage Gaps & Next Steps
 
-### Profiles Module (Phase 3) Gaps
+### Profiles Module Gaps
 
-| Area                              | Gap                                                                                                                         | Priority |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **ProfilesDbContext Integration** | No Testcontainers tests for entity CRUD, column mappings, CHECK constraints, JSONB fields, cross-schema FK to `auth.users`. | High     |
-| **Repository Integration Tests**  | No integration tests for `IApplicantProfileRepository` or `IResumeRepository` — only tested via mocked service-layer tests. | High     |
-| **Profile Endpoint Tests**        | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD or resume endpoints.                                        | Medium   |
-| **MassTransit Consumer E2E**      | No end-to-end test with Testcontainers RabbitMQ for resume upload → parse pipeline.                                         | Medium   |
+| Area                         | Gap                                                                                                | Priority |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- | -------- |
+| **Profile Endpoint Tests**   | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD or resume endpoints.               | Medium   |
+| **MassTransit Consumer E2E** | No end-to-end test with Testcontainers RabbitMQ for resume upload → parse pipeline.                | Medium   |
 
 ### Recruitment Module (Phase 4) Gaps
 

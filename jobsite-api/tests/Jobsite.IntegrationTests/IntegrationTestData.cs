@@ -1,5 +1,9 @@
 using Jobsite.Modules.Auth.Domain.Constants;
 using Jobsite.Modules.Auth.Domain.Entities;
+using Jobsite.Modules.Matching.Domain.Constants;
+using Jobsite.Modules.Matching.Domain.Entities;
+using Jobsite.Modules.Profiles.Domain.Constants;
+using Jobsite.Modules.Profiles.Domain.Entities;
 using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
 
@@ -73,5 +77,72 @@ public static class IntegrationTestData
         ProviderSubjectId = subjectId ?? Guid.NewGuid().ToString(),
         ProviderEmail = "oauth@test.com",
         LinkedAt = DateTime.UtcNow
+    };
+
+    public static ApplicantProfile CreateApplicantProfile(
+        Guid? userId = null,
+        string? firstName = null,
+        string? lastName = null,
+        string? city = null,
+        string? country = null) => new()
+    {
+        Id = userId ?? Guid.NewGuid(),
+        FirstName = firstName ?? "Test",
+        LastName = lastName ?? "Applicant",
+        City = city,
+        Country = country
+    };
+
+    public static Resume CreateResume(
+        Guid userId,
+        string? fileType = null,
+        bool isLatest = false) => new()
+    {
+        UserId = userId,
+        FileUrl = $"https://blob.storage/resumes/{Guid.NewGuid():N}.pdf",
+        OriginalFilename = $"resume-{Guid.NewGuid():N[..8]}.pdf",
+        FileSizeBytes = 1024,
+        FileType = fileType ?? FileType.Pdf,
+        IsLatest = isLatest
+    };
+
+    public static CandidateMatch CreateCandidateMatch(
+        Guid? applicationId = null,
+        Guid? jobPostingId = null,
+        decimal compositeScore = 75m,
+        string? matchStrength = null) => new()
+    {
+        ApplicationId = applicationId ?? Guid.NewGuid(),
+        JobPostingId = jobPostingId ?? Guid.NewGuid(),
+        ApplicantUserId = Guid.NewGuid(),
+        ScreeningScore = compositeScore,
+        CompositeScore = compositeScore,
+        MatchStrength = matchStrength ?? MatchStrength.FromScore(compositeScore),
+        ScreeningCompletedAt = DateTime.UtcNow
+    };
+
+    public static Shortlist CreateShortlist(
+        Guid? jobPostingId = null,
+        string? status = null) => new()
+    {
+        JobPostingId = jobPostingId ?? Guid.NewGuid(),
+        Status = status ?? ShortlistStatus.Draft,
+        GeneratedBy = "Algorithm",
+        TotalCandidates = 0
+    };
+
+    public static ShortlistCandidate CreateShortlistCandidate(
+        Guid shortlistId,
+        Guid? applicationId = null,
+        int rank = 1,
+        string? source = null) => new()
+    {
+        ShortlistId = shortlistId,
+        ApplicationId = applicationId ?? Guid.NewGuid(),
+        ApplicantUserId = Guid.NewGuid(),
+        CompositeScore = 80m,
+        Rank = rank,
+        Source = source ?? ShortlistCandidateSource.Algorithm,
+        AddedAt = DateTime.UtcNow
     };
 }
