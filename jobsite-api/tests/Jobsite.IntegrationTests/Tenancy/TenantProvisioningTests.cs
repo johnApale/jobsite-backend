@@ -2,6 +2,7 @@ using FluentAssertions;
 using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
 using Jobsite.Modules.Tenancy.Infrastructure.Provisioning;
+using Jobsite.SharedKernel.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -146,8 +147,9 @@ public sealed class TenantProvisioningTests : IAsyncLifetime
             .Build();
 
         ILogger<TenantProvisioner> logger = Substitute.For<ILogger<TenantProvisioner>>();
+        IDomainEventDispatcher dispatcher = Substitute.For<IDomainEventDispatcher>();
 
-        return new TenantProvisioner(_fixture.DbContext, configuration, logger);
+        return new TenantProvisioner(_fixture.DbContext, configuration, dispatcher, logger);
     }
 
     private async Task<bool> DatabaseExistsAsync(string databaseName)

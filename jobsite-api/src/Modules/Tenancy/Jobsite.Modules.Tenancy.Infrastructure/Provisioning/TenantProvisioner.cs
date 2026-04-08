@@ -3,6 +3,8 @@ using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
 using Jobsite.Modules.Tenancy.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Errors;
+using Jobsite.SharedKernel.Events;
+using Jobsite.SharedKernel.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -19,15 +21,18 @@ public sealed class TenantProvisioner : ITenantProvisioner
 {
     private readonly CatalogDbContext _catalogDb;
     private readonly IConfiguration _configuration;
+    private readonly IDomainEventDispatcher _dispatcher;
     private readonly ILogger<TenantProvisioner> _logger;
 
     public TenantProvisioner(
         CatalogDbContext catalogDb,
         IConfiguration configuration,
+        IDomainEventDispatcher dispatcher,
         ILogger<TenantProvisioner> logger)
     {
         _catalogDb = catalogDb;
         _configuration = configuration;
+        _dispatcher = dispatcher;
         _logger = logger;
     }
 
@@ -52,6 +57,15 @@ public sealed class TenantProvisioner : ITenantProvisioner
             tenant.ProvisionedAt = DateTime.UtcNow;
 
             await _catalogDb.SaveChangesAsync(ct);
+
+            await _dispatcher.DispatchAsync(new TenantProvisionedEvent
+            {
+                TenantId = tenant.Id,
+                TenantName = tenant.Name,
+                OwnerEmail = tenant.OwnerEmail,
+                ConnectionString = tenantConnectionString,
+                ProvisionedAt = tenant.ProvisionedAt!.Value
+            }, ct);
 
             _logger.LogInformation(
                 "Tenant {TenantId} provisioned successfully with database {DatabaseName}",
