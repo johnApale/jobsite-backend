@@ -48,6 +48,22 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.AvatarUrl)
             .HasMaxLength(2048);
 
+        builder.Property(u => u.FailedLoginAttempts)
+            .IsRequired()
+            .HasDefaultValue(0);
+
+        builder.Property(u => u.LockedUntil);
+
+        builder.Property(u => u.EmailVerificationToken)
+            .HasMaxLength(200);
+
+        builder.Property(u => u.EmailVerificationTokenExpiresAt);
+
+        builder.Property(u => u.PasswordResetToken)
+            .HasMaxLength(200);
+
+        builder.Property(u => u.PasswordResetTokenExpiresAt);
+
         builder.Property(u => u.CreatedAt)
             .HasDefaultValueSql("NOW()");
 

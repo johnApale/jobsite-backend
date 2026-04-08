@@ -92,6 +92,48 @@ public static class AuthEndpoints
             .WithDescription("Returns the profile of the currently authenticated user.")
             .Produces<UserResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status401Unauthorized);
+
+        group.MapPost("/verify-email", async (VerifyEmailRequest request, IAuthService service, CancellationToken ct) =>
+            {
+                await service.VerifyEmailAsync(request, ct);
+                return Results.NoContent();
+            })
+            .WithName("VerifyEmail")
+            .WithSummary("Verify email address")
+            .WithDescription("Verifies a user's email address using the token sent during registration.")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/resend-verification", async (ResendVerificationRequest request, IAuthService service, CancellationToken ct) =>
+            {
+                await service.ResendVerificationEmailAsync(request, ct);
+                return Results.NoContent();
+            })
+            .WithName("ResendVerificationEmail")
+            .WithSummary("Resend verification email")
+            .WithDescription("Resends the email verification token. Silent success if email not found or already verified.")
+            .Produces(StatusCodes.Status204NoContent);
+
+        group.MapPost("/forgot-password", async (ForgotPasswordRequest request, IAuthService service, CancellationToken ct) =>
+            {
+                await service.ForgotPasswordAsync(request, ct);
+                return Results.NoContent();
+            })
+            .WithName("ForgotPassword")
+            .WithSummary("Request password reset")
+            .WithDescription("Sends a password reset token via email. Silent success if email not found.")
+            .Produces(StatusCodes.Status204NoContent);
+
+        group.MapPost("/reset-password", async (ResetPasswordRequest request, IAuthService service, CancellationToken ct) =>
+            {
+                await service.ResetPasswordAsync(request, ct);
+                return Results.NoContent();
+            })
+            .WithName("ResetPassword")
+            .WithSummary("Reset password")
+            .WithDescription("Resets the user's password using a valid reset token. Clears lockout state.")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status400BadRequest);
     }
 
     private static Guid GetTenantId(HttpContext http)

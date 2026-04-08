@@ -11,10 +11,14 @@ public static class AppErrors
     public static AppError InvalidRequest => new("INVALID_REQUEST", 400, "Structurally invalid request");
     public static AppError DuplicateEmail => new("DUPLICATE_EMAIL", 400, "Email already registered for this tenant");
     public static AppError DuplicateApplication => new("DUPLICATE_APPLICATION", 400, "Applicant already applied to this job posting");
+    public static AppError InvalidVerificationToken => new("INVALID_VERIFICATION_TOKEN", 400, "Invalid or expired email verification token");
+    public static AppError EmailAlreadyVerified => new("EMAIL_ALREADY_VERIFIED", 400, "Email is already verified");
+    public static AppError InvalidResetToken => new("INVALID_RESET_TOKEN", 400, "Invalid or expired password reset token");
 
     // ── 401 Unauthorized ─────────────────────────────────────────────────
     public static AppError Unauthorized => new("UNAUTHORIZED", 401, "Missing or invalid authentication");
     public static AppError InvalidCredentials => new("INVALID_CREDENTIALS", 401, "Wrong email or password");
+    public static AppError AccountLocked => new("ACCOUNT_LOCKED", 401, "Account is temporarily locked due to too many failed login attempts");
     public static AppError TokenExpired => new("TOKEN_EXPIRED", 401, "Token has expired");
     public static AppError TokenReplayDetected => new("TOKEN_REPLAY_DETECTED", 401, "Refresh token reuse detected");
 

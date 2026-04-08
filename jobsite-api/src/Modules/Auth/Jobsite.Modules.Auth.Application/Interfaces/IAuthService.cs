@@ -24,4 +24,16 @@ public interface IAuthService
 
     /// <summary>Get the current authenticated user's profile.</summary>
     Task<UserResponse> GetCurrentUserAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Verify a user's email address using a verification token.</summary>
+    Task VerifyEmailAsync(VerifyEmailRequest request, CancellationToken ct = default);
+
+    /// <summary>Resend the email verification token.</summary>
+    Task ResendVerificationEmailAsync(ResendVerificationRequest request, CancellationToken ct = default);
+
+    /// <summary>Initiate a password reset by sending a reset token via email.</summary>
+    Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default);
+
+    /// <summary>Reset a user's password using a valid reset token.</summary>
+    Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
 }

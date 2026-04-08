@@ -1,3 +1,4 @@
+using Jobsite.Modules.Auth.Application.Configuration;
 using Jobsite.Modules.Auth.Application.DTOs;
 using Jobsite.Modules.Auth.Application.Interfaces;
 using Jobsite.Modules.Auth.Domain.Constants;
@@ -6,11 +7,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
+using System.Security.Cryptography;
 
 namespace Jobsite.Modules.Auth.Application.Services;
 
 /// <summary>
-/// Application service for authentication: register, login, token refresh, OAuth, logout.
+/// Application service for authentication: register, login, token refresh, OAuth, logout,
+/// email verification, and password reset.
 /// </summary>
 public sealed class AuthService : IAuthService
 {
@@ -19,7 +22,9 @@ public sealed class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
     private readonly IOAuthProviderValidator _oauthValidator;
+    private readonly IEmailService _emailService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly JwtSettings _settings;
 
     public AuthService(
         IUserRepository userRepository,
@@ -27,6 +32,8 @@ public sealed class AuthService : IAuthService
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
         IOAuthProviderValidator oauthValidator,
+        IEmailService emailService,
+        JwtSettings settings,
         [FromKeyedServices("auth")] IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
@@ -34,6 +41,8 @@ public sealed class AuthService : IAuthService
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
         _oauthValidator = oauthValidator;
+        _emailService = emailService;
+        _settings = settings;
         _unitOfWork = unitOfWork;
     }
 
@@ -44,6 +53,7 @@ public sealed class AuthService : IAuthService
             throw AppErrors.DuplicateEmail;
 
         string role = request.Role ?? UserRole.Applicant;
+        string verificationToken = GenerateSecureToken();
 
         User user = new()
         {
@@ -54,6 +64,8 @@ public sealed class AuthService : IAuthService
             Status = UserStatus.Active,
             FirstName = request.FirstName,
             LastName = request.LastName,
+            EmailVerificationToken = verificationToken,
+            EmailVerificationTokenExpiresAt = DateTime.UtcNow.AddHours(_settings.EmailVerificationTokenExpirationHours),
         };
 
         user.Raise(new UserRegisteredEvent
@@ -67,6 +79,8 @@ public sealed class AuthService : IAuthService
         _userRepository.Add(user);
         await _unitOfWork.SaveChangesAsync(ct);
 
+        await _emailService.SendVerificationEmailAsync(user.Email, verificationToken, ct);
+
         return await IssueTokensAsync(user, tenantId, ct);
     }
 
@@ -79,13 +93,37 @@ public sealed class AuthService : IAuthService
         if (user.Status == UserStatus.Deactivated)
             throw AppErrors.InvalidCredentials;
 
+        // Check if account is locked
+        if (user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
+            throw AppErrors.AccountLocked;
+
+        // Clear expired lockout
+        if (user.LockedUntil.HasValue && user.LockedUntil.Value <= DateTime.UtcNow)
+        {
+            user.LockedUntil = null;
+            user.FailedLoginAttempts = 0;
+        }
+
         if (user.PasswordHash is null)
             throw AppErrors.InvalidCredentials;
 
         bool passwordValid = _passwordHasher.VerifyPassword(request.Password, user.PasswordHash);
         if (!passwordValid)
-            throw AppErrors.InvalidCredentials;
+        {
+            user.FailedLoginAttempts++;
 
+            if (user.FailedLoginAttempts >= _settings.MaxFailedLoginAttempts)
+            {
+                user.LockedUntil = DateTime.UtcNow.AddMinutes(_settings.LockoutDurationMinutes);
+            }
+
+            await _unitOfWork.SaveChangesAsync(ct);
+            throw AppErrors.InvalidCredentials;
+        }
+
+        // Successful login: reset lockout counters
+        user.FailedLoginAttempts = 0;
+        user.LockedUntil = null;
         user.LastLoginAt = DateTime.UtcNow;
         await _unitOfWork.SaveChangesAsync(ct);
 
@@ -264,6 +302,82 @@ public sealed class AuthService : IAuthService
         return MapToResponse(user);
     }
 
+    public async Task VerifyEmailAsync(VerifyEmailRequest request, CancellationToken ct = default)
+    {
+        User? user = await _userRepository.GetByEmailForUpdateAsync(request.Email.ToLowerInvariant(), ct);
+        if (user is null)
+            throw AppErrors.InvalidVerificationToken;
+
+        if (user.EmailVerified)
+            throw AppErrors.EmailAlreadyVerified;
+
+        if (user.EmailVerificationToken is null
+            || user.EmailVerificationToken != request.Token
+            || user.EmailVerificationTokenExpiresAt is null
+            || user.EmailVerificationTokenExpiresAt.Value < DateTime.UtcNow)
+        {
+            throw AppErrors.InvalidVerificationToken;
+        }
+
+        user.EmailVerified = true;
+        user.EmailVerificationToken = null;
+        user.EmailVerificationTokenExpiresAt = null;
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    public async Task ResendVerificationEmailAsync(ResendVerificationRequest request, CancellationToken ct = default)
+    {
+        User? user = await _userRepository.GetByEmailForUpdateAsync(request.Email.ToLowerInvariant(), ct);
+        if (user is null)
+            return; // Silent — don't reveal whether email exists
+
+        if (user.EmailVerified)
+            return; // Already verified, nothing to do
+
+        string verificationToken = GenerateSecureToken();
+        user.EmailVerificationToken = verificationToken;
+        user.EmailVerificationTokenExpiresAt = DateTime.UtcNow.AddHours(_settings.EmailVerificationTokenExpirationHours);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        await _emailService.SendVerificationEmailAsync(user.Email, verificationToken, ct);
+    }
+
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
+    {
+        User? user = await _userRepository.GetByEmailForUpdateAsync(request.Email.ToLowerInvariant(), ct);
+        if (user is null)
+            return; // Silent — don't reveal whether email exists
+
+        string resetToken = GenerateSecureToken();
+        user.PasswordResetToken = resetToken;
+        user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddHours(_settings.PasswordResetTokenExpirationHours);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        await _emailService.SendPasswordResetEmailAsync(user.Email, resetToken, ct);
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+    {
+        User? user = await _userRepository.GetByEmailForUpdateAsync(request.Email.ToLowerInvariant(), ct);
+        if (user is null)
+            throw AppErrors.InvalidResetToken;
+
+        if (user.PasswordResetToken is null
+            || user.PasswordResetToken != request.Token
+            || user.PasswordResetTokenExpiresAt is null
+            || user.PasswordResetTokenExpiresAt.Value < DateTime.UtcNow)
+        {
+            throw AppErrors.InvalidResetToken;
+        }
+
+        user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpiresAt = null;
+        user.FailedLoginAttempts = 0;
+        user.LockedUntil = null;
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
     private async Task<AuthTokensResponse> IssueTokensAsync(User user, Guid tenantId, CancellationToken ct)
     {
         string accessToken = _jwtService.GenerateAccessToken(user, tenantId);
@@ -303,5 +417,11 @@ public sealed class AuthService : IAuthService
             AvatarUrl = user.AvatarUrl,
             CreatedAt = user.CreatedAt,
         };
+    }
+
+    private static string GenerateSecureToken()
+    {
+        byte[] tokenBytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(tokenBytes);
     }
 }

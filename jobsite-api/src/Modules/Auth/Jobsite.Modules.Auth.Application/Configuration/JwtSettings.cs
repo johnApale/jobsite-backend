@@ -11,4 +11,8 @@ public sealed class JwtSettings
     public string JwtAudience { get; set; } = "djobsite-iconnect";
     public int JwtExpirationMinutes { get; set; } = 60;
     public int RefreshTokenExpirationDays { get; set; } = 30;
+    public int MaxFailedLoginAttempts { get; set; } = 5;
+    public int LockoutDurationMinutes { get; set; } = 15;
+    public int EmailVerificationTokenExpirationHours { get; set; } = 24;
+    public int PasswordResetTokenExpirationHours { get; set; } = 1;
 }

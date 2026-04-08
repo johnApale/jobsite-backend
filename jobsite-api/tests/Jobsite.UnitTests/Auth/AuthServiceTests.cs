@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Jobsite.Modules.Auth.Application.Configuration;
 using Jobsite.Modules.Auth.Application.DTOs;
 using Jobsite.Modules.Auth.Application.Interfaces;
 using Jobsite.Modules.Auth.Application.Services;
@@ -20,7 +21,9 @@ public sealed class AuthServiceTests
     private readonly IPasswordHasher _passwordHasher = Substitute.For<IPasswordHasher>();
     private readonly IJwtService _jwtService = Substitute.For<IJwtService>();
     private readonly IOAuthProviderValidator _oauthValidator = Substitute.For<IOAuthProviderValidator>();
+    private readonly IEmailService _emailService = Substitute.For<IEmailService>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+    private readonly JwtSettings _settings = new();
     private readonly AuthService _sut;
     private readonly Guid _tenantId = Guid.NewGuid();
 
@@ -34,7 +37,7 @@ public sealed class AuthServiceTests
 
         _sut = new AuthService(
             _userRepo, _refreshTokenRepo, _passwordHasher,
-            _jwtService, _oauthValidator, _unitOfWork);
+            _jwtService, _oauthValidator, _emailService, _settings, _unitOfWork);
     }
 
     // ── Register ─────────────────────────────────────────────────────────
@@ -56,6 +59,7 @@ public sealed class AuthServiceTests
         result.ExpiresIn.Should().Be(3600);
         _userRepo.Received(1).Add(Arg.Any<User>());
         await _unitOfWork.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _emailService.Received(1).SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -426,5 +430,364 @@ public sealed class AuthServiceTests
             u.Email == "new@oauth.com" &&
             u.Role == UserRole.Applicant &&
             u.ExternalLogins.Count == 1));
+    }
+
+    // ── Account Lockout ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task LoginAsync_LockedAccount_ThrowsAccountLocked()
+    {
+        // Arrange
+        LoginRequest request = TestData.CreateLoginRequest();
+        User user = TestData.CreateUser();
+        user.LockedUntil = DateTime.UtcNow.AddMinutes(10);
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+
+        // Act
+        Func<Task> act = () => _sut.LoginAsync(request, _tenantId, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("ACCOUNT_LOCKED");
+    }
+
+    [Fact]
+    public async Task LoginAsync_ExpiredLockout_ClearsLockAndAllowsLogin()
+    {
+        // Arrange
+        LoginRequest request = TestData.CreateLoginRequest();
+        User user = TestData.CreateUser();
+        user.LockedUntil = DateTime.UtcNow.AddMinutes(-1);
+        user.FailedLoginAttempts = 5;
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        _passwordHasher.VerifyPassword(Arg.Any<string>(), Arg.Any<string>()).Returns(true);
+
+        // Act
+        AuthTokensResponse result = await _sut.LoginAsync(request, _tenantId, CancellationToken.None);
+
+        // Assert
+        result.AccessToken.Should().Be("access-token");
+        user.FailedLoginAttempts.Should().Be(0);
+        user.LockedUntil.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoginAsync_WrongPassword_IncrementsFailedAttempts()
+    {
+        // Arrange
+        LoginRequest request = TestData.CreateLoginRequest();
+        User user = TestData.CreateUser();
+        user.FailedLoginAttempts = 0;
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        _passwordHasher.VerifyPassword(Arg.Any<string>(), Arg.Any<string>()).Returns(false);
+
+        // Act
+        Func<Task> act = () => _sut.LoginAsync(request, _tenantId, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<AppError>();
+        user.FailedLoginAttempts.Should().Be(1);
+        await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task LoginAsync_MaxFailedAttempts_LocksAccount()
+    {
+        // Arrange
+        LoginRequest request = TestData.CreateLoginRequest();
+        User user = TestData.CreateUser();
+        user.FailedLoginAttempts = 4; // One more failure = 5 = threshold
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        _passwordHasher.VerifyPassword(Arg.Any<string>(), Arg.Any<string>()).Returns(false);
+
+        // Act
+        Func<Task> act = () => _sut.LoginAsync(request, _tenantId, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<AppError>();
+        user.FailedLoginAttempts.Should().Be(5);
+        user.LockedUntil.Should().NotBeNull();
+        user.LockedUntil.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(15), TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public async Task LoginAsync_SuccessfulLogin_ResetsFailedAttempts()
+    {
+        // Arrange
+        LoginRequest request = TestData.CreateLoginRequest();
+        User user = TestData.CreateUser();
+        user.FailedLoginAttempts = 3;
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        _passwordHasher.VerifyPassword(Arg.Any<string>(), Arg.Any<string>()).Returns(true);
+
+        // Act
+        await _sut.LoginAsync(request, _tenantId, CancellationToken.None);
+
+        // Assert
+        user.FailedLoginAttempts.Should().Be(0);
+        user.LockedUntil.Should().BeNull();
+    }
+
+    // ── Email Verification ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task RegisterAsync_SetsEmailVerificationToken()
+    {
+        // Arrange
+        RegisterRequest request = TestData.CreateRegisterRequest();
+        _userRepo.EmailExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
+        _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hash");
+
+        // Act
+        await _sut.RegisterAsync(request, _tenantId, CancellationToken.None);
+
+        // Assert
+        _userRepo.Received(1).Add(Arg.Is<User>(u =>
+            u.EmailVerificationToken != null &&
+            u.EmailVerificationTokenExpiresAt != null));
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_ValidToken_VerifiesEmail()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.EmailVerificationToken = "valid-token";
+        user.EmailVerificationTokenExpiresAt = DateTime.UtcNow.AddHours(1);
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        VerifyEmailRequest request = new() { Email = "test@example.com", Token = "valid-token" };
+
+        // Act
+        await _sut.VerifyEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        user.EmailVerified.Should().BeTrue();
+        user.EmailVerificationToken.Should().BeNull();
+        user.EmailVerificationTokenExpiresAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_UserNotFound_ThrowsInvalidVerificationToken()
+    {
+        // Arrange
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
+        VerifyEmailRequest request = new() { Email = "unknown@example.com", Token = "token" };
+
+        // Act
+        Func<Task> act = () => _sut.VerifyEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("INVALID_VERIFICATION_TOKEN");
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_AlreadyVerified_ThrowsEmailAlreadyVerified()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.EmailVerified = true;
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        VerifyEmailRequest request = new() { Email = "test@example.com", Token = "token" };
+
+        // Act
+        Func<Task> act = () => _sut.VerifyEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("EMAIL_ALREADY_VERIFIED");
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_ExpiredToken_ThrowsInvalidVerificationToken()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.EmailVerificationToken = "expired-token";
+        user.EmailVerificationTokenExpiresAt = DateTime.UtcNow.AddHours(-1);
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        VerifyEmailRequest request = new() { Email = "test@example.com", Token = "expired-token" };
+
+        // Act
+        Func<Task> act = () => _sut.VerifyEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("INVALID_VERIFICATION_TOKEN");
+    }
+
+    [Fact]
+    public async Task VerifyEmailAsync_WrongToken_ThrowsInvalidVerificationToken()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.EmailVerificationToken = "correct-token";
+        user.EmailVerificationTokenExpiresAt = DateTime.UtcNow.AddHours(1);
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        VerifyEmailRequest request = new() { Email = "test@example.com", Token = "wrong-token" };
+
+        // Act
+        Func<Task> act = () => _sut.VerifyEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("INVALID_VERIFICATION_TOKEN");
+    }
+
+    [Fact]
+    public async Task ResendVerificationEmailAsync_UnverifiedUser_SendsEmail()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.EmailVerified = false;
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        ResendVerificationRequest request = new() { Email = "test@example.com" };
+
+        // Act
+        await _sut.ResendVerificationEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        user.EmailVerificationToken.Should().NotBeNull();
+        await _emailService.Received(1).SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ResendVerificationEmailAsync_UserNotFound_SilentReturn()
+    {
+        // Arrange
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
+        ResendVerificationRequest request = new() { Email = "unknown@example.com" };
+
+        // Act
+        Func<Task> act = () => _sut.ResendVerificationEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+        await _emailService.DidNotReceive().SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ResendVerificationEmailAsync_AlreadyVerified_SilentReturn()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.EmailVerified = true;
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        ResendVerificationRequest request = new() { Email = "test@example.com" };
+
+        // Act
+        await _sut.ResendVerificationEmailAsync(request, CancellationToken.None);
+
+        // Assert
+        await _emailService.DidNotReceive().SendVerificationEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    // ── Password Reset ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ForgotPasswordAsync_ExistingUser_SendsResetEmail()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        ForgotPasswordRequest request = new() { Email = "test@example.com" };
+
+        // Act
+        await _sut.ForgotPasswordAsync(request, CancellationToken.None);
+
+        // Assert
+        user.PasswordResetToken.Should().NotBeNull();
+        user.PasswordResetTokenExpiresAt.Should().NotBeNull();
+        await _emailService.Received(1).SendPasswordResetEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ForgotPasswordAsync_UserNotFound_SilentReturn()
+    {
+        // Arrange
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
+        ForgotPasswordRequest request = new() { Email = "unknown@example.com" };
+
+        // Act
+        Func<Task> act = () => _sut.ForgotPasswordAsync(request, CancellationToken.None);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+        await _emailService.DidNotReceive().SendPasswordResetEmailAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_ValidToken_ResetsPassword()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.PasswordResetToken = "valid-reset-token";
+        user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddHours(1);
+        user.FailedLoginAttempts = 3;
+        user.LockedUntil = DateTime.UtcNow.AddMinutes(10);
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        _passwordHasher.HashPassword("NewPassword123!").Returns("new-hash");
+        ResetPasswordRequest request = new() { Email = "test@example.com", Token = "valid-reset-token", NewPassword = "NewPassword123!" };
+
+        // Act
+        await _sut.ResetPasswordAsync(request, CancellationToken.None);
+
+        // Assert
+        user.PasswordHash.Should().Be("new-hash");
+        user.PasswordResetToken.Should().BeNull();
+        user.PasswordResetTokenExpiresAt.Should().BeNull();
+        user.FailedLoginAttempts.Should().Be(0);
+        user.LockedUntil.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_UserNotFound_ThrowsInvalidResetToken()
+    {
+        // Arrange
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
+        ResetPasswordRequest request = new() { Email = "unknown@example.com", Token = "token", NewPassword = "NewPass123!" };
+
+        // Act
+        Func<Task> act = () => _sut.ResetPasswordAsync(request, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("INVALID_RESET_TOKEN");
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_ExpiredToken_ThrowsInvalidResetToken()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.PasswordResetToken = "expired-token";
+        user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddHours(-1);
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        ResetPasswordRequest request = new() { Email = "test@example.com", Token = "expired-token", NewPassword = "NewPass123!" };
+
+        // Act
+        Func<Task> act = () => _sut.ResetPasswordAsync(request, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("INVALID_RESET_TOKEN");
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_WrongToken_ThrowsInvalidResetToken()
+    {
+        // Arrange
+        User user = TestData.CreateUser();
+        user.PasswordResetToken = "correct-token";
+        user.PasswordResetTokenExpiresAt = DateTime.UtcNow.AddHours(1);
+        _userRepo.GetByEmailForUpdateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(user);
+        ResetPasswordRequest request = new() { Email = "test@example.com", Token = "wrong-token", NewPassword = "NewPass123!" };
+
+        // Act
+        Func<Task> act = () => _sut.ResetPasswordAsync(request, CancellationToken.None);
+
+        // Assert
+        AppError error = (await act.Should().ThrowAsync<AppError>()).Which;
+        error.Code.Should().Be("INVALID_RESET_TOKEN");
     }
 }

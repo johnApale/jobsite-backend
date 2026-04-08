@@ -42,6 +42,24 @@ public sealed class User : AggregateRoot
     /// <summary>Set when status moves to Deactivated.</summary>
     public DateTime? DeactivatedAt { get; set; }
 
+    /// <summary>Number of consecutive failed login attempts. Reset on successful login.</summary>
+    public int FailedLoginAttempts { get; set; }
+
+    /// <summary>Account is locked until this time. NULL if not locked.</summary>
+    public DateTime? LockedUntil { get; set; }
+
+    /// <summary>Token for email verification. NULL after verified.</summary>
+    public string? EmailVerificationToken { get; set; }
+
+    /// <summary>When the verification token expires.</summary>
+    public DateTime? EmailVerificationTokenExpiresAt { get; set; }
+
+    /// <summary>Token for password reset. NULL when not in reset flow.</summary>
+    public string? PasswordResetToken { get; set; }
+
+    /// <summary>When the password reset token expires.</summary>
+    public DateTime? PasswordResetTokenExpiresAt { get; set; }
+
     /// <summary>OAuth provider links for this user.</summary>
     public List<UserExternalLogin> ExternalLogins { get; set; } = [];
 
