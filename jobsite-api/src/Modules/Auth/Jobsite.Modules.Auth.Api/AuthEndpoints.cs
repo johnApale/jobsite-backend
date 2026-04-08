@@ -16,7 +16,8 @@ public static class AuthEndpoints
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/auth")
-            .WithTags("Auth");
+            .WithTags("Auth")
+            .RequireRateLimiting("auth");
 
         group.MapPost("/register", async (RegisterRequest request, IAuthService service, HttpContext http, CancellationToken ct) =>
             {

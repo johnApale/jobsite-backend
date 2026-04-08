@@ -17,7 +17,8 @@ public static class ProfileEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/profiles")
             .WithTags("Profiles")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapGet("/me", async (IProfileService service, HttpContext http, CancellationToken ct) =>
             {

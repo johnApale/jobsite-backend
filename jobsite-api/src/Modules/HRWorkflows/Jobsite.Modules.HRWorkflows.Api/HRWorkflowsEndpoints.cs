@@ -21,7 +21,8 @@ public static class HRWorkflowsEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/hr-workflows/interviews")
             .WithTags("HR Workflows - Final Interviews")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapPost("/", async (
                 ScheduleInterviewRequest request,
@@ -162,7 +163,8 @@ public static class HRWorkflowsEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/hr-workflows/offers")
             .WithTags("HR Workflows - Job Offers")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapPost("/", async (
                 CreateOfferRequest request,

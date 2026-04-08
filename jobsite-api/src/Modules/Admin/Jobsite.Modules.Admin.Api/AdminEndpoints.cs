@@ -18,7 +18,8 @@ public static class AdminEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/admin")
             .WithTags("Admin")
-            .RequireAuthorization("RequireAgencyAdmin");
+            .RequireAuthorization("RequireAgencyAdmin")
+            .RequireRateLimiting("global");
 
         group.MapGet("/settings", async (IAdminSettingsService service, CancellationToken ct) =>
             {

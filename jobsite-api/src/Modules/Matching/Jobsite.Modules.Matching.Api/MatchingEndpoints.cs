@@ -21,7 +21,8 @@ public static class MatchingEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/matching/matches")
             .WithTags("Matching - Candidate Matches")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapGet("/{applicationId:guid}", async (
                 Guid applicationId,
@@ -68,7 +69,8 @@ public static class MatchingEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/matching/shortlists")
             .WithTags("Matching - Shortlists")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapPost("/", async (
                 GenerateShortlistRequest request,

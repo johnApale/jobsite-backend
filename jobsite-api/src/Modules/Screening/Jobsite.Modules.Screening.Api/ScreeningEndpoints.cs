@@ -21,7 +21,8 @@ public static class ScreeningEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/screening/results")
             .WithTags("Screening - Results")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapGet("/{applicationId:guid}", async (
                 Guid applicationId,
@@ -109,7 +110,8 @@ public static class ScreeningEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/screening/assessments")
             .WithTags("Screening - Assessments")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapPost("/{applicationId:guid}", async (
                 Guid applicationId,

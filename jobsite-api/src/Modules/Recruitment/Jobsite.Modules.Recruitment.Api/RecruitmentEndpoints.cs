@@ -26,7 +26,8 @@ public static class RecruitmentEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/recruitment/client-companies")
             .WithTags("Recruitment - Client Companies")
-            .RequireAuthorization("RequireAgencyAdmin");
+            .RequireAuthorization("RequireAgencyAdmin")
+            .RequireRateLimiting("global");
 
         group.MapPost("/", async (
                 CreateClientCompanyRequest request,
@@ -101,7 +102,8 @@ public static class RecruitmentEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/recruitment/job-postings")
             .WithTags("Recruitment - Job Postings")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapPost("/", async (
                 CreateJobPostingRequest request,
@@ -278,6 +280,7 @@ public static class RecruitmentEndpoints
             .WithName("SuggestCriteria")
             .WithSummary("Get AI-suggested criteria")
             .WithDescription("Returns AI-generated evaluation criteria suggestions based on the job posting details. Returns 204 if the AI service is unavailable.")
+            .RequireRateLimiting("ai")
             .Produces<List<AiCriteriaSuggestion>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
@@ -357,6 +360,7 @@ public static class RecruitmentEndpoints
             .WithName("SuggestScreeningQuestions")
             .WithSummary("Get AI-suggested screening questions")
             .WithDescription("Returns AI-generated screening question suggestions based on the job posting details. Returns 204 if the AI service is unavailable or feature is disabled.")
+            .RequireRateLimiting("ai")
             .Produces<List<AiQuestionSuggestion>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status404NotFound);
@@ -368,7 +372,8 @@ public static class RecruitmentEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/recruitment/applications")
             .WithTags("Recruitment - Applications")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting("global");
 
         group.MapPost("/job-postings/{jobPostingId:guid}", async (
                 Guid jobPostingId,

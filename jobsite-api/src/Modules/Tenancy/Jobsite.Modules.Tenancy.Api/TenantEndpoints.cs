@@ -15,7 +15,8 @@ public static class TenantEndpoints
     public static void MapTenancyEndpoints(this IEndpointRouteBuilder app)
     {
         RouteGroupBuilder group = app.MapGroup("/api/v1/tenants")
-            .WithTags("Tenants");
+            .WithTags("Tenants")
+            .RequireRateLimiting("global");
 
         group.MapGet("/{id:guid}", async (Guid id, ITenantService service, CancellationToken ct) =>
             {
