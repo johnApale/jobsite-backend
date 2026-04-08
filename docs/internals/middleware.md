@@ -13,7 +13,8 @@ Request
   │ 4. TenantResolutionMiddleware   │ ← resolves tenant from subdomain
   │ 5. UseAuthentication()          │ ← validates JWT Bearer token
   │ 6. UseAuthorization()           │ ← enforces [Authorize] policies
-  │ 7. UseSerilogRequestLogging()   │ ← Serilog enriched request log
+  │ 7. UseRateLimiter()             │ ← enforces per-endpoint rate limiting
+  │ 8. UseSerilogRequestLogging()   │ ← Serilog enriched request log
   └─────────────────────────────────┘
 Response
 ```
@@ -27,6 +28,7 @@ app.UseMiddleware<AppErrorMiddleware>();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseSerilogRequestLogging();
 ```
 
@@ -146,3 +148,33 @@ These paths skip tenant resolution entirely:
 | No subdomain (e.g. `localhost`) | 400    | `INVALID_REQUEST`  |
 | Subdomain not found in DB       | 404    | `TENANT_NOT_FOUND` |
 | Tenant is suspended/deactivated | 403    | `FORBIDDEN`        |
+
+---
+
+## 7. UseRateLimiter
+
+Built-in ASP.NET Core rate limiting middleware. Policies are defined in `ModuleServiceCollectionExtensions.cs` and applied to endpoint groups via `.RequireRateLimiting()`.
+
+### Policies
+
+| Policy     | Partition key | Limit            | Window | Applied to                                                    |
+| ---------- | ------------- | ---------------- | ------ | ------------------------------------------------------------- |
+| `"auth"`   | Client IP     | 10 requests/min  | Fixed  | Auth endpoints (`/api/v1/auth`)                               |
+| `"ai"`     | Tenant ID     | 20 requests/min  | Fixed  | AI suggestion endpoints (criteria suggest, questions suggest) |
+| `"global"` | Tenant ID     | 100 requests/min | Fixed  | All other endpoint groups                                     |
+
+Limits are configurable via `appsettings.json` under the `RateLimiting` section (`GlobalRequestsPerMinute`, `AuthRequestsPerMinute`, `AiRequestsPerMinute`).
+
+### Rejection response
+
+When a client exceeds the rate limit, the middleware returns HTTP 429 with the [canonical error envelope](../api-reference/errors.md):
+
+```json
+{
+  "code": "RATE_LIMITED",
+  "message": "Rate limit exceeded",
+  "request_id": "<correlation-id>"
+}
+```
+
+Response headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`.

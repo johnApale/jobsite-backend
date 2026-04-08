@@ -170,7 +170,7 @@ Status values use `PascalCase` to match the database CHECK constraint.
 When a tenant registers via `POST /api/v1/tenants/register`, the following sequence occurs:
 
 ```
-POST /register → Tenant created (Provisioning) → SaveChanges → ProvisionAsync → CREATE DATABASE → Active
+POST /register → Tenant created (Provisioning) → SaveChanges → ProvisionAsync → CREATE DATABASE → Active → TenantProvisionedEvent
                                                                                              ╲
                                                                                               → ProvisioningFailed (on error)
 ```
@@ -181,6 +181,7 @@ POST /register → Tenant created (Provisioning) → SaveChanges → ProvisionAs
    - Executes `CREATE DATABASE "djobsite_tenant_{subdomain}"` via a raw SQL connection to the catalog PostgreSQL server.
    - Builds a connection string for the new database using the catalog server's host, port, and credentials.
    - Updates the tenant: `ConnectionString`, `Status = Active`, `ProvisionedAt = DateTime.UtcNow`.
-3. **On failure**: If any step fails, the tenant's status is set to `ProvisioningFailed` and the error is logged. The tenant middleware will reject requests to `ProvisioningFailed` tenants with a 403.
+3. **Event publishing**: After successful provisioning, `TenantProvisionedEvent` is dispatched via the in-process domain event bus. This triggers the Admin module's `TenantProvisionedHandler` to seed default `CompanySettings` for the new tenant.
+4. **On failure**: If any step fails, the tenant's status is set to `ProvisioningFailed` and the error is logged. The tenant middleware will reject requests to `ProvisioningFailed` tenants with a 403.
 
 Tenants in `Provisioning` or `ProvisioningFailed` status cannot be accessed via subdomain — the `TenantResolutionMiddleware` only allows `Active` tenants through.
