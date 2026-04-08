@@ -36,6 +36,9 @@ public static class AppErrors
     public static AppError CandidateMatchNotFound => new("CANDIDATE_MATCH_NOT_FOUND", 404, "Candidate match not found");
     public static AppError ShortlistNotFound => new("SHORTLIST_NOT_FOUND", 404, "Shortlist not found");
     public static AppError ShortlistCandidateNotFound => new("SHORTLIST_CANDIDATE_NOT_FOUND", 404, "Candidate not found on shortlist");
+    public static AppError InterviewNotFound => new("INTERVIEW_NOT_FOUND", 404, "Final interview not found for this application");
+    public static AppError PanelistNotFound => new("PANELIST_NOT_FOUND", 404, "Panelist not found on this interview");
+    public static AppError OfferNotFound => new("OFFER_NOT_FOUND", 404, "Job offer not found for this application");
 
     // ── 409 Conflict ─────────────────────────────────────────────────────
     public static AppError ProfileAlreadyExists => new("PROFILE_ALREADY_EXISTS", 409, "Profile already exists for this user");
@@ -45,6 +48,14 @@ public static class AppErrors
     public static AppError AssessmentAlreadySubmitted => new("ASSESSMENT_ALREADY_SUBMITTED", 409, "Assessment answers have already been submitted for this application");
     public static AppError CandidateAlreadyOnShortlist => new("CANDIDATE_ALREADY_ON_SHORTLIST", 409, "Candidate is already on this shortlist");
     public static AppError ShortlistAlreadyFinalized => new("SHORTLIST_ALREADY_FINALIZED", 409, "Shortlist has already been finalized");
+    public static AppError InterviewAlreadyExists => new("INTERVIEW_ALREADY_EXISTS", 409, "Final interview already exists for this application");
+    public static AppError InterviewAlreadyCompleted => new("INTERVIEW_ALREADY_COMPLETED", 409, "Interview has already been completed");
+    public static AppError InterviewAlreadyCancelled => new("INTERVIEW_ALREADY_CANCELLED", 409, "Interview has already been cancelled");
+    public static AppError FeedbackAlreadySubmitted => new("FEEDBACK_ALREADY_SUBMITTED", 409, "Feedback has already been submitted by this panelist");
+    public static AppError OfferAlreadyExists => new("OFFER_ALREADY_EXISTS", 409, "Job offer already exists for this application");
+    public static AppError OfferNotInDraft => new("OFFER_NOT_IN_DRAFT", 409, "Offer must be in Draft status for this operation");
+    public static AppError OfferNotPending => new("OFFER_NOT_PENDING", 409, "Offer must be in Pending status for this operation");
+    public static AppError OfferAlreadyResponded => new("OFFER_ALREADY_RESPONDED", 409, "Offer has already been responded to or withdrawn");
 
     // ── 422 Unprocessable Entity ─────────────────────────────────────────
     public static AppError UnprocessableEntity => new("UNPROCESSABLE_ENTITY", 422, "Business logic prevents this operation");

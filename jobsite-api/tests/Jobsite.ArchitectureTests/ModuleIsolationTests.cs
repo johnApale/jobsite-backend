@@ -42,7 +42,7 @@ public sealed class ModuleIsolationTests
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Domain.Entities.ClientCompany).Assembly,
         ["Jobsite.Modules.Screening"] = typeof(Jobsite.Modules.Screening.Domain.Entities.ScreeningResult).Assembly,
         ["Jobsite.Modules.Matching"] = typeof(Jobsite.Modules.Matching.Domain.Entities.CandidateMatch).Assembly,
-        ["Jobsite.Modules.HRWorkflows"] = typeof(Jobsite.Modules.HRWorkflows.Domain.Class1).Assembly,
+        ["Jobsite.Modules.HRWorkflows"] = typeof(Jobsite.Modules.HRWorkflows.Domain.Entities.FinalInterview).Assembly,
     };
 
     private static readonly Dictionary<string, Assembly> InfrastructureAssemblies = new()
@@ -54,7 +54,7 @@ public sealed class ModuleIsolationTests
         ["Jobsite.Modules.Recruitment"] = typeof(Jobsite.Modules.Recruitment.Infrastructure.Persistence.RecruitmentDbContext).Assembly,
         ["Jobsite.Modules.Screening"] = typeof(Jobsite.Modules.Screening.Infrastructure.Persistence.ScreeningDbContext).Assembly,
         ["Jobsite.Modules.Matching"] = typeof(Jobsite.Modules.Matching.Infrastructure.Persistence.MatchingDbContext).Assembly,
-        ["Jobsite.Modules.HRWorkflows"] = typeof(Jobsite.Modules.HRWorkflows.Infrastructure.Class1).Assembly,
+        ["Jobsite.Modules.HRWorkflows"] = typeof(Jobsite.Modules.HRWorkflows.Infrastructure.Persistence.HRWorkflowsDbContext).Assembly,
     };
 
     public static IEnumerable<object[]> ModuleNames()

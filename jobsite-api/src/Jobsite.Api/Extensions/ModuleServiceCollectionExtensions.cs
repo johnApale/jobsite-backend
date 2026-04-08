@@ -21,6 +21,8 @@ using Jobsite.Modules.Screening.Infrastructure;
 using Jobsite.Modules.Screening.Infrastructure.Persistence;
 using Jobsite.Modules.Matching.Infrastructure;
 using Jobsite.Modules.Matching.Infrastructure.Persistence;
+using Jobsite.Modules.HRWorkflows.Infrastructure;
+using Jobsite.Modules.HRWorkflows.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
@@ -85,7 +87,8 @@ public static class ModuleServiceCollectionExtensions
             typeof(ProfilesDbContext).Assembly,
             typeof(RecruitmentDbContext).Assembly,
             typeof(ScreeningDbContext).Assembly,
-            typeof(MatchingDbContext).Assembly);
+            typeof(MatchingDbContext).Assembly,
+            typeof(HRWorkflowsDbContext).Assembly);
 
         // 6. FluentValidation validators (assembly scanning)
         services.AddValidatorsFromAssemblyContaining<CatalogDbContext>(includeInternalTypes: true);
@@ -133,7 +136,7 @@ public static class ModuleServiceCollectionExtensions
         services.AddRecruitmentModule(configuration);
         services.AddScreeningModule(configuration);
         services.AddMatchingModule(configuration);
-        // services.AddHRWorkflowsModule(configuration);
+        services.AddHRWorkflowsModule(configuration);
 
         return services;
     }
