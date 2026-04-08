@@ -396,17 +396,17 @@ public interface ITenantDbContextFactory<TContext> where TContext : TenantDbCont
 
 Interfaces defined in SharedKernel and implemented by the owning module's Infrastructure layer. Allow modules to read data from other modules without direct project references.
 
-| Interface                  | Implemented By                | Consumed By        | Description                                           |
-| -------------------------- | ----------------------------- | ------------------ | ----------------------------------------------------- |
-| `IApplicationDataReader`   | Recruitment.Infrastructure    | Matching           | Application → job posting + applicant mapping         |
-| `IApplicantDataReader`     | Profiles.Infrastructure       | Matching           | Applicant profile data                                |
-| `IJobCriteriaReader`       | Recruitment.Infrastructure    | Screening          | Job evaluation criteria for scoring                   |
-| `IJobScreeningQuestionsReader` | Recruitment.Infrastructure | Screening          | Screening questions for a job posting                 |
-| `IScreeningScoreReader`    | Screening.Infrastructure      | Matching           | Screening scores for composite score computation      |
-| `ITenantSettingsReader`    | Admin.Infrastructure          | Screening, Matching| Tenant JSONB settings by section                      |
-| `IRecruitmentStatsReader`  | Recruitment.Infrastructure    | Admin              | Aggregate job posting and application counts          |
-| `IScreeningStatsReader`    | Screening.Infrastructure      | Admin              | Aggregate screening result counts and average scores  |
-| `IMatchingStatsReader`     | Matching.Infrastructure       | Admin              | Aggregate shortlist and candidate match counts        |
+| Interface                      | Implemented By             | Consumed By         | Description                                          |
+| ------------------------------ | -------------------------- | ------------------- | ---------------------------------------------------- |
+| `IApplicationDataReader`       | Recruitment.Infrastructure | Matching            | Application → job posting + applicant mapping        |
+| `IApplicantDataReader`         | Profiles.Infrastructure    | Matching            | Applicant profile data                               |
+| `IJobCriteriaReader`           | Recruitment.Infrastructure | Screening           | Job evaluation criteria for scoring                  |
+| `IJobScreeningQuestionsReader` | Recruitment.Infrastructure | Screening           | Screening questions for a job posting                |
+| `IScreeningScoreReader`        | Screening.Infrastructure   | Matching            | Screening scores for composite score computation     |
+| `ITenantSettingsReader`        | Admin.Infrastructure       | Screening, Matching | Tenant JSONB settings by section                     |
+| `IRecruitmentStatsReader`      | Recruitment.Infrastructure | Admin               | Aggregate job posting and application counts         |
+| `IScreeningStatsReader`        | Screening.Infrastructure   | Admin               | Aggregate screening result counts and average scores |
+| `IMatchingStatsReader`         | Matching.Infrastructure    | Admin               | Aggregate shortlist and candidate match counts       |
 
 **Pattern:** Interface + snapshot DTO in SharedKernel → implementation in Infrastructure/CrossModule/ → registered as scoped in module DI.
 

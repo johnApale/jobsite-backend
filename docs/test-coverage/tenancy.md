@@ -79,22 +79,22 @@ Tests `MemoryTenantCache`, the `IMemoryCache`-backed tenant cache used by `Tenan
 
 Tests `PlatformAdminService`, the application service for platform-wide tenant administration (list, get, suspend, reactivate).
 
-| Test                                                          | What It Verifies                                                    | Expected Outcome                                                |
-| ------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `GetTenantsAsync_ReturnsPaginatedList`                        | Returns correct items count and pagination metadata                 | 2 items, `HasMore` false, `NextCursor` null                    |
-| `GetTenantsAsync_WithMoreResults_ReturnsNextCursor`           | Cursor is set to last item ID when more results exist               | `HasMore` true, cursor matches last tenant ID                  |
-| `GetTenantsAsync_WithStatusFilter_PassesFilterToRepository`   | Status filter is forwarded to repository                            | Repository called with `"Active"` status                       |
-| `GetTenantsAsync_WithSearchFilter_PassesSearchToRepository`   | Search filter is forwarded to repository                            | Repository called with `"acme"` search                         |
-| `GetTenantByIdAsync_ExistingTenant_ReturnsTenantResponse`     | Successful lookup maps entity to DTO                                | Response matches tenant entity                                  |
-| `GetTenantByIdAsync_NonExistentId_ThrowsTenantNotFound`       | Missing tenant throws correct error                                 | Throws `AppError` with `TENANT_NOT_FOUND`                      |
-| `SuspendTenantAsync_ActiveTenant_SuspendsSuccessfully`        | Active tenant transitions to Suspended                              | Status is `Suspended`, `DeactivatedAt` set, UoW saved          |
-| `SuspendTenantAsync_NonExistentTenant_ThrowsTenantNotFound`   | Missing tenant throws correct error                                 | Throws `AppError` with `TENANT_NOT_FOUND`                      |
-| `SuspendTenantAsync_AlreadySuspendedTenant_ThrowsInvalidRequest` | Cannot suspend an already suspended tenant                       | Throws `AppError` with `INVALID_REQUEST`                       |
-| `SuspendTenantAsync_ProvisioningTenant_ThrowsInvalidRequest`  | Cannot suspend a provisioning tenant                                | Throws `AppError` with `INVALID_REQUEST`                       |
-| `ReactivateTenantAsync_SuspendedTenant_ReactivatesSuccessfully` | Suspended tenant transitions to Active                            | Status is `Active`, `DeactivatedAt` cleared, UoW saved         |
-| `ReactivateTenantAsync_NonExistentTenant_ThrowsTenantNotFound`| Missing tenant throws correct error                                 | Throws `AppError` with `TENANT_NOT_FOUND`                      |
-| `ReactivateTenantAsync_ActiveTenant_ThrowsInvalidRequest`     | Cannot reactivate an already active tenant                          | Throws `AppError` with `INVALID_REQUEST`                       |
-| `GetTenantByIdAsync_WithBranding_MapsBrandingToResponse`      | Branding navigation property is mapped to response DTO              | `Branding` not null, colors match                              |
-| `GetTenantByIdAsync_WithNullBranding_ReturnsNullBranding`     | Missing branding returns null, not an error                         | `Branding` is null                                             |
+| Test                                                             | What It Verifies                                       | Expected Outcome                                       |
+| ---------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------ |
+| `GetTenantsAsync_ReturnsPaginatedList`                           | Returns correct items count and pagination metadata    | 2 items, `HasMore` false, `NextCursor` null            |
+| `GetTenantsAsync_WithMoreResults_ReturnsNextCursor`              | Cursor is set to last item ID when more results exist  | `HasMore` true, cursor matches last tenant ID          |
+| `GetTenantsAsync_WithStatusFilter_PassesFilterToRepository`      | Status filter is forwarded to repository               | Repository called with `"Active"` status               |
+| `GetTenantsAsync_WithSearchFilter_PassesSearchToRepository`      | Search filter is forwarded to repository               | Repository called with `"acme"` search                 |
+| `GetTenantByIdAsync_ExistingTenant_ReturnsTenantResponse`        | Successful lookup maps entity to DTO                   | Response matches tenant entity                         |
+| `GetTenantByIdAsync_NonExistentId_ThrowsTenantNotFound`          | Missing tenant throws correct error                    | Throws `AppError` with `TENANT_NOT_FOUND`              |
+| `SuspendTenantAsync_ActiveTenant_SuspendsSuccessfully`           | Active tenant transitions to Suspended                 | Status is `Suspended`, `DeactivatedAt` set, UoW saved  |
+| `SuspendTenantAsync_NonExistentTenant_ThrowsTenantNotFound`      | Missing tenant throws correct error                    | Throws `AppError` with `TENANT_NOT_FOUND`              |
+| `SuspendTenantAsync_AlreadySuspendedTenant_ThrowsInvalidRequest` | Cannot suspend an already suspended tenant             | Throws `AppError` with `INVALID_REQUEST`               |
+| `SuspendTenantAsync_ProvisioningTenant_ThrowsInvalidRequest`     | Cannot suspend a provisioning tenant                   | Throws `AppError` with `INVALID_REQUEST`               |
+| `ReactivateTenantAsync_SuspendedTenant_ReactivatesSuccessfully`  | Suspended tenant transitions to Active                 | Status is `Active`, `DeactivatedAt` cleared, UoW saved |
+| `ReactivateTenantAsync_NonExistentTenant_ThrowsTenantNotFound`   | Missing tenant throws correct error                    | Throws `AppError` with `TENANT_NOT_FOUND`              |
+| `ReactivateTenantAsync_ActiveTenant_ThrowsInvalidRequest`        | Cannot reactivate an already active tenant             | Throws `AppError` with `INVALID_REQUEST`               |
+| `GetTenantByIdAsync_WithBranding_MapsBrandingToResponse`         | Branding navigation property is mapped to response DTO | `Branding` not null, colors match                      |
+| `GetTenantByIdAsync_WithNullBranding_ReturnsNullBranding`        | Missing branding returns null, not an error            | `Branding` is null                                     |
 
 **Why:** Platform admin is the only way to manage tenants system-wide (suspend/reactivate). If suspension logic is wrong, a suspended tenant could continue operating (security risk) or an active tenant could be incorrectly blocked. The state transition guards prevent invalid operations (e.g., suspending a provisioning tenant).
