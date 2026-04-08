@@ -19,7 +19,7 @@
 | ------------------ | ----- | ---------------------------------------------- |
 | SharedKernel       | 27    | [shared-kernel.md](shared-kernel.md)           |
 | Tenancy            | 25    | [tenancy.md](tenancy.md)                       |
-| Auth               | 53    | [auth.md](auth.md)                             |
+| Auth               | 89    | [auth.md](auth.md)                             |
 | Admin              | 39    | [admin.md](admin.md)                           |
 | Profiles           | 83    | [profiles.md](profiles.md)                     |
 | Recruitment        | 189   | [recruitment.md](recruitment.md)               |

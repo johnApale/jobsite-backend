@@ -72,35 +72,55 @@ Tests JWT access token generation, refresh token generation, and SHA-256 token h
 
 ---
 
-## `AuthServiceTests` (18 tests)
+## `AuthServiceTests` (36 tests)
 
-Tests the `AuthService` application service with mocked dependencies. Covers register, login, refresh, OAuth, logout, and get-current-user flows.
+Tests the `AuthService` application service with mocked dependencies. Covers register, login, refresh, OAuth, logout, get-current-user, account lockout, email verification, and password reset flows.
 
-| Test                                                         | What It Verifies                                         | Expected Outcome                           |
-| ------------------------------------------------------------ | -------------------------------------------------------- | ------------------------------------------ |
-| `RegisterAsync_ValidRequest_ReturnsTokens`                   | Successful registration issues access and refresh tokens | Tokens returned, user added                |
-| `RegisterAsync_DuplicateEmail_ThrowsDuplicateEmailError`     | Duplicate email throws `DUPLICATE_EMAIL`                 | `AppError` with code `DUPLICATE_EMAIL`     |
-| `RegisterAsync_NoRoleProvided_DefaultsToApplicant`           | Missing role defaults to `Applicant`                     | User created with `Applicant` role         |
-| `RegisterAsync_RaisesUserRegisteredEvent`                    | Registration raises `UserRegisteredEvent`                | User has 1 domain event                    |
-| `LoginAsync_ValidCredentials_ReturnsTokens`                  | Valid email/password returns tokens                      | Tokens returned                            |
-| `LoginAsync_UserNotFound_ThrowsInvalidCredentials`           | Non-existent email throws `INVALID_CREDENTIALS`          | `AppError` with code `INVALID_CREDENTIALS` |
-| `LoginAsync_DeactivatedUser_ThrowsInvalidCredentials`        | Deactivated user cannot login                            | `AppError` with code `INVALID_CREDENTIALS` |
-| `LoginAsync_NullPasswordHash_ThrowsInvalidCredentials`       | OAuth-only user cannot login with password               | `AppError` with code `INVALID_CREDENTIALS` |
-| `LoginAsync_WrongPassword_ThrowsInvalidCredentials`          | Wrong password throws error                              | `AppError` with code `INVALID_CREDENTIALS` |
-| `LoginAsync_ValidCredentials_UpdatesLastLoginAt`             | Successful login updates `LastLoginAt`                   | Timestamp set to now                       |
-| `RefreshTokenAsync_ValidToken_ReturnsNewTokens`              | Valid refresh rotates and returns new tokens             | New tokens, old token revoked              |
-| `RefreshTokenAsync_TokenNotFound_ThrowsInvalidCredentials`   | Unknown token throws error                               | `AppError` with code `INVALID_CREDENTIALS` |
-| `RefreshTokenAsync_RevokedToken_RevokesEntireFamily`         | Reused revoked token triggers family-wide revocation     | `TOKEN_REPLAY_DETECTED`, family revoked    |
-| `RefreshTokenAsync_ExpiredToken_ThrowsTokenExpired`          | Expired token throws `TOKEN_EXPIRED`                     | `AppError` with code `TOKEN_EXPIRED`       |
-| `RefreshTokenAsync_DeactivatedUser_ThrowsInvalidCredentials` | Deactivated user cannot refresh                          | `AppError` with code `INVALID_CREDENTIALS` |
-| `LogoutAsync_ValidToken_RevokesIt`                           | Logout revokes the refresh token                         | Token revoked, changes saved               |
-| `LogoutAsync_TokenNotFound_DoesNotThrow`                     | Logout with invalid token is idempotent                  | No exception thrown                        |
-| `LogoutAsync_AlreadyRevokedToken_DoesNotSaveAgain`           | Already-revoked token doesn't trigger save               | `SaveChangesAsync` not called              |
-| `GetCurrentUserAsync_ExistingUser_ReturnsUserResponse`       | Returns user profile for valid user ID                   | UserResponse with correct data             |
-| `GetCurrentUserAsync_UserNotFound_ThrowsUserNotFound`        | Non-existent user throws `USER_NOT_FOUND`                | `AppError` with code `USER_NOT_FOUND`      |
-| `OAuthLoginAsync_InvalidProvider_ThrowsInvalidRequest`       | Invalid provider name throws error                       | `AppError` with code `INVALID_REQUEST`     |
-| `OAuthLoginAsync_ExistingLinkedAccount_ReturnsTokens`        | User with linked OAuth account gets tokens               | Tokens returned, `LastLoginAt` updated     |
-| `OAuthLoginAsync_NewUser_CreatesUserAndReturnsTokens`        | New OAuth user is created with linked provider           | User created with external login           |
+| Test                                                           | What It Verifies                                         | Expected Outcome                                  |
+| -------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------- |
+| `RegisterAsync_ValidRequest_ReturnsTokens`                     | Successful registration issues access and refresh tokens | Tokens returned, user added, verification sent    |
+| `RegisterAsync_DuplicateEmail_ThrowsDuplicateEmailError`       | Duplicate email throws `DUPLICATE_EMAIL`                 | `AppError` with code `DUPLICATE_EMAIL`            |
+| `RegisterAsync_NoRoleProvided_DefaultsToApplicant`             | Missing role defaults to `Applicant`                     | User created with `Applicant` role                |
+| `RegisterAsync_RaisesUserRegisteredEvent`                      | Registration raises `UserRegisteredEvent`                | User has 1 domain event                           |
+| `RegisterAsync_SetsEmailVerificationToken`                     | Registration generates verification token                | Token and expiry set on user                      |
+| `LoginAsync_ValidCredentials_ReturnsTokens`                    | Valid email/password returns tokens                      | Tokens returned                                   |
+| `LoginAsync_UserNotFound_ThrowsInvalidCredentials`             | Non-existent email throws `INVALID_CREDENTIALS`          | `AppError` with code `INVALID_CREDENTIALS`        |
+| `LoginAsync_DeactivatedUser_ThrowsInvalidCredentials`          | Deactivated user cannot login                            | `AppError` with code `INVALID_CREDENTIALS`        |
+| `LoginAsync_NullPasswordHash_ThrowsInvalidCredentials`         | OAuth-only user cannot login with password               | `AppError` with code `INVALID_CREDENTIALS`        |
+| `LoginAsync_WrongPassword_ThrowsInvalidCredentials`            | Wrong password throws error                              | `AppError` with code `INVALID_CREDENTIALS`        |
+| `LoginAsync_ValidCredentials_UpdatesLastLoginAt`               | Successful login updates `LastLoginAt`                   | Timestamp set to now                              |
+| `LoginAsync_LockedAccount_ThrowsAccountLocked`                 | Locked account cannot login                              | `AppError` with code `ACCOUNT_LOCKED`             |
+| `LoginAsync_ExpiredLockout_ClearsLockAndAllowsLogin`           | Expired lockout is cleared, login succeeds               | Tokens returned, counters reset                   |
+| `LoginAsync_WrongPassword_IncrementsFailedAttempts`            | Wrong password increments failed attempt counter         | `FailedLoginAttempts` incremented                 |
+| `LoginAsync_MaxFailedAttempts_LocksAccount`                    | 5th failed attempt locks account for 15 minutes          | `LockedUntil` set                                 |
+| `LoginAsync_SuccessfulLogin_ResetsFailedAttempts`              | Successful login resets lockout counters                 | `FailedLoginAttempts` = 0, `LockedUntil` = null   |
+| `RefreshTokenAsync_ValidToken_ReturnsNewTokens`                | Valid refresh rotates and returns new tokens             | New tokens, old token revoked                     |
+| `RefreshTokenAsync_TokenNotFound_ThrowsInvalidCredentials`     | Unknown token throws error                               | `AppError` with code `INVALID_CREDENTIALS`        |
+| `RefreshTokenAsync_RevokedToken_RevokesEntireFamily`           | Reused revoked token triggers family-wide revocation     | `TOKEN_REPLAY_DETECTED`, family revoked           |
+| `RefreshTokenAsync_ExpiredToken_ThrowsTokenExpired`            | Expired token throws `TOKEN_EXPIRED`                     | `AppError` with code `TOKEN_EXPIRED`              |
+| `RefreshTokenAsync_DeactivatedUser_ThrowsInvalidCredentials`   | Deactivated user cannot refresh                          | `AppError` with code `INVALID_CREDENTIALS`        |
+| `LogoutAsync_ValidToken_RevokesIt`                             | Logout revokes the refresh token                         | Token revoked, changes saved                      |
+| `LogoutAsync_TokenNotFound_DoesNotThrow`                       | Logout with invalid token is idempotent                  | No exception thrown                               |
+| `LogoutAsync_AlreadyRevokedToken_DoesNotSaveAgain`             | Already-revoked token doesn't trigger save               | `SaveChangesAsync` not called                     |
+| `GetCurrentUserAsync_ExistingUser_ReturnsUserResponse`         | Returns user profile for valid user ID                   | UserResponse with correct data                    |
+| `GetCurrentUserAsync_UserNotFound_ThrowsUserNotFound`          | Non-existent user throws `USER_NOT_FOUND`                | `AppError` with code `USER_NOT_FOUND`             |
+| `OAuthLoginAsync_InvalidProvider_ThrowsInvalidRequest`         | Invalid provider name throws error                       | `AppError` with code `INVALID_REQUEST`            |
+| `OAuthLoginAsync_ExistingLinkedAccount_ReturnsTokens`          | User with linked OAuth account gets tokens               | Tokens returned, `LastLoginAt` updated            |
+| `OAuthLoginAsync_NewUser_CreatesUserAndReturnsTokens`          | New OAuth user is created with linked provider           | User created with external login                  |
+| `VerifyEmailAsync_ValidToken_VerifiesEmail`                    | Valid token marks email as verified                      | `EmailVerified` = true, token cleared             |
+| `VerifyEmailAsync_UserNotFound_ThrowsInvalidVerificationToken` | Unknown email throws error                               | `AppError` with code `INVALID_VERIFICATION_TOKEN` |
+| `VerifyEmailAsync_AlreadyVerified_ThrowsEmailAlreadyVerified`  | Already-verified email throws error                      | `AppError` with code `EMAIL_ALREADY_VERIFIED`     |
+| `VerifyEmailAsync_ExpiredToken_ThrowsInvalidVerificationToken` | Expired token throws error                               | `AppError` with code `INVALID_VERIFICATION_TOKEN` |
+| `VerifyEmailAsync_WrongToken_ThrowsInvalidVerificationToken`   | Wrong token throws error                                 | `AppError` with code `INVALID_VERIFICATION_TOKEN` |
+| `ResendVerificationEmailAsync_UnverifiedUser_SendsEmail`       | Resend generates new token and sends email               | Email sent, new token set                         |
+| `ResendVerificationEmailAsync_UserNotFound_SilentReturn`       | Unknown email returns silently (no info leak)            | No exception, no email sent                       |
+| `ResendVerificationEmailAsync_AlreadyVerified_SilentReturn`    | Already-verified user returns silently                   | No email sent                                     |
+| `ForgotPasswordAsync_ExistingUser_SendsResetEmail`             | Generates reset token and sends email                    | Token set, email sent                             |
+| `ForgotPasswordAsync_UserNotFound_SilentReturn`                | Unknown email returns silently (no info leak)            | No exception, no email sent                       |
+| `ResetPasswordAsync_ValidToken_ResetsPassword`                 | Valid token resets password and clears lockout           | New hash, token cleared, lockout cleared          |
+| `ResetPasswordAsync_UserNotFound_ThrowsInvalidResetToken`      | Unknown email throws error                               | `AppError` with code `INVALID_RESET_TOKEN`        |
+| `ResetPasswordAsync_ExpiredToken_ThrowsInvalidResetToken`      | Expired reset token throws error                         | `AppError` with code `INVALID_RESET_TOKEN`        |
+| `ResetPasswordAsync_WrongToken_ThrowsInvalidResetToken`        | Wrong token throws error                                 | `AppError` with code `INVALID_RESET_TOKEN`        |
 
 **Why:** `AuthService` contains all authentication business logic. These tests verify every authentication path including edge cases like deactivated users, OAuth-only users, token replay detection, and idempotent logout.
 
@@ -138,3 +158,47 @@ Tests domain constant validation methods for `UserRole`, `UserStatus`, and `Exte
 | `ExternalLoginProvider_IsValid_InvalidProvider_ReturnsFalse` | Invalid/lowercase providers are rejected | Returns `false`  |
 
 **Why:** These constants must match PostgreSQL CHECK constraints exactly. Case mismatches would cause runtime database errors.
+
+---
+
+## `VerifyEmailRequestValidatorTests` (4 tests)
+
+| Test                                       | What It Verifies                  | Expected Outcome  |
+| ------------------------------------------ | --------------------------------- | ----------------- |
+| `Validate_ValidRequest_IsValid`            | Valid request passes all rules    | `IsValid` is true |
+| `Validate_EmptyEmail_HasValidationError`   | Empty email is rejected           | Error on `Email`  |
+| `Validate_InvalidEmail_HasValidationError` | Malformed email is rejected       | Error on `Email`  |
+| `Validate_EmptyToken_HasValidationError`   | Empty verification token rejected | Error on `Token`  |
+
+---
+
+## `ResendVerificationRequestValidatorTests` (3 tests)
+
+| Test                                       | What It Verifies            | Expected Outcome  |
+| ------------------------------------------ | --------------------------- | ----------------- |
+| `Validate_ValidRequest_IsValid`            | Valid request passes        | `IsValid` is true |
+| `Validate_EmptyEmail_HasValidationError`   | Empty email is rejected     | Error on `Email`  |
+| `Validate_InvalidEmail_HasValidationError` | Malformed email is rejected | Error on `Email`  |
+
+---
+
+## `ForgotPasswordRequestValidatorTests` (3 tests)
+
+| Test                                       | What It Verifies            | Expected Outcome  |
+| ------------------------------------------ | --------------------------- | ----------------- |
+| `Validate_ValidRequest_IsValid`            | Valid request passes        | `IsValid` is true |
+| `Validate_EmptyEmail_HasValidationError`   | Empty email is rejected     | Error on `Email`  |
+| `Validate_InvalidEmail_HasValidationError` | Malformed email is rejected | Error on `Email`  |
+
+---
+
+## `ResetPasswordRequestValidatorTests` (6 tests)
+
+| Test                                           | What It Verifies                | Expected Outcome       |
+| ---------------------------------------------- | ------------------------------- | ---------------------- |
+| `Validate_ValidRequest_IsValid`                | Valid request passes all rules  | `IsValid` is true      |
+| `Validate_EmptyEmail_HasValidationError`       | Empty email is rejected         | Error on `Email`       |
+| `Validate_InvalidEmail_HasValidationError`     | Malformed email is rejected     | Error on `Email`       |
+| `Validate_EmptyToken_HasValidationError`       | Empty reset token rejected      | Error on `Token`       |
+| `Validate_EmptyNewPassword_HasValidationError` | Empty new password rejected     | Error on `NewPassword` |
+| `Validate_ShortNewPassword_HasValidationError` | Password under 8 chars rejected | Error on `NewPassword` |

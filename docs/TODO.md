@@ -6,26 +6,26 @@
 
 ### Stubbed
 
-| Item                      | Location                                                     | Description                                                                                             |
-| ------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| OAuth Provider Validation | `Auth.Infrastructure/Security/StubOAuthProviderValidator.cs` | Returns deterministic stub data instead of calling Google/Apple/Facebook APIs. Logs warning in non-dev. |
+| Item          | Location                                        | Description                                                                               |
+| ------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Email Service | `Auth.Infrastructure/Email/StubEmailService.cs` | Logs emails to console instead of sending. Replace with real SMTP/SendGrid in production. |
 
 ### Deferred
 
-| Item                    | Description                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------ |
-| Email Verification Flow | `email_verified` flag is set but no verification email is sent. Needs email service integration. |
-| Password Reset Flow     | No forgot-password / reset-password endpoints yet.                                               |
-| Account Lockout         | No brute-force protection (failed attempt tracking / lockout).                                   |
+_(none)_
 
 ### Completed
 
-| Item                       | Resolution                                                                                                                     |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| EF Core Migration          | `InitialAuthSchema` migration generated and applied. Tables: `auth.users`, `auth.refresh_tokens`, `auth.user_external_logins`. |
-| Integration Tests          | 29 Auth integration tests added (UserRepository, RefreshTokenRepository, AuthDbContext).                                       |
-| IUnitOfWork Disambiguation | Resolved via keyed services: `AddKeyedScoped<IUnitOfWork>("auth")` / `("catalog")` with `[FromKeyedServices]`.                 |
-| Rate Limiting              | `"auth"` rate limiting policy (per-IP, 10 req/min) applied to all auth endpoints via `.RequireRateLimiting("auth")`.           |
+| Item                       | Resolution                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| EF Core Migration          | `InitialAuthSchema` migration generated and applied. Tables: `auth.users`, `auth.refresh_tokens`, `auth.user_external_logins`.                               |
+| Integration Tests          | 29 Auth integration tests added (UserRepository, RefreshTokenRepository, AuthDbContext).                                                                     |
+| IUnitOfWork Disambiguation | Resolved via keyed services: `AddKeyedScoped<IUnitOfWork>("auth")` / `("catalog")` with `[FromKeyedServices]`.                                               |
+| Rate Limiting              | `"auth"` rate limiting policy (per-IP, 10 req/min) applied to all auth endpoints via `.RequireRateLimiting("auth")`.                                         |
+| Account Lockout            | Brute-force protection: `failed_login_attempts` + `locked_until` columns, 5-attempt threshold, 15-min lockout. `AddLockoutAndTokenColumns` migration.        |
+| Email Verification Flow    | Token-based email verification on registration. Endpoints: `POST /verify-email`, `POST /resend-verification`. Stub email service logs tokens in development. |
+| Password Reset Flow        | Token-based password reset. Endpoints: `POST /forgot-password`, `POST /reset-password`. Reset clears lockout state. 1-hour token expiry.                     |
+| OAuth Provider Validation  | Real OAuth validators for Google, Apple, Facebook via `OAuthProviderDispatcher`. `StubOAuthProviderValidator` used in development via conditional DI.        |
 
 ---
 

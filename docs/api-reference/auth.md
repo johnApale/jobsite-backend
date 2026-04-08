@@ -79,6 +79,7 @@ POST /api/v1/auth/login
 | Code                  | Status | Condition                                |
 | --------------------- | ------ | ---------------------------------------- |
 | `INVALID_CREDENTIALS` | 401    | Wrong email/password or user deactivated |
+| `ACCOUNT_LOCKED`      | 401    | Too many failed login attempts           |
 | `VALIDATION_ERROR`    | 400    | Invalid request body                     |
 
 ---
@@ -149,7 +150,7 @@ POST /api/v1/auth/oauth/{provider}
 | `INVALID_REQUEST`     | 400    | Unsupported provider |
 | `INVALID_CREDENTIALS` | 401    | User deactivated     |
 
-> **Note:** OAuth provider token validation is currently **stubbed**. See [TODO](../../docs/TODO.md).
+> **Note:** OAuth provider token validation is conditionally registered. In development, `StubOAuthProviderValidator` is used. In production, `OAuthProviderDispatcher` routes to Google, Apple, and Facebook validators.
 
 ---
 
@@ -205,6 +206,94 @@ GET /api/v1/auth/me
 | ---------------- | ------ | -------------- |
 | `USER_NOT_FOUND` | 404    | User not found |
 | `UNAUTHORIZED`   | 401    | No valid token |
+
+---
+
+### Verify Email
+
+Verify a user's email address using the token sent during registration.
+
+```
+POST /api/v1/auth/verify-email
+```
+
+**Request Body:**
+
+| Field   | Type     | Required | Description              |
+| ------- | -------- | -------- | ------------------------ |
+| `email` | `string` | Yes      | User's email address     |
+| `token` | `string` | Yes      | Email verification token |
+
+**Response:** `204 No Content`
+
+**Errors:**
+
+| Code                         | Status | Condition                              |
+| ---------------------------- | ------ | -------------------------------------- |
+| `INVALID_VERIFICATION_TOKEN` | 400    | Token invalid, expired, or wrong email |
+| `EMAIL_ALREADY_VERIFIED`     | 400    | Email already verified                 |
+
+---
+
+### Resend Verification Email
+
+Resend the email verification token. Silent success if email not found or already verified (prevents email enumeration).
+
+```
+POST /api/v1/auth/resend-verification
+```
+
+**Request Body:**
+
+| Field   | Type     | Required | Description          |
+| ------- | -------- | -------- | -------------------- |
+| `email` | `string` | Yes      | User's email address |
+
+**Response:** `204 No Content`
+
+---
+
+### Forgot Password
+
+Send a password reset token via email. Silent success if email not found (prevents email enumeration).
+
+```
+POST /api/v1/auth/forgot-password
+```
+
+**Request Body:**
+
+| Field   | Type     | Required | Description          |
+| ------- | -------- | -------- | -------------------- |
+| `email` | `string` | Yes      | User's email address |
+
+**Response:** `204 No Content`
+
+---
+
+### Reset Password
+
+Reset a user's password using a valid reset token. Also clears any lockout state.
+
+```
+POST /api/v1/auth/reset-password
+```
+
+**Request Body:**
+
+| Field          | Type     | Required | Description          |
+| -------------- | -------- | -------- | -------------------- |
+| `email`        | `string` | Yes      | User's email address |
+| `token`        | `string` | Yes      | Password reset token |
+| `new_password` | `string` | Yes      | New password (min 8) |
+
+**Response:** `204 No Content`
+
+**Errors:**
+
+| Code                  | Status | Condition                              |
+| --------------------- | ------ | -------------------------------------- |
+| `INVALID_RESET_TOKEN` | 400    | Token invalid, expired, or wrong email |
 
 ## Roles
 
