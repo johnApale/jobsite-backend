@@ -38,10 +38,10 @@
 
 ### Profiles Module Gaps
 
-| Area                         | Gap                                                                                                | Priority |
-| ---------------------------- | -------------------------------------------------------------------------------------------------- | -------- |
-| **Profile Endpoint Tests**   | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD or resume endpoints.               | Medium   |
-| **MassTransit Consumer E2E** | No end-to-end test with Testcontainers RabbitMQ for resume upload → parse pipeline.                | Medium   |
+| Area                         | Gap                                                                                  | Priority |
+| ---------------------------- | ------------------------------------------------------------------------------------ | -------- |
+| **Profile Endpoint Tests**   | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD or resume endpoints. | Medium   |
+| **MassTransit Consumer E2E** | No end-to-end test with Testcontainers RabbitMQ for resume upload → parse pipeline.  | Medium   |
 
 ### Recruitment Module (Phase 4) Gaps
 

@@ -281,18 +281,18 @@ Tests `ScreeningResultRepository` and `ScreeningQuestionResponseRepository` agai
 
 Tests ProfilesDbContext schema creation, entity CRUD, CHECK constraints, JSONB column mapping, cascade deletes, and indexes against a real PostgreSQL container.
 
-| Test                                                  | What It Verifies                                                            | Expected Outcome                              |
-| ----------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------- |
-| `Schema_ProfilesSchemaExists`                         | The `profiles` PostgreSQL schema is created by EF Core                      | Schema found in `information_schema.schemata` |
-| `ApplicantProfile_Persists_AllFieldsCorrectly`        | All fields persist including JSONB Skills, SocialLinks, Documents           | All fields match after persist + re-query     |
-| `ApplicantProfile_DefaultValues_AppliedByDatabase`    | Timestamps auto-set, nullable fields are null                               | Defaults applied correctly                    |
-| `Resume_Persists_AllFieldsCorrectly`                  | All resume fields persist including parsing state and JSONB columns         | All fields match after persist + re-query     |
-| `Resume_DefaultValues_AppliedByDatabase`              | IsLatest defaults to false, IsParsed defaults to false                      | Defaults applied correctly                    |
-| `Resume_CheckConstraint_RejectsInvalidFileType`       | CHECK constraint `chk_resumes_file_type` rejects "EXE"                      | Throws `DbUpdateException`                    |
-| `Resume_CheckConstraint_AcceptsValidFileTypes`        | PDF and DOCX both accepted by CHECK constraint                              | Both resumes persist                          |
-| `CascadeDelete_DeletingProfile_DeletesResumes`        | Cascade delete removes resumes when profile is deleted                      | Resumes no longer found                       |
-| `ApplicantProfiles_Indexes_Exist`                     | Index `ix_applicant_profiles_city_country` exists                           | Index found in `pg_indexes`                   |
-| `Resumes_Indexes_Exist`                               | All 3 resume indexes exist (user_id, is_parsed, user_id_is_latest)          | All index names found in `pg_indexes`         |
+| Test                                               | What It Verifies                                                    | Expected Outcome                              |
+| -------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------- |
+| `Schema_ProfilesSchemaExists`                      | The `profiles` PostgreSQL schema is created by EF Core              | Schema found in `information_schema.schemata` |
+| `ApplicantProfile_Persists_AllFieldsCorrectly`     | All fields persist including JSONB Skills, SocialLinks, Documents   | All fields match after persist + re-query     |
+| `ApplicantProfile_DefaultValues_AppliedByDatabase` | Timestamps auto-set, nullable fields are null                       | Defaults applied correctly                    |
+| `Resume_Persists_AllFieldsCorrectly`               | All resume fields persist including parsing state and JSONB columns | All fields match after persist + re-query     |
+| `Resume_DefaultValues_AppliedByDatabase`           | IsLatest defaults to false, IsParsed defaults to false              | Defaults applied correctly                    |
+| `Resume_CheckConstraint_RejectsInvalidFileType`    | CHECK constraint `chk_resumes_file_type` rejects "EXE"              | Throws `DbUpdateException`                    |
+| `Resume_CheckConstraint_AcceptsValidFileTypes`     | PDF and DOCX both accepted by CHECK constraint                      | Both resumes persist                          |
+| `CascadeDelete_DeletingProfile_DeletesResumes`     | Cascade delete removes resumes when profile is deleted              | Resumes no longer found                       |
+| `ApplicantProfiles_Indexes_Exist`                  | Index `ix_applicant_profiles_city_country` exists                   | Index found in `pg_indexes`                   |
+| `Resumes_Indexes_Exist`                            | All 3 resume indexes exist (user_id, is_parsed, user_id_is_latest)  | All index names found in `pg_indexes`         |
 
 **Why:** EF Core JSONB mapping, CHECK constraints, cascade deletes, and index configurations can only be validated against real PostgreSQL.
 
@@ -302,20 +302,20 @@ Tests ProfilesDbContext schema creation, entity CRUD, CHECK constraints, JSONB c
 
 Tests `ApplicantProfileRepository` and `ResumeRepository` against a real PostgreSQL database. Validates CRUD operations, tracking behavior, ordering, and bulk updates.
 
-| Test                                                                     | What It Verifies                                                                 | Expected Outcome                              |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------- | --------------------------------------------- |
-| `GetByUserIdAsync_Exists_ReturnsProfile`                                 | AsNoTracking lookup returns the correct profile                                  | Profile found, fields match                   |
-| `GetByUserIdAsync_NotExists_ReturnsNull`                                 | Missing user ID returns null                                                     | Returns null                                  |
-| `GetByUserIdForUpdateAsync_ReturnsTrackedEntity`                         | Tracked entity can be mutated and saved                                          | City update persists after save               |
-| `ExistsByUserIdAsync_TrueWhenExists`                                     | Existence check returns true for existing, false for non-existing                | Correct boolean for both cases                |
-| `ResumeRepo_GetByIdAsync_Exists_ReturnsResume`                           | AsNoTracking lookup returns the correct resume                                   | Resume found, fields match                    |
-| `ResumeRepo_GetByIdAsync_NotExists_ReturnsNull`                          | Missing resume ID returns null                                                   | Returns null                                  |
-| `ResumeRepo_GetByIdForUpdateAsync_ReturnsTrackedEntity`                  | Tracked resume can be mutated and saved                                          | IsParsed and ParsedText update persists       |
-| `ResumeRepo_GetByUserIdAsync_ReturnsOrderedByCreatedAtDescending`        | Resumes ordered by CreatedAt descending (newest first)                           | Newest resume appears first                   |
-| `ResumeRepo_GetLatestByUserIdAsync_ReturnsLatestResume`                  | Returns only the resume with IsLatest = true                                     | Latest resume returned                        |
-| `ResumeRepo_GetLatestByUserIdAsync_NoLatest_ReturnsNull`                 | No resume with IsLatest = true returns null                                      | Returns null                                  |
-| `ResumeRepo_HasAnyByUserIdAsync_TrueWhenExists`                          | Existence check returns true for existing, false for non-existing                | Correct boolean for both cases                |
-| `ResumeRepo_MarkPreviousAsNotLatestAsync_ClearsPreviousLatestFlag`       | ExecuteUpdate clears IsLatest on all user's resumes                              | All resumes have IsLatest = false             |
+| Test                                                               | What It Verifies                                                  | Expected Outcome                        |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- | --------------------------------------- |
+| `GetByUserIdAsync_Exists_ReturnsProfile`                           | AsNoTracking lookup returns the correct profile                   | Profile found, fields match             |
+| `GetByUserIdAsync_NotExists_ReturnsNull`                           | Missing user ID returns null                                      | Returns null                            |
+| `GetByUserIdForUpdateAsync_ReturnsTrackedEntity`                   | Tracked entity can be mutated and saved                           | City update persists after save         |
+| `ExistsByUserIdAsync_TrueWhenExists`                               | Existence check returns true for existing, false for non-existing | Correct boolean for both cases          |
+| `ResumeRepo_GetByIdAsync_Exists_ReturnsResume`                     | AsNoTracking lookup returns the correct resume                    | Resume found, fields match              |
+| `ResumeRepo_GetByIdAsync_NotExists_ReturnsNull`                    | Missing resume ID returns null                                    | Returns null                            |
+| `ResumeRepo_GetByIdForUpdateAsync_ReturnsTrackedEntity`            | Tracked resume can be mutated and saved                           | IsParsed and ParsedText update persists |
+| `ResumeRepo_GetByUserIdAsync_ReturnsOrderedByCreatedAtDescending`  | Resumes ordered by CreatedAt descending (newest first)            | Newest resume appears first             |
+| `ResumeRepo_GetLatestByUserIdAsync_ReturnsLatestResume`            | Returns only the resume with IsLatest = true                      | Latest resume returned                  |
+| `ResumeRepo_GetLatestByUserIdAsync_NoLatest_ReturnsNull`           | No resume with IsLatest = true returns null                       | Returns null                            |
+| `ResumeRepo_HasAnyByUserIdAsync_TrueWhenExists`                    | Existence check returns true for existing, false for non-existing | Correct boolean for both cases          |
+| `ResumeRepo_MarkPreviousAsNotLatestAsync_ClearsPreviousLatestFlag` | ExecuteUpdate clears IsLatest on all user's resumes               | All resumes have IsLatest = false       |
 
 **Why:** Repository integration tests catch EF Core query translation, AsNoTracking behavior, ExecuteUpdate bulk operations, and ordering logic that only surface against real PostgreSQL.
 
@@ -332,24 +332,24 @@ Tests `ApplicantProfileRepository` and `ResumeRepository` against a real Postgre
 
 Tests MatchingDbContext schema creation, entity CRUD, CHECK constraints, unique constraints, cascade deletes, and indexes against a real PostgreSQL container.
 
-| Test                                                                    | What It Verifies                                                              | Expected Outcome                              |
-| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- |
-| `Schema_MatchingSchemaExists`                                           | The `matching` PostgreSQL schema is created by EF Core                        | Schema found in `information_schema.schemata` |
-| `CandidateMatch_Persists_AllFieldsCorrectly`                           | All fields persist including decimal(5,2) scores and timestamps               | All fields match after persist + re-query     |
-| `CandidateMatch_SharedPrimaryKey_ValueGeneratedNever`                  | ApplicationId used as PK is the exact GUID provided                           | PK matches provided GUID                     |
-| `CandidateMatch_CheckConstraint_RejectsInvalidMatchStrength`           | CHECK constraint rejects "SuperStrong"                                        | Throws `DbUpdateException`                    |
-| `Shortlist_Persists_AllFieldsCorrectly`                                | All shortlist fields persist including finalization data                       | All fields match after persist + re-query     |
-| `Shortlist_DefaultValues_DraftStatus`                                  | Status defaults to Draft, finalization fields are null                         | Defaults applied correctly                    |
-| `Shortlist_CheckConstraint_RejectsInvalidStatus`                       | CHECK constraint rejects "InvalidStatus"                                      | Throws `DbUpdateException`                    |
-| `ShortlistCandidate_Persists_AllFieldsCorrectly`                       | All candidate fields persist including source and status                       | All fields match after persist + re-query     |
-| `ShortlistCandidate_DefaultStatus_IsPending`                           | Status defaults to Pending                                                     | Status = Pending                              |
-| `ShortlistCandidate_CheckConstraint_RejectsInvalidSource`              | CHECK constraint rejects "InvalidSource"                                      | Throws `DbUpdateException`                    |
-| `ShortlistCandidate_CheckConstraint_RejectsInvalidStatus`              | CHECK constraint rejects "InvalidStatus"                                      | Throws `DbUpdateException`                    |
-| `ShortlistCandidate_UniqueConstraint_PreventseDuplicateShortlistApp`   | Unique index rejects duplicate (ShortlistId, ApplicationId)                   | Throws `DbUpdateException`                    |
-| `CascadeDelete_DeletingShortlist_DeletesCandidates`                    | Cascade delete removes candidates when shortlist is deleted                    | Candidates no longer found                    |
-| `CandidateMatches_Indexes_Exist`                                       | All 4 candidate_matches indexes exist                                         | All index names found in `pg_indexes`         |
-| `Shortlists_Indexes_Exist`                                             | Both shortlists indexes exist                                                 | All index names found in `pg_indexes`         |
-| `ShortlistCandidates_Indexes_Exist`                                    | Both shortlist_candidates indexes exist                                       | All index names found in `pg_indexes`         |
+| Test                                                                 | What It Verifies                                                | Expected Outcome                              |
+| -------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------- |
+| `Schema_MatchingSchemaExists`                                        | The `matching` PostgreSQL schema is created by EF Core          | Schema found in `information_schema.schemata` |
+| `CandidateMatch_Persists_AllFieldsCorrectly`                         | All fields persist including decimal(5,2) scores and timestamps | All fields match after persist + re-query     |
+| `CandidateMatch_SharedPrimaryKey_ValueGeneratedNever`                | ApplicationId used as PK is the exact GUID provided             | PK matches provided GUID                      |
+| `CandidateMatch_CheckConstraint_RejectsInvalidMatchStrength`         | CHECK constraint rejects "SuperStrong"                          | Throws `DbUpdateException`                    |
+| `Shortlist_Persists_AllFieldsCorrectly`                              | All shortlist fields persist including finalization data        | All fields match after persist + re-query     |
+| `Shortlist_DefaultValues_DraftStatus`                                | Status defaults to Draft, finalization fields are null          | Defaults applied correctly                    |
+| `Shortlist_CheckConstraint_RejectsInvalidStatus`                     | CHECK constraint rejects "InvalidStatus"                        | Throws `DbUpdateException`                    |
+| `ShortlistCandidate_Persists_AllFieldsCorrectly`                     | All candidate fields persist including source and status        | All fields match after persist + re-query     |
+| `ShortlistCandidate_DefaultStatus_IsPending`                         | Status defaults to Pending                                      | Status = Pending                              |
+| `ShortlistCandidate_CheckConstraint_RejectsInvalidSource`            | CHECK constraint rejects "InvalidSource"                        | Throws `DbUpdateException`                    |
+| `ShortlistCandidate_CheckConstraint_RejectsInvalidStatus`            | CHECK constraint rejects "InvalidStatus"                        | Throws `DbUpdateException`                    |
+| `ShortlistCandidate_UniqueConstraint_PreventseDuplicateShortlistApp` | Unique index rejects duplicate (ShortlistId, ApplicationId)     | Throws `DbUpdateException`                    |
+| `CascadeDelete_DeletingShortlist_DeletesCandidates`                  | Cascade delete removes candidates when shortlist is deleted     | Candidates no longer found                    |
+| `CandidateMatches_Indexes_Exist`                                     | All 4 candidate_matches indexes exist                           | All index names found in `pg_indexes`         |
+| `Shortlists_Indexes_Exist`                                           | Both shortlists indexes exist                                   | All index names found in `pg_indexes`         |
+| `ShortlistCandidates_Indexes_Exist`                                  | Both shortlist_candidates indexes exist                         | All index names found in `pg_indexes`         |
 
 **Why:** Decimal precision, shared primary keys (ValueGeneratedNever), CHECK constraints, unique constraints, and cascade deletes can only be validated against real PostgreSQL.
 
@@ -359,20 +359,20 @@ Tests MatchingDbContext schema creation, entity CRUD, CHECK constraints, unique 
 
 Tests `CandidateMatchRepository` and `ShortlistRepository` against a real PostgreSQL container. Validates CRUD, ordering, filtering, and Include behavior.
 
-| Test                                                                               | What It Verifies                                                                   | Expected Outcome                              |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------- |
-| `GetByApplicationIdAsync_Exists_ReturnsMatch`                                      | AsNoTracking lookup returns the correct match                                      | Match found, fields match                     |
-| `GetByApplicationIdAsync_NotExists_ReturnsNull`                                    | Missing application ID returns null                                                | Returns null                                  |
-| `GetByApplicationIdForUpdateAsync_ReturnsTrackedEntity`                            | Tracked entity can be mutated and saved                                            | Assessment score update persists              |
-| `GetByJobPostingIdAsync_ReturnsOrderedByCompositeScoreDescending`                  | Matches ordered by CompositeScore descending                                       | Highest score first (90, 65, 40)              |
-| `GetByJobPostingIdAsync_DifferentJobPosting_ReturnsEmpty`                          | Different job posting ID returns empty list                                        | Returns empty list                            |
-| `ShortlistRepo_GetByIdAsync_IncludesCandidates`                                   | Include(Candidates) eager-loads candidate navigation                               | Shortlist with 2 candidates loaded            |
-| `ShortlistRepo_GetByIdAsync_NotExists_ReturnsNull`                                | Missing shortlist ID returns null                                                  | Returns null                                  |
-| `ShortlistRepo_GetByIdForUpdateAsync_ReturnsTrackedEntityWithCandidates`           | Tracked entity with loaded candidates can be mutated                               | Status update persists, candidates loaded     |
-| `ShortlistRepo_GetDraftByJobPostingIdAsync_ReturnsDraftOnly`                       | Only Draft shortlists returned, Finalized excluded                                 | Returns Draft shortlist                       |
-| `ShortlistRepo_GetDraftByJobPostingIdAsync_NoDraft_ReturnsNull`                    | No Draft shortlist returns null                                                    | Returns null                                  |
-| `ShortlistRepo_GetByJobPostingIdAsync_ReturnsOrderedByCreatedAtDescending`         | Shortlists ordered by CreatedAt descending                                         | Newest shortlist appears first                |
-| `ShortlistRepo_GetByJobPostingIdAsync_DifferentJob_ReturnsEmpty`                   | Different job posting ID returns empty list                                        | Returns empty list                            |
+| Test                                                                       | What It Verifies                                     | Expected Outcome                          |
+| -------------------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------- |
+| `GetByApplicationIdAsync_Exists_ReturnsMatch`                              | AsNoTracking lookup returns the correct match        | Match found, fields match                 |
+| `GetByApplicationIdAsync_NotExists_ReturnsNull`                            | Missing application ID returns null                  | Returns null                              |
+| `GetByApplicationIdForUpdateAsync_ReturnsTrackedEntity`                    | Tracked entity can be mutated and saved              | Assessment score update persists          |
+| `GetByJobPostingIdAsync_ReturnsOrderedByCompositeScoreDescending`          | Matches ordered by CompositeScore descending         | Highest score first (90, 65, 40)          |
+| `GetByJobPostingIdAsync_DifferentJobPosting_ReturnsEmpty`                  | Different job posting ID returns empty list          | Returns empty list                        |
+| `ShortlistRepo_GetByIdAsync_IncludesCandidates`                            | Include(Candidates) eager-loads candidate navigation | Shortlist with 2 candidates loaded        |
+| `ShortlistRepo_GetByIdAsync_NotExists_ReturnsNull`                         | Missing shortlist ID returns null                    | Returns null                              |
+| `ShortlistRepo_GetByIdForUpdateAsync_ReturnsTrackedEntityWithCandidates`   | Tracked entity with loaded candidates can be mutated | Status update persists, candidates loaded |
+| `ShortlistRepo_GetDraftByJobPostingIdAsync_ReturnsDraftOnly`               | Only Draft shortlists returned, Finalized excluded   | Returns Draft shortlist                   |
+| `ShortlistRepo_GetDraftByJobPostingIdAsync_NoDraft_ReturnsNull`            | No Draft shortlist returns null                      | Returns null                              |
+| `ShortlistRepo_GetByJobPostingIdAsync_ReturnsOrderedByCreatedAtDescending` | Shortlists ordered by CreatedAt descending           | Newest shortlist appears first            |
+| `ShortlistRepo_GetByJobPostingIdAsync_DifferentJob_ReturnsEmpty`           | Different job posting ID returns empty list          | Returns empty list                        |
 
 **Why:** Include/navigation behavior, composite ordering, and the Draft filter for shortlist workflow can only be validated against real PostgreSQL.
 
