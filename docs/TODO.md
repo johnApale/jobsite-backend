@@ -43,7 +43,7 @@
 | Item                        | Resolution                                                                                                                                                        |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Company Settings Entity     | Singleton per-tenant `CompanySettings` entity with 6 JSONB settings columns + timezone/currency.                                                                  |
-| Tenant Provisioning Wiring  | `TenantProvisioner` now publishes `TenantProvisionedEvent` after successful provisioning, triggering default `CompanySettings` seeding.                            |
+| Tenant Provisioning Wiring  | `TenantProvisioner` now publishes `TenantProvisionedEvent` after successful provisioning, triggering default `CompanySettings` seeding.                           |
 | Audit Log Entity            | Append-only `AuditLog` entity with denormalized actor data (survives user deletion).                                                                              |
 | EF Core Migration           | `InitialAdminSchema` migration: `admin.company_settings`, `admin.audit_logs` with 4 indexes.                                                                      |
 | Settings CRUD Endpoints     | `GET/PATCH /api/v1/admin/settings` with JSON merge patch semantics and FluentValidation.                                                                          |
