@@ -4,12 +4,12 @@
 
 ## Test Summary
 
-| Project                   | Tests   | Status                                    |
-| ------------------------- | ------- | ----------------------------------------- |
-| Jobsite.UnitTests         | 686     | ✅ All passing                            |
-| Jobsite.ArchitectureTests | 35      | ✅ All passing                            |
-| Jobsite.IntegrationTests  | 147     | ✅ All passing (all tests require Docker) |
-| **Total**                 | **868** |                                           |
+| Project                   | Tests    | Status                                    |
+| ------------------------- | -------- | ----------------------------------------- |
+| Jobsite.UnitTests         | 798      | ✅ All passing                            |
+| Jobsite.ArchitectureTests | 35       | ✅ All passing                            |
+| Jobsite.IntegrationTests  | 181      | ✅ All passing (all tests require Docker) |
+| **Total**                 | **1014** |                                           |
 
 ---
 
@@ -23,14 +23,14 @@
 | Admin              | 39    | [admin.md](admin.md)                           |
 | Profiles           | 105   | [profiles.md](profiles.md)                     |
 | Recruitment        | 189   | [recruitment.md](recruitment.md)               |
-| Screening          | 144   | [screening.md](screening.md)                   |
+| Screening          | 178   | [screening.md](screening.md)                   |
 | Matching           | 79    | [matching.md](matching.md)                     |
 | HR Workflows       | 36    | [hr-workflows.md](hr-workflows.md)             |
 | Middleware         | 21    | [middleware.md](middleware.md)                 |
 | Pipeline Behaviors | 7     | [pipeline-behaviors.md](pipeline-behaviors.md) |
 | Infrastructure     | 2     | [infrastructure.md](infrastructure.md)         |
 | Architecture Tests | 35    | [architecture.md](architecture.md)             |
-| Integration Tests  | 147   | [integration.md](integration.md)               |
+| Integration Tests  | 181   | [integration.md](integration.md)               |
 
 ---
 
@@ -61,20 +61,13 @@
 | **MassTransit Integration**  | No end-to-end test with Testcontainers RabbitMQ — requires Testcontainers.RabbitMq package           | Medium   |
 | **RequestLoggingMiddleware** | Not directly tested — logs via Serilog, lower value without log sink assertions                      | Low      |
 
-### Blocked by AI Service (Phase 6 — Not Yet Built)
+### Blocked by AI Service
 
-These items depend on the AI Service (Python/FastAPI) which is not yet implemented. The C# HTTP clients exist with graceful null fallback, but real integration/contract tests are deferred.
+All 6 AI client contract tests are now implemented using WireMock (see [screening.md](screening.md#ai-service-contract-tests-wiremock)). The full screening pipeline E2E test is also implemented (see [screening.md](screening.md#e2e-screening-pipeline-tests)). Remaining gaps:
 
-| Area                                       | Gap                                                                                                 |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| **AI Criteria Suggester Contract Test**    | `AiCriteriaSuggesterClient` tested with mock HTTP handler only — no real AI Service endpoint to hit |
-| **AI Question Suggester Contract Test**    | `AiQuestionSuggesterClient` tested with mock HTTP handler only — no real AI Service endpoint to hit |
-| **AI Scoring Client Contract Test**        | `AiScoringClient` tested with mock HTTP handler only — no real scoring endpoint                     |
-| **AI Answer Scoring Client Contract Test** | `AiAnswerScoringClient` tested with mock HTTP handler only — no real answer scoring endpoint        |
-| **AI Candidate Feedback Contract Test**    | `AiCandidateFeedbackClient` tested with mock HTTP handler only — no real feedback endpoint          |
-| **AI Resume Parser Contract Test**         | `AiResumeParserClient` tested with mock HTTP handler only — no real resume parsing endpoint         |
-| **Full Resume Parse Pipeline E2E**         | End-to-end resume upload → basic parse → AI parse → persist requires operational AI Service         |
-| **Full Screening Pipeline E2E**            | End-to-end screening with real AI scoring requires operational AI Service                           |
+| Area                               | Gap                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Full Resume Parse Pipeline E2E** | End-to-end resume upload → basic parse → AI parse → persist requires operational AI Service |
 
 ### Blocked by Incomplete Modules
 

@@ -55,7 +55,7 @@ public sealed class ScreeningResultConfiguration : IEntityTypeConfiguration<Scre
             .HasColumnType("decimal(5,2)");
 
         builder.Property(r => r.CandidateFeedback)
-            .HasColumnType("jsonb");
+            .HasColumnType("text");
 
         builder.Property(r => r.AutoAdvanceThreshold)
             .HasColumnType("decimal(5,2)")

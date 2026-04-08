@@ -225,3 +225,88 @@ Tests FluentValidation rules for `SubmitAssessmentRequest` and `ManualReviewRequ
 | `ManualReviewRequestValidator_ReviewNotesExactly2000Chars_Passes`  | Notes at exactly 2000 chars passes (boundary test)       | `IsValid` is true      |
 
 **Why:** Input validation is the first line of defense. The boundary test for review notes (exactly 2000 chars) validates the `<=` vs `<` boundary. The outcome validator ensures only manual review outcomes (ManuallyAdvanced/ManuallyRejected) are accepted — not automated outcomes like AutoAdvanced.
+
+---
+
+## AI Service Contract Tests (WireMock)
+
+Contract tests verify that the .NET HTTP clients send the correct request bodies (snake_case field names, correct endpoint paths, POST method) and correctly deserialize AI Service responses. Tests run against a real HTTP server via WireMock — unlike unit tests that mock the `HttpMessageHandler`, these exercise the full HTTP stack.
+
+### `AiScoringContractTests` (4 tests)
+
+| Test                                                         | What It Verifies                                            | Expected Outcome  |
+| ------------------------------------------------------------ | ----------------------------------------------------------- | ----------------- |
+| `EvaluateAsync_SendsCorrectRequestBody_WithSnakeCaseFields`  | Request has `criteria` + `applicant` with snake_case fields | Correct JSON body |
+| `EvaluateAsync_EmptyBreakdown_DeserializesCorrectly`         | Empty breakdown array + zero score deserializes             | Empty list, 0     |
+| `EvaluateAsync_ServerReturns500_ReturnsNull`                 | 500 → returns null over real HTTP                           | Returns null      |
+| `EvaluateAsync_MalformedJson_ReturnsNull`                    | Invalid JSON body → returns null (catches JsonException)    | Returns null      |
+
+### `AiAnswerScoringContractTests` (4 tests)
+
+| Test                                                                | What It Verifies                     | Expected Outcome  |
+| ------------------------------------------------------------------- | ------------------------------------ | ----------------- |
+| `ScoreAnswersAsync_SendsCorrectRequestBody_WithSnakeCaseFields`     | Request has `answers` snake_case     | Correct JSON body |
+| `ScoreAnswersAsync_MultipleAnswers_DeserializesAll`                 | Multiple answer scores deserialized  | 2 scores returned |
+| `ScoreAnswersAsync_ServerReturns500_ReturnsNull`                    | 500 → returns null                   | Returns null      |
+| `ScoreAnswersAsync_MalformedJson_ReturnsNull`                       | Invalid JSON → returns null          | Returns null      |
+
+### `AiCandidateFeedbackContractTests` (4 tests)
+
+| Test                                                                    | What It Verifies                                                     | Expected Outcome |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------- |
+| `GenerateFeedbackAsync_SendsCorrectRequestBody_WithSnakeCaseFields`     | Request has `criteria_breakdown`, `overall_score`, `transparency_level` | Correct body  |
+| `GenerateFeedbackAsync_SummaryLevel_SendsCorrectLevel`                  | "Summary" transparency level sent correctly                          | Level verified   |
+| `GenerateFeedbackAsync_NullFeedbackField_ReturnsNull`                   | `{"feedback": null}` → returns null                                  | Returns null     |
+| `GenerateFeedbackAsync_ServerReturns500_ReturnsNull`                    | 500 → returns null                                                   | Returns null     |
+
+### `AiResumeParserContractTests` (4 tests)
+
+| Test                                                       | What It Verifies                                               | Expected Outcome |
+| ---------------------------------------------------------- | -------------------------------------------------------------- | ---------------- |
+| `ParseAsync_SendsCorrectRequestBody_WithSnakeCaseFields`   | Request has `parsed_text`, response has skills/experience/etc. | Full shape       |
+| `ParseAsync_MinimalResponse_DeserializesNullableFields`     | All-null response fields deserialize correctly                 | All null         |
+| `ParseAsync_ServerReturns500_ReturnsNull`                   | 500 → returns null                                             | Returns null     |
+| `ParseAsync_MalformedJson_ReturnsNull`                      | Invalid JSON → returns null                                    | Returns null     |
+
+### `AiCriteriaSuggesterContractTests` (4 tests)
+
+| Test                                                      | What It Verifies                            | Expected Outcome |
+| --------------------------------------------------------- | ------------------------------------------- | ---------------- |
+| `SuggestAsync_SendsCorrectRequestBody_WithSnakeCaseFields` | Request has `job_title` + `job_description` | Correct body     |
+| `SuggestAsync_EmptyList_DeserializesCorrectly`             | Empty array response → empty list           | Empty list       |
+| `SuggestAsync_ServerReturns500_ReturnsNull`                | 500 → returns null                          | Returns null     |
+| `SuggestAsync_MalformedJson_ReturnsNull`                   | Invalid JSON → returns null                 | Returns null     |
+
+### `AiQuestionSuggesterContractTests` (4 tests)
+
+| Test                                                       | What It Verifies                                 | Expected Outcome |
+| ---------------------------------------------------------- | ------------------------------------------------ | ---------------- |
+| `SuggestAsync_SendsCorrectRequestBody_WithCriteriaContext`  | Request has `job_description` + `criteria` array | Correct body     |
+| `SuggestAsync_EmptyList_DeserializesCorrectly`              | Empty array response → empty list                | Empty list       |
+| `SuggestAsync_ServerReturns500_ReturnsNull`                 | 500 → returns null                               | Returns null     |
+| `SuggestAsync_MalformedJson_ReturnsNull`                    | Invalid JSON → returns null                      | Returns null     |
+
+**Why:** Unit tests with `MockHttpMessageHandler` only test deserialization and error handling — they don't verify what the client actually sends over the wire. Contract tests with WireMock capture and assert the exact request body (proving snake_case serialization works end-to-end), verify the correct endpoint path is called, and exercise the full HTTP pipeline including content-type negotiation.
+
+---
+
+## E2E Screening Pipeline Tests
+
+### `ScreeningPipelineTests` (10 tests)
+
+End-to-end tests exercising the full screening pipeline with real PostgreSQL persistence and real `DeterministicScoringEngine`. Cross-module readers and AI clients are stubbed. Tests verify the complete flow from score calculation through three-tier routing to persisted results.
+
+| Test                                                             | What It Verifies                                        | Expected Outcome                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------- |
+| `ProcessScreening_HighScore_AutoAdvancesApplication`             | Score ≥ threshold → AutoAdvanced, status "Shortlisted"  | Outcome=AutoAdvanced, score=100     |
+| `ProcessScreening_LowScore_AutoRejectsApplication`              | Score ≤ threshold → AutoRejected, status "Rejected"     | Outcome=AutoRejected, score=0       |
+| `ProcessScreening_MiddleScore_RoutesToManualReview`              | Score between thresholds + QueueForReview → ManualReview | Outcome=ManualReview, score=50      |
+| `ProcessScreening_AiScoringEnabled_PopulatesAiFields`            | AI enabled + successful → AiOverallScore and breakdown  | Both deterministic and AI populated |
+| `ProcessScreening_AiScoringUnavailable_FallsBackToDeterministic` | AI enabled but returns null → deterministic score only  | AI fields null, deterministic works |
+| `ProcessScreening_TransparencyEnabled_PopulatesCandidateFeedback` | Transparency enabled → CandidateFeedback populated      | Feedback text persisted             |
+| `ProcessScreening_NoApplicantData_SetsStatusFailed`              | Null applicant data → Status=Failed + FailureReason     | Status=Failed, no score             |
+| `ProcessScreening_HasAfterScreeningQuestions_RoutesToAssessment`  | High score + AfterScreening questions → "Assessment"    | Routed to Assessment                |
+| `ProcessScreening_AutoAdvanceAllPolicy_MiddleScoreAutoAdvances`  | Middle score + AutoAdvanceAll policy → AutoAdvanced      | AutoAdvanced despite 50 score       |
+| `ProcessScreening_ScoringBreakdown_IsValidSerializedJson`        | CriteriaScoreBreakdown is valid deserializable JSON     | 2 criteria in breakdown, valid JSON |
+
+**Why:** Unit tests for `ScreeningService` mock every dependency, so they can't catch persistence issues, EF Core transaction behavior, or real scoring math integration. These E2E tests wire the real `DeterministicScoringEngine` + real PostgreSQL repositories + real `ScreeningService` together, proving the full pipeline produces correct persisted results. The transparency feedback test uncovered a real column type bug (`jsonb` → `text`) where the AI Service returns plain text, not structured JSON.

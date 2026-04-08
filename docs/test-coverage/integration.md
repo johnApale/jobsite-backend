@@ -14,6 +14,10 @@
 - `ProfilesIntegrationCollection` — xUnit `[Collection("Profiles")]` for shared container across Profiles test classes
 - `MatchingIntegrationFixture` — spins up a `postgres:17-alpine` container, creates `MatchingDbContext` via `EnsureCreatedAsync`.
 - `MatchingIntegrationCollection` — xUnit `[Collection("Matching")]` for shared container across Matching test classes
+- `AiServiceContractFixture` — starts a WireMock HTTP server for AI Service contract testing. Exposes `BaseUrl` and `Server` properties. Calls `Reset()` between tests for isolation.
+- `AiServiceContractCollection` — xUnit `[Collection("AiServiceContract")]` for shared WireMock server across contract test classes
+- `ScreeningPipelineFixture` — spins up a `postgres:17-alpine` container, creates `ScreeningDbContext` via `EnsureCreatedAsync`. Provides `CreateDbContext()` factory and `ResetDataAsync()` to truncate all tables between tests.
+- `ScreeningPipelineCollection` — xUnit `[Collection("ScreeningPipeline")]` for shared container across E2E screening test classes
 - `IntegrationTestData` — factory with unique-per-test names/subdomains to avoid collisions
 
 ---
@@ -410,3 +414,23 @@ Factory methods generating unique names/subdomains per test to avoid collisions 
 | `CreateCandidateMatch()`     | `CandidateMatch` entity     | Random IDs, composite: 75, MatchStrength from score        |
 | `CreateShortlist()`          | `Shortlist` entity          | Random jobPostingId, Status: Draft, GeneratedBy: Algorithm |
 | `CreateShortlistCandidate()` | `ShortlistCandidate` entity | Random IDs, Rank: 1, Source: Algorithm, score: 80          |
+
+---
+
+## AI Service Contract Tests (WireMock)
+
+Contract tests verify that the .NET HTTP clients send the correct request bodies (snake_case field names, correct endpoint paths) and correctly deserialize AI Service responses. Tests run against a real WireMock HTTP server — not mocked `HttpMessageHandler` — so they exercise the full HTTP stack including `System.Text.Json` serialization policy.
+
+See [screening.md](screening.md#ai-service-contract-tests-wiremock) for the full test table (24 tests across 6 clients: `AiScoringClient`, `AiAnswerScoringClient`, `AiCandidateFeedbackClient`, `AiResumeParserClient`, `AiCriteriaSuggesterClient`, `AiQuestionSuggesterClient`).
+
+Each client has 4 tests: request body verification, success deserialization, 500 → null, malformed JSON → null.
+
+---
+
+## E2E Screening Pipeline Tests (Testcontainers)
+
+End-to-end tests exercising the full screening pipeline: real `DeterministicScoringEngine` + real PostgreSQL repositories + real `ScreeningService`. Cross-module readers (`IJobCriteriaReader`, `IJobScreeningQuestionsReader`, `IApplicationStatusUpdater`) and AI clients are stubbed via NSubstitute. Tests verify score calculation, three-tier routing, persistence, AI fallback, and transparency feedback.
+
+See [screening.md](screening.md#e2e-screening-pipeline-tests) for the full test table (10 tests).
+
+Key scenarios: high/low/middle score routing, AI scoring enabled/unavailable, transparency feedback, assessment routing, AutoAdvanceAll policy, serialized breakdown validation.
