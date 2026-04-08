@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Jobsite.Api.Behaviors;
 using Jobsite.Api.Configuration;
 using Jobsite.Api.Infrastructure;
@@ -24,12 +25,17 @@ using Jobsite.Modules.Matching.Infrastructure.Persistence;
 using Jobsite.Modules.HRWorkflows.Infrastructure;
 using Jobsite.Modules.HRWorkflows.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Domain;
+using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using FluentValidation;
 using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System.Reflection;
 
 namespace Jobsite.Api.Extensions;
@@ -128,7 +134,153 @@ public static class ModuleServiceCollectionExtensions
         // 10. Tenant connection resolver (for consumers and background services)
         services.AddScoped<ITenantConnectionResolver, CatalogTenantConnectionResolver>();
 
-        // 11. Module registrations
+        // 11. Distributed cache (Redis or in-memory fallback)
+        if (!string.IsNullOrWhiteSpace(appSettings.Redis.ConnectionString))
+        {
+            services.AddStackExchangeRedisCache(options =>
+                options.Configuration = appSettings.Redis.ConnectionString);
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+        }
+
+        // 12. CORS
+        services.AddCors(options =>
+        {
+            options.AddPolicy("TenantPolicy", policy =>
+            {
+                if (appSettings.Cors.AllowedOrigins.Length > 0)
+                {
+                    policy.WithOrigins(appSettings.Cors.AllowedOrigins);
+                }
+                else
+                {
+                    // Development: allow any origin with credentials requires explicit origins,
+                    // so allow common dev patterns
+                    policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost"
+                        || origin.EndsWith(".djobsite.com", StringComparison.OrdinalIgnoreCase));
+                }
+
+                policy.WithMethods("GET", "POST", "PATCH", "DELETE", "OPTIONS")
+                      .WithHeaders("Authorization", "Content-Type", "X-Correlation-ID")
+                      .WithExposedHeaders("X-Correlation-ID", "X-RateLimit-Limit",
+                          "X-RateLimit-Remaining", "X-RateLimit-Reset")
+                      .AllowCredentials();
+            });
+        });
+
+        // 13. Rate limiting
+        RateLimitSettings rateLimits = appSettings.RateLimiting;
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = 429;
+            options.OnRejected = async (context, ct) =>
+            {
+                context.HttpContext.Response.ContentType = "application/json";
+                string requestId = context.HttpContext.Items["CorrelationId"]?.ToString()
+                    ?? context.HttpContext.TraceIdentifier;
+
+                context.HttpContext.Response.Headers["X-RateLimit-Limit"] = "0";
+                context.HttpContext.Response.Headers["X-RateLimit-Remaining"] = "0";
+
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan retryAfter))
+                {
+                    context.HttpContext.Response.Headers["X-RateLimit-Reset"] =
+                        retryAfter.TotalSeconds.ToString("F0");
+                }
+
+                await context.HttpContext.Response.WriteAsync(
+                    $$"""{"code":"RATE_LIMITED","message":"Rate limit exceeded","request_id":"{{requestId}}"}""",
+                    ct);
+            };
+
+            // Global per-tenant policy
+            options.AddPolicy("global", httpContext =>
+            {
+                string partitionKey = httpContext.User.FindFirst("tenant_id")?.Value
+                    ?? httpContext.Items["Tenant"]?.ToString()
+                    ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                    ?? "anonymous";
+
+                return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ =>
+                    new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = rateLimits.GlobalRequestsPerMinute,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    });
+            });
+
+            // Auth per-IP policy (brute-force protection)
+            options.AddPolicy("auth", httpContext =>
+            {
+                string ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                return RateLimitPartition.GetFixedWindowLimiter(ipAddress, _ =>
+                    new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = rateLimits.AuthRequestsPerMinute,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    });
+            });
+
+            // AI endpoints per-tenant policy
+            options.AddPolicy("ai", httpContext =>
+            {
+                string partitionKey = httpContext.User.FindFirst("tenant_id")?.Value
+                    ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                    ?? "anonymous";
+
+                return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ =>
+                    new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = rateLimits.AiRequestsPerMinute,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    });
+            });
+        });
+
+        // 14. Health checks
+        string catalogConnectionString = configuration.GetConnectionString("CatalogDb") ?? string.Empty;
+        Uri rabbitMqUri = new($"amqp://{appSettings.MessageBroker.Username}:{appSettings.MessageBroker.Password}@{appSettings.MessageBroker.Host}:{appSettings.MessageBroker.Port}{appSettings.MessageBroker.VirtualHost}");
+        IHealthChecksBuilder healthChecks = services.AddHealthChecks()
+            .AddNpgSql(catalogConnectionString, name: "postgres", tags: new[] { "readiness" })
+            .AddRabbitMQ(sp =>
+            {
+                RabbitMQ.Client.ConnectionFactory factory = new() { Uri = rabbitMqUri };
+                return factory.CreateConnectionAsync(CancellationToken.None).GetAwaiter().GetResult();
+            }, name: "rabbitmq", tags: new[] { "readiness" })
+            .AddUrlGroup(
+                new Uri($"{appSettings.AiServiceUrl}/health"),
+                name: "ai-service",
+                tags: new[] { "readiness" });
+
+        if (!string.IsNullOrWhiteSpace(appSettings.Redis.ConnectionString))
+        {
+            healthChecks.AddRedis(appSettings.Redis.ConnectionString, name: "redis", tags: ["readiness"]);
+        }
+
+        // 15. OpenTelemetry (tracing + metrics)
+        if (!string.IsNullOrWhiteSpace(appSettings.OpenTelemetry.OtlpEndpoint))
+        {
+            services.AddOpenTelemetry()
+                .ConfigureResource(resource => resource
+                    .AddService(serviceName: appSettings.OpenTelemetry.ServiceName))
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation()
+                    .AddOtlpExporter(opts => opts.Endpoint = new Uri(appSettings.OpenTelemetry.OtlpEndpoint)))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddOtlpExporter(opts => opts.Endpoint = new Uri(appSettings.OpenTelemetry.OtlpEndpoint)));
+        }
+
+        // 16. Module registrations
         services.AddTenancyModule(configuration);
         services.AddAuthModule(configuration);
         services.AddAdminModule(configuration);
