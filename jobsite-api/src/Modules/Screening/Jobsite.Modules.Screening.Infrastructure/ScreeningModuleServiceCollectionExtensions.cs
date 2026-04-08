@@ -80,6 +80,7 @@ public static class ScreeningModuleServiceCollectionExtensions
 
         // Cross-module readers (consumed by Matching module)
         services.AddScoped<IScreeningScoreReader, ScreeningScoreReader>();
+        services.AddScoped<IScreeningStatsReader, ScreeningStatsReader>();
 
         // Validators
         services.AddValidatorsFromAssemblyContaining<SubmitAssessmentRequestValidator>();

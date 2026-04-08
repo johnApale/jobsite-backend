@@ -38,6 +38,7 @@ public static class RecruitmentModuleServiceCollectionExtensions
         services.AddScoped<IJobScreeningQuestionsReader, JobScreeningQuestionsReader>();
         services.AddScoped<IApplicationStatusUpdater, ApplicationStatusUpdater>();
         services.AddScoped<IApplicationDataReader, ApplicationDataReader>();
+        services.AddScoped<IRecruitmentStatsReader, RecruitmentStatsReader>();
 
         // Services
         services.AddScoped<IRecruitmentService, RecruitmentService>();

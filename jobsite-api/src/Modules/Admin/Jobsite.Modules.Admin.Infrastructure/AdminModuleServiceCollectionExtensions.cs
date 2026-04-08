@@ -34,6 +34,7 @@ public static class AdminModuleServiceCollectionExtensions
         // Services
         services.AddScoped<IAdminSettingsService, AdminSettingsService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<IDashboardService, DashboardService>();
 
         // Cross-module settings reader (consumed by other modules via SharedKernel interface)
         services.AddScoped<ITenantSettingsReader, TenantSettingsReader>();

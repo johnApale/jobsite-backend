@@ -21,6 +21,16 @@ public static class AdminEndpoints
             .RequireAuthorization("RequireAgencyAdmin")
             .RequireRateLimiting("global");
 
+        group.MapGet("/dashboard", async (IDashboardService service, CancellationToken ct) =>
+            {
+                DashboardStatsResponse response = await service.GetStatsAsync(ct);
+                return Results.Ok(response);
+            })
+            .WithName("GetDashboardStats")
+            .WithSummary("Get dashboard statistics")
+            .WithDescription("Returns aggregate pipeline statistics across recruitment, screening, and matching modules for the current tenant.")
+            .Produces<DashboardStatsResponse>(StatusCodes.Status200OK);
+
         group.MapGet("/settings", async (IAdminSettingsService service, CancellationToken ct) =>
             {
                 CompanySettingsResponse response = await service.GetSettingsAsync(ct);

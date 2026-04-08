@@ -2,6 +2,7 @@ using FluentValidation;
 using Jobsite.Modules.Matching.Application.Services;
 using Jobsite.Modules.Matching.Application.Validators;
 using Jobsite.Modules.Matching.Domain.Interfaces;
+using Jobsite.Modules.Matching.Infrastructure.CrossModule;
 using Jobsite.Modules.Matching.Infrastructure.Persistence;
 using Jobsite.Modules.Matching.Infrastructure.Persistence.Repositories;
 using Jobsite.SharedKernel.Persistence;
@@ -31,6 +32,9 @@ public static class MatchingModuleServiceCollectionExtensions
 
         // Keyed UnitOfWork
         services.AddKeyedScoped<IUnitOfWork, MatchingUnitOfWork>("matching");
+
+        // Cross-module readers (consumed by Admin module)
+        services.AddScoped<IMatchingStatsReader, MatchingStatsReader>();
 
         // Validators
         services.AddValidatorsFromAssemblyContaining<GenerateShortlistRequestValidator>();
