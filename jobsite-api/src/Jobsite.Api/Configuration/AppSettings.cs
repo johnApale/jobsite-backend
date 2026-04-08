@@ -31,6 +31,15 @@ public sealed class AppSettings
 
     /// <summary>Redis connection settings (optional, for distributed caching).</summary>
     public RedisSettings Redis { get; set; } = new();
+
+    /// <summary>Rate limiting configuration.</summary>
+    public RateLimitSettings RateLimiting { get; set; } = new();
+
+    /// <summary>CORS configuration.</summary>
+    public CorsSettings Cors { get; set; } = new();
+
+    /// <summary>OpenTelemetry configuration. Leave OtlpEndpoint empty to disable export.</summary>
+    public OtelSettings OpenTelemetry { get; set; } = new();
 }
 
 /// <summary>RabbitMQ connection settings.</summary>
@@ -57,4 +66,34 @@ public sealed class RedisSettings
 {
     /// <summary>Redis connection string. Leave empty to use in-memory cache.</summary>
     public string ConnectionString { get; set; } = string.Empty;
+}
+
+/// <summary>Rate limiting settings per policy.</summary>
+public sealed class RateLimitSettings
+{
+    /// <summary>Global requests per minute per tenant.</summary>
+    public int GlobalRequestsPerMinute { get; set; } = 100;
+
+    /// <summary>Auth endpoint requests per minute per IP (brute-force protection).</summary>
+    public int AuthRequestsPerMinute { get; set; } = 10;
+
+    /// <summary>AI-related endpoint requests per minute per tenant.</summary>
+    public int AiRequestsPerMinute { get; set; } = 20;
+}
+
+/// <summary>CORS settings for allowed origins.</summary>
+public sealed class CorsSettings
+{
+    /// <summary>Allowed origin patterns (e.g., "https://*.djobsite.com"). Leave empty for development defaults.</summary>
+    public string[] AllowedOrigins { get; set; } = [];
+}
+
+/// <summary>OpenTelemetry configuration.</summary>
+public sealed class OtelSettings
+{
+    /// <summary>OTLP exporter endpoint. Leave empty to disable.</summary>
+    public string OtlpEndpoint { get; set; } = string.Empty;
+
+    /// <summary>Service name reported to the collector.</summary>
+    public string ServiceName { get; set; } = "djobsite-api";
 }
