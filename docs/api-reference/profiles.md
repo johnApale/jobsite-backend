@@ -345,6 +345,20 @@ GET /api/v1/profiles/me/resumes/{id}
 | `created_at`           | `datetime`       | No       | Profile creation timestamp                         |
 | `updated_at`           | `datetime`       | No       | Last modification timestamp                        |
 
+### Profile Completion Evaluation
+
+The `profile_completed_at` field is automatically evaluated on every profile create and update. Completion is determined by the tenant's `ProfileSettings` (configured via Admin module). The evaluation checks:
+
+1. **Required profile fields** — configurable list (e.g., `Phone`, `Skills`). Defaults: `Phone`, `Skills`.
+2. **Minimum skills count** — configurable threshold. Default: `3`.
+3. **Required social links** — configurable list (e.g., `LinkedIn`). Default: `LinkedIn`.
+4. **Required documents** — configurable list (e.g., `CoverLetter`). Default: `CoverLetter`.
+5. **Resume required** — whether at least one uploaded resume is required. Default: `true`.
+
+When all requirements are met, `profile_completed_at` is set to the current timestamp. If the profile later fails to meet requirements (e.g., after a settings change), the field is cleared to `null`.
+
+A completed profile is a prerequisite for entering the candidate matching pool.
+
 ### SkillDto
 
 | Field   | Type     | Nullable | Description                                                   |

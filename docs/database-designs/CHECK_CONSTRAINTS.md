@@ -186,6 +186,10 @@ ALTER TABLE matching.shortlists
 ALTER TABLE matching.shortlist_candidates
   ADD CONSTRAINT chk_shortlist_candidates_source
   CHECK (source IN ('Algorithm', 'Manual'));
+
+ALTER TABLE matching.shortlist_candidates
+  ADD CONSTRAINT chk_shortlist_candidates_status
+  CHECK (status IN ('Pending', 'Approved', 'Rejected'));
 ```
 
 ---

@@ -6,16 +6,17 @@
 
 ---
 
-## `MatchingConstantsTests` (4 theories)
+## `MatchingConstantsTests` (5 theories)
 
-Tests `IsValid()` methods for all 3 Matching module constant classes and the `FromScore` mapping via `[Theory]` with `[InlineData]`. Values must match PostgreSQL CHECK constraints exactly.
+Tests `IsValid()` methods for all 4 Matching module constant classes and the `FromScore` mapping via `[Theory]` with `[InlineData]`. Values must match PostgreSQL CHECK constraints exactly.
 
 | Constant Class             | Tests | What It Verifies                                                                                           |
-| -------------------------- | ----- | ---------------------------------------------------------------------------------------------------------- |
+| -------------------------- | ----- | ---------------------------------------------------------------------------------------------------------- | --- |
 | `MatchStrength`            | 1     | Strong/Good/Moderate/Weak valid; FromScore boundary mapping (80+→Strong, 60+→Good, 40+→Moderate, <40→Weak) |
 | `ShortlistStatus`          | 1     | Draft/Finalized valid; lowercase and unknown invalid                                                       |
 | `ShortlistCandidateSource` | 1     | Algorithm/Manual valid; lowercase and unknown invalid                                                      |
-| `MatchStrength.FromScore`  | 1     | Score boundary mapping: 95→Strong, 80→Strong, 60→Good, 40→Moderate, 25→Weak                                |
+| `ShortlistCandidateStatus` | 1     | Pending/Approved/Rejected valid; lowercase and unknown invalid                                             |
+| `MatchStrength.FromScore`  | 1     | Score boundary mapping: 95→Strong, 80→Strong, 60→Good, 40→Moderate, 25→Weak                                |     |
 
 **Why:** PascalCase enum values must exactly match PostgreSQL CHECK constraints. The `FromScore` boundary tests verify the thresholds that determine candidate ranking labels.
 
@@ -56,42 +57,52 @@ Tests `MatchingService` — read operations for candidate matches with repositor
 
 ---
 
-## `ShortlistServiceTests` (11 tests)
+## `ShortlistServiceTests` (18 tests)
 
-Tests `ShortlistService` — the core service for generating, managing, and finalizing shortlists. Covers the complete shortlist lifecycle including candidate addition/removal and finalization with domain event dispatch.
+Tests `ShortlistService` — the core service for generating, managing, and finalizing shortlists. Covers the complete shortlist lifecycle including candidate addition/removal, approval/rejection, and finalization with domain event dispatch.
 
-| Test                                                                     | What It Verifies                                                                                                            | Expected Outcome                        |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `GenerateShortlist_WithCandidates_CreatesShortlistWithTopN`              | Selects top-N by composite score, creates Draft shortlist with ranked candidates                                            | Draft with 2 candidates, ranks 1-2      |
-| `GenerateShortlist_NoCandidates_CreatesEmptyShortlist`                   | No candidates → empty shortlist still created                                                                               | TotalCandidates = 0                     |
-| `GetShortlist_ExistingShortlist_ReturnsResponse`                         | Successful lookup returns response DTO                                                                                      | Response has matching fields            |
-| `GetShortlist_NonexistentShortlist_ThrowsNotFound`                       | Missing shortlist throws `SHORTLIST_NOT_FOUND`                                                                              | Throws `AppError` (404)                 |
-| `AddCandidate_DraftShortlist_AddsCandidateWithManualSource`              | Manual addition sets source = Manual                                                                                        | Candidate added with Manual source      |
-| `AddCandidate_FinalizedShortlist_ThrowsConflict`                         | Cannot add to finalized shortlist                                                                                           | Throws `AppError` (409)                 |
-| `AddCandidate_DuplicateCandidate_ThrowsConflict`                         | Duplicate ApplicationId on same shortlist rejected                                                                          | Throws `AppError` (409)                 |
-| `RemoveCandidate_ExistingCandidate_SoftRemoves`                          | Soft-delete sets `RemovedAt` timestamp                                                                                      | `RemovedAt` is not null                 |
-| `RemoveCandidate_FinalizedShortlist_ThrowsConflict`                      | Cannot remove from finalized shortlist                                                                                      | Throws `AppError` (409)                 |
-| `RemoveCandidate_NotFoundOnShortlist_ThrowsNotFound`                     | Missing candidate on shortlist throws 404                                                                                   | Throws `AppError` (404)                 |
-| `FinalizeShortlist_DraftWithCandidates_UpdatesStatusAndDispatchesEvents` | Finalization: sets status, FinalizedBy/At, dispatches CandidateShortlistedEvent per candidate, updates application statuses | Status = Finalized, 2 events dispatched |
-| `FinalizeShortlist_AlreadyFinalized_ThrowsConflict`                      | Cannot finalize twice                                                                                                       | Throws `AppError` (409)                 |
+| Test                                                                             | What It Verifies                                                                                                                          | Expected Outcome                          |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `GenerateShortlist_WithCandidates_CreatesShortlistWithTopN`                      | Selects top-N by composite score, creates Draft shortlist with ranked candidates                                                          | Draft with 2 candidates, ranks 1-2        |
+| `GenerateShortlist_NoCandidates_CreatesEmptyShortlist`                           | No candidates → empty shortlist still created                                                                                             | TotalCandidates = 0                       |
+| `GetShortlist_ExistingShortlist_ReturnsResponse`                                 | Successful lookup returns response DTO                                                                                                    | Response has matching fields              |
+| `GetShortlist_NonexistentShortlist_ThrowsNotFound`                               | Missing shortlist throws `SHORTLIST_NOT_FOUND`                                                                                            | Throws `AppError` (404)                   |
+| `AddCandidate_DraftShortlist_AddsCandidateWithManualSource`                      | Manual addition sets source = Manual                                                                                                      | Candidate added with Manual source        |
+| `AddCandidate_FinalizedShortlist_ThrowsConflict`                                 | Cannot add to finalized shortlist                                                                                                         | Throws `AppError` (409)                   |
+| `AddCandidate_DuplicateCandidate_ThrowsConflict`                                 | Duplicate ApplicationId on same shortlist rejected                                                                                        | Throws `AppError` (409)                   |
+| `RemoveCandidate_ExistingCandidate_SoftRemoves`                                  | Soft-delete sets `RemovedAt` timestamp                                                                                                    | `RemovedAt` is not null                   |
+| `RemoveCandidate_FinalizedShortlist_ThrowsConflict`                              | Cannot remove from finalized shortlist                                                                                                    | Throws `AppError` (409)                   |
+| `RemoveCandidate_NotFoundOnShortlist_ThrowsNotFound`                             | Missing candidate on shortlist throws 404                                                                                                 | Throws `AppError` (404)                   |
+| `FinalizeShortlist_DraftWithApprovedCandidates_UpdatesStatusAndDispatchesEvents` | Finalization: only Approved candidates proceed, dispatches CandidateShortlistedEvent per approved candidate, updates application statuses | Status = Finalized, events dispatched     |
+| `FinalizeShortlist_NoPendingOrRejectedOnly_ThrowsInvalidRequest`                 | Shortlist with no Approved candidates cannot be finalized                                                                                 | Throws `AppError` (400) `INVALID_REQUEST` |
+| `FinalizeShortlist_AlreadyFinalized_ThrowsConflict`                              | Cannot finalize twice                                                                                                                     | Throws `AppError` (409)                   |
+| `ApproveCandidate_DraftShortlist_SetsStatusToApproved`                           | Approving a pending candidate sets status to Approved                                                                                     | Status = `Approved`                       |
+| `ApproveCandidate_FinalizedShortlist_ThrowsConflict`                             | Cannot approve on finalized shortlist                                                                                                     | Throws `AppError` (409)                   |
+| `ApproveCandidate_NonexistentCandidate_ThrowsNotFound`                           | Missing candidate throws 404                                                                                                              | Throws `AppError` (404)                   |
+| `RejectCandidate_DraftShortlist_SetsStatusToRejected`                            | Rejecting a pending candidate sets status to Rejected                                                                                     | Status = `Rejected`                       |
+| `RejectCandidate_FinalizedShortlist_ThrowsConflict`                              | Cannot reject on finalized shortlist                                                                                                      | Throws `AppError` (409)                   |
 
-**Why:** `ShortlistService` is the central workflow engine for building and locking candidate shortlists. The lifecycle tests (Draft → add/remove → Finalize) ensure correct state transitions and guard against invalid operations on finalized shortlists. The finalization test verifies the critical side effects: status update via `IApplicationStatusUpdater` and domain event dispatch for downstream HR workflows.
+**Why:** `ShortlistService` is the central workflow engine for building and locking candidate shortlists. The lifecycle tests (Draft → add/remove → approve/reject → Finalize) ensure correct state transitions and guard against invalid operations on finalized shortlists. The finalization test verifies that only Approved candidates are included, and the critical side effects: status update via `IApplicationStatusUpdater` and domain event dispatch for downstream HR workflows. The approval/rejection tests validate the Pending → Approved/Rejected state machine.
 
 ---
 
-## `CvScreeningCompletedMatchingHandlerTests` (5 tests)
+## `CvScreeningCompletedMatchingHandlerTests` (9 tests)
 
-Tests the domain event handler that creates a `CandidateMatch` record when CV screening completes. Consumes `CvScreeningCompletedEvent` from the Screening module.
+Tests the domain event handler that creates a `CandidateMatch` record when CV screening completes and optionally triggers auto-shortlist generation. Consumes `CvScreeningCompletedEvent` from the Screening module.
 
-| Test                                           | What It Verifies                                                                | Expected Outcome                    |
-| ---------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------- |
-| `Handle_PassedScreening_CreatesCandidateMatch` | Passed screening → creates match with screening score, composite, MatchStrength | Match created with score 82, Strong |
-| `Handle_FailedScreening_DoesNotCreateMatch`    | Failed screening → no match created                                             | Repository.Add not called           |
-| `Handle_MatchAlreadyExists_SkipsCreation`      | Idempotency: existing match for same ApplicationId → skip                       | Repository.Add not called           |
-| `Handle_NoApplicationData_SkipsCreation`       | Null application data snapshot → skip gracefully                                | Repository.Add not called           |
-| `Handle_NoScreeningScore_SkipsCreation`        | Null screening score snapshot → skip gracefully                                 | Repository.Add not called           |
+| Test                                                             | What It Verifies                                                                | Expected Outcome                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------- |
+| `Handle_PassedScreening_CreatesCandidateMatch`                   | Passed screening → creates match with screening score, composite, MatchStrength | Match created with score 82, Strong |
+| `Handle_FailedScreening_DoesNotCreateMatch`                      | Failed screening → no match created                                             | Repository.Add not called           |
+| `Handle_MatchAlreadyExists_SkipsCreation`                        | Idempotency: existing match for same ApplicationId → skip                       | Repository.Add not called           |
+| `Handle_NoApplicationData_SkipsCreation`                         | Null application data snapshot → skip gracefully                                | Repository.Add not called           |
+| `Handle_NoScreeningScore_SkipsCreation`                          | Null screening score snapshot → skip gracefully                                 | Repository.Add not called           |
+| `Handle_AutoGenerateEnabled_EnoughCandidates_GeneratesShortlist` | Auto-generate enabled, match count ≥ shortlist size → generates shortlist       | `GenerateShortlistAsync` called     |
+| `Handle_AutoGenerateDisabled_DoesNotGenerateShortlist`           | Auto-generate disabled → no shortlist generation                                | `GenerateShortlistAsync` not called |
+| `Handle_DraftShortlistAlreadyExists_SkipsAutoGenerate`           | Existing draft shortlist → skip auto-generation                                 | `GenerateShortlistAsync` not called |
+| `Handle_NotEnoughCandidates_SkipsAutoGenerate`                   | Match count below shortlist size threshold → skip                               | `GenerateShortlistAsync` not called |
 
-**Why:** This handler is the entry point for the matching pipeline — triggered by the Screening module's `CvScreeningCompletedEvent`. The idempotency test prevents duplicate matches on event replay. The null-guard tests ensure the handler degrades gracefully when cross-module readers return no data (e.g., deleted applications).
+**Why:** This handler is the entry point for the matching pipeline — triggered by the Screening module's `CvScreeningCompletedEvent`. The idempotency test prevents duplicate matches on event replay. The null-guard tests ensure the handler degrades gracefully when cross-module readers return no data. The auto-generate tests verify the tenant-configurable shortlist generation trigger, including threshold checks and deduplication.
 
 ---
 
@@ -125,13 +136,13 @@ Tests FluentValidation validators for request DTOs.
 
 ## Summary
 
-| Test Class                                 | Tests  | Coverage Area                                      |
-| ------------------------------------------ | ------ | -------------------------------------------------- |
-| `MatchingConstantsTests`                   | 4      | Constants, CHECK constraint alignment              |
-| `ScoreAggregationServiceTests`             | 8      | Composite score computation                        |
-| `MatchingServiceTests`                     | 5      | Match read operations                              |
-| `ShortlistServiceTests`                    | 11     | Shortlist lifecycle (generate/add/remove/finalize) |
-| `CvScreeningCompletedMatchingHandlerTests` | 5      | Cross-module event: screening → matching           |
-| `AssessmentCompletedMatchingHandlerTests`  | 2      | Cross-module event: assessment → matching          |
-| `MatchingValidatorTests`                   | 4      | Request validation                                 |
-| **Total**                                  | **39** | **7 test files**                                   |
+| Test Class                                 | Tests  | Coverage Area                                              |
+| ------------------------------------------ | ------ | ---------------------------------------------------------- |
+| `MatchingConstantsTests`                   | 5      | Constants, CHECK constraint alignment                      |
+| `ScoreAggregationServiceTests`             | 8      | Composite score computation                                |
+| `MatchingServiceTests`                     | 5      | Match read operations                                      |
+| `ShortlistServiceTests`                    | 18     | Shortlist lifecycle (generate/add/remove/approve/finalize) |
+| `CvScreeningCompletedMatchingHandlerTests` | 9      | Cross-module event: screening → matching + auto-generation |
+| `AssessmentCompletedMatchingHandlerTests`  | 2      | Cross-module event: assessment → matching                  |
+| `MatchingValidatorTests`                   | 4      | Request validation                                         |
+| **Total**                                  | **51** | **7 test files**                                           |

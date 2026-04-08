@@ -108,7 +108,7 @@ Tenant-scoped control plane. Owns two things: a singleton `company_settings` row
 
 ### Profiles
 
-Applicant professional identity — summary, skills, contact details, social links, documents, and resume management. Resumes are parsed once on upload by a background job (basic text extraction + skill extraction, plus AI-powered structured extraction when enabled). Basic parsing always runs; AI parsing calls the AI Service for richer extraction (skills with levels/years, experience timeline, education details, certifications) and stores the result in `ai_parsed_content`. If the AI Service is unavailable, the basic parser output is used as fallback. Downstream modules read pre-parsed data — no re-downloading or re-parsing. This is a passive data module with no outbound events.
+Applicant professional identity — summary, skills, contact details, social links, documents, and resume management. Resumes are parsed once on upload by a background job (basic text extraction + skill extraction, plus AI-powered structured extraction when enabled). Basic parsing always runs; AI parsing calls the AI Service for richer extraction (skills with levels/years, experience timeline, education details, certifications) and stores the result in `ai_parsed_content`. If the AI Service is unavailable, the basic parser output is used as fallback. Downstream modules read pre-parsed data — no re-downloading or re-parsing. Profile completion is automatically evaluated on every create/update against tenant-configurable requirements (required fields, minimum skills count, required social links, required documents, resume requirement) from Admin `ProfileSettings`. The `profile_completed_at` timestamp gates entry into the candidate matching pool. File storage supports both local filesystem (`LocalFileStorage`) and Azure Blob Storage (`AzureBlobFileStorage`), selected via `App:FileStorage:Provider` configuration. This is a passive data module with no outbound events.
 
 ### Recruitment
 
@@ -120,7 +120,7 @@ Criteria-driven screening and evaluation engine. Receives `ApplicationSubmittedE
 
 ### Matching
 
-Ranks and shortlists candidates after screening and assessment scores are available. Combines screening scores and assessment scores using tenant-configurable weights (`screening_weight` + `assessment_weight`). Generates shortlists for hiring managers. Listens for `CvScreeningCompletedEvent` (from Screening) and `AssessmentCompletedEvent` (from Screening, after assessment answers are scored). Publishes `CandidateShortlistedEvent` to HR Workflows.
+Ranks and shortlists candidates after screening and assessment scores are available. Combines screening scores and assessment scores using tenant-configurable weights (`screening_weight` + `assessment_weight`). When `auto_generate_shortlist` is enabled, automatically generates a shortlist once the candidate match count for a job posting meets the `shortlist_size` threshold — triggered by `CvScreeningCompletedEvent`. Shortlist candidates start in `Pending` status and must be individually approved or rejected by hiring managers via PATCH endpoints before finalization. Only `Approved` candidates are included in the finalized shortlist; `Pending` and `Rejected` candidates are excluded. Listens for `CvScreeningCompletedEvent` (from Screening) and `AssessmentCompletedEvent` (from Screening, after assessment answers are scored). Publishes `CandidateShortlistedEvent` to HR Workflows.
 
 ### HR Workflows
 

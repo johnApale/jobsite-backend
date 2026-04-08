@@ -229,3 +229,19 @@ builder.Services.AddOpenApi(options =>
 4. If the module has FluentValidation validators, add its assembly to `AddValidatorsFromAssemblyContaining<>()`.
 5. If the module has MassTransit consumers, add them via `bus.AddConsumers(typeof(ModuleMarker).Assembly)`.
 6. Map endpoints in `Program.cs` via `app.Map{Module}Endpoints()`.
+
+## Conditional registrations
+
+### File storage (Profiles module)
+
+The `IFileStorage` implementation is selected by `App:FileStorage:Provider`:
+
+```csharp
+if (string.Equals(fileStorageProvider, "Azure", StringComparison.OrdinalIgnoreCase))
+    services.AddSingleton<IFileStorage, AzureBlobFileStorage>();
+else
+    services.AddSingleton<IFileStorage>(new LocalFileStorage(uploadPath));
+```
+
+- **Local** (default): `LocalFileStorage` writes to the configured `App:FileStorage:UploadPath` directory.
+- **Azure**: `AzureBlobFileStorage` uses `App:FileStorage:Azure:ConnectionString` and `App:FileStorage:Azure:ContainerName`.

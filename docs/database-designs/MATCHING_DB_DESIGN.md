@@ -93,6 +93,7 @@ Candidates on a shortlist. Unique constraint prevents the same candidate from ap
 | `composite_score`   | `decimal(5,2)` | NOT NULL | —                   | Composite score at time of shortlisting         |
 | `rank`              | `int`          | NOT NULL | —                   | Position in shortlist (1-based)                 |
 | `source`            | `varchar(20)`  | NOT NULL | —                   | Algorithm / Manual                              |
+| `status`            | `varchar(20)`  | NOT NULL | `'Pending'`         | Pending / Approved / Rejected                   |
 | `added_at`          | `timestamptz`  | NOT NULL | —                   | When added to shortlist                         |
 | `removed_at`        | `timestamptz`  | NULL     | —                   | Soft removal timestamp                          |
 | `created_at`        | `timestamptz`  | NOT NULL | `NOW()`             | Row creation timestamp                          |
@@ -106,6 +107,7 @@ Candidates on a shortlist. Unique constraint prevents the same candidate from ap
 **CHECK constraints:**
 
 - `chk_shortlist_candidates_source`: `source IN ('Algorithm', 'Manual')`
+- `chk_shortlist_candidates_status`: `status IN ('Pending', 'Approved', 'Rejected')`
 
 **Cross-schema FKs (added via raw SQL in migration):**
 

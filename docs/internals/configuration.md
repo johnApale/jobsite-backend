@@ -62,8 +62,35 @@ Bound to the `AppSettings` class via `configuration.GetSection("App").Get<AppSet
 | `JwtExpirationMinutes`       | `int`                   | `60`                      | Access token lifetime                              |
 | `RefreshTokenExpirationDays` | `int`                   | `30`                      | Refresh token lifetime                             |
 | `AiServiceUrl`               | `string`                | `"http://localhost:8000"` | Base URL for the AI Interview microservice         |
+| `FileStorage`                | `FileStorageSettings`   | _(see below)_             | File storage provider configuration                |
 | `MessageBroker`              | `MessageBrokerSettings` | _(see below)_             | RabbitMQ / Azure Service Bus connection            |
 | `Redis`                      | `RedisSettings`         | _(see below)_             | Redis connection (optional, for distributed cache) |
+
+#### `FileStorageSettings`
+
+| Property                 | Type     | Default       | Description                                          |
+| ------------------------ | -------- | ------------- | ---------------------------------------------------- |
+| `Provider`               | `string` | `"Local"`     | `"Local"` or `"Azure"` — selects `IFileStorage` impl |
+| `UploadPath`             | `string` | `"./uploads"` | Base path for local file storage                     |
+| `Azure:ConnectionString` | `string` | `""`          | Azure Blob Storage connection string                 |
+| `Azure:ContainerName`    | `string` | `"uploads"`   | Azure Blob container name                            |
+
+```json
+{
+  "App": {
+    "FileStorage": {
+      "Provider": "Local",
+      "UploadPath": "./uploads",
+      "Azure": {
+        "ConnectionString": "",
+        "ContainerName": "uploads"
+      }
+    }
+  }
+}
+```
+
+When `Provider` is `"Azure"`, the Profiles module registers `AzureBlobFileStorage` as the `IFileStorage` implementation. Otherwise, `LocalFileStorage` is used. See [dependency-injection.md](dependency-injection.md) for registration details.
 
 #### `MessageBrokerSettings`
 
@@ -153,6 +180,9 @@ export App__MessageBroker__Host="rabbitmq.prod.internal"
 export App__MessageBroker__Username="djobsite"
 export App__MessageBroker__Password="secret"
 export App__Redis__ConnectionString="redis.prod.internal:6380,ssl=true"
+export App__FileStorage__Provider="Azure"
+export App__FileStorage__Azure__ConnectionString="DefaultEndpointsProtocol=https;AccountName=..."
+export App__FileStorage__Azure__ContainerName="jobsite-uploads"
 export ASPNETCORE_ENVIRONMENT="Production"
 ```
 

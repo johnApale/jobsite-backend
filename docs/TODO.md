@@ -106,29 +106,29 @@ _(none)_
 
 ### Deferred
 
-| Item                          | Description                                                                                                                                                      |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Profile Completion Evaluation | `ProfileCompletedAt` flag is present but evaluation logic (checking against Admin `ProfileSettings` required fields) is deferred until Admin settings are wired. |
-| Cloud File Storage            | `IFileStorage` abstraction exists with `LocalFileStorage` implementation. Azure Blob / S3 implementation deferred to hardening phase.                            |
-| Integration Tests             | No Testcontainers tests for `ProfilesDbContext`, `IApplicantProfileRepository`, or `IResumeRepository`. No endpoint tests via `WebApplicationFactory`.           |
-| MassTransit Consumer E2E      | No end-to-end test with Testcontainers RabbitMQ for resume upload → parse pipeline.                                                                              |
+| Item                     | Description                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Integration Tests        | No Testcontainers tests for `ProfilesDbContext`, `IApplicantProfileRepository`, or `IResumeRepository`. No endpoint tests via `WebApplicationFactory`. |
+| MassTransit Consumer E2E | No end-to-end test with Testcontainers RabbitMQ for resume upload → parse pipeline.                                                                    |
 
 ### Completed
 
-| Item                        | Resolution                                                                                                                                                                                                |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Applicant Profile Entity    | `ApplicantProfile` aggregate root with shared PK to `auth.users`, JSONB fields for skills/social links/documents.                                                                                         |
-| Resume Entity               | `Resume` entity with versioning (`is_latest`), parsing state, basic + AI parsed content JSONB columns.                                                                                                    |
-| Profile CRUD Endpoints      | `GET/POST/PATCH /api/v1/profiles/me` with JSON merge patch semantics and FluentValidation.                                                                                                                |
-| Resume Endpoints            | `POST/GET /api/v1/profiles/me/resumes`, `GET /api/v1/profiles/me/resumes/{id}` — upload, list, get by ID.                                                                                                 |
-| Resume Upload + Parsing     | File storage abstraction, MassTransit consumer for async parsing, basic text extraction (PdfPig + OpenXml), keyword skill matching.                                                                       |
-| AI Resume Parsing           | `AiResumeParserClient` with resilient HTTP (timeout/retry/circuit breaker), graceful null fallback when AI Service unavailable.                                                                           |
-| UserRegisteredEvent Handler | Auto-creates empty `ApplicantProfile` when user registers with Applicant role; skips other roles, idempotent.                                                                                             |
-| Resume Parse Recovery       | `ResumeParseRecoveryService` (BackgroundService) retries failed/unparsed resumes on startup.                                                                                                              |
-| Unit Tests                  | 83 tests: ProfileService, ResumeService, validators, event handler, constants, AI parser client, ResumeUploadedConsumer (8), BasicResumeParser (8), LocalFileStorage (6), ResumeParseRecoveryService (5). |
-| Architecture Tests          | 5 Profiles layer dependency tests added to `LayerDependencyTests.cs`; module isolation already covered by `ModuleIsolationTests.cs`.                                                                      |
-| IUnitOfWork Disambiguation  | Keyed service: `AddKeyedScoped<IUnitOfWork>("profiles")` with `[FromKeyedServices]`.                                                                                                                      |
-| EF Core Migration           | `InitialProfilesSchema` migration generated. Tables: `profiles.applicant_profiles`, `profiles.resumes` with 1 CHECK constraint and 4 indexes.                                                             |
+| Item                          | Resolution                                                                                                                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Applicant Profile Entity      | `ApplicantProfile` aggregate root with shared PK to `auth.users`, JSONB fields for skills/social links/documents.                                                                                                                    |
+| Resume Entity                 | `Resume` entity with versioning (`is_latest`), parsing state, basic + AI parsed content JSONB columns.                                                                                                                               |
+| Profile CRUD Endpoints        | `GET/POST/PATCH /api/v1/profiles/me` with JSON merge patch semantics and FluentValidation.                                                                                                                                           |
+| Resume Endpoints              | `POST/GET /api/v1/profiles/me/resumes`, `GET /api/v1/profiles/me/resumes/{id}` — upload, list, get by ID.                                                                                                                            |
+| Resume Upload + Parsing       | File storage abstraction, MassTransit consumer for async parsing, basic text extraction (PdfPig + OpenXml), keyword skill matching.                                                                                                  |
+| AI Resume Parsing             | `AiResumeParserClient` with resilient HTTP (timeout/retry/circuit breaker), graceful null fallback when AI Service unavailable.                                                                                                      |
+| UserRegisteredEvent Handler   | Auto-creates empty `ApplicantProfile` when user registers with Applicant role; skips other roles, idempotent.                                                                                                                        |
+| Resume Parse Recovery         | `ResumeParseRecoveryService` (BackgroundService) retries failed/unparsed resumes on startup.                                                                                                                                         |
+| Profile Completion Evaluation | `ProfileService.EvaluateProfileCompletionAsync` evaluates profile against tenant `ProfileSettings` (required fields, skills count, social links, documents, resume). Sets `ProfileCompletedAt` when met.                             |
+| Cloud File Storage            | `AzureBlobFileStorage` implements `IFileStorage` with Azure Blob Storage. Conditional DI: `App:FileStorage:Provider` selects Azure or Local.                                                                                         |
+| Unit Tests                    | 89 tests: ProfileService (12), ResumeService (9), validators (17), event handler (5), constants (14), AI parser client (5), ResumeUploadedConsumer (8), BasicResumeParser (8), LocalFileStorage (6), ResumeParseRecoveryService (5). |
+| Architecture Tests            | 5 Profiles layer dependency tests added to `LayerDependencyTests.cs`; module isolation already covered by `ModuleIsolationTests.cs`.                                                                                                 |
+| IUnitOfWork Disambiguation    | Keyed service: `AddKeyedScoped<IUnitOfWork>("profiles")` with `[FromKeyedServices]`.                                                                                                                                                 |
+| EF Core Migration             | `InitialProfilesSchema` migration generated. Tables: `profiles.applicant_profiles`, `profiles.resumes` with 1 CHECK constraint and 4 indexes.                                                                                        |
 
 ---
 
@@ -136,30 +136,30 @@ _(none)_
 
 ### Deferred
 
-| Item                        | Description                                                                                                                  |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Integration Tests           | No Testcontainers tests for `MatchingDbContext`, `ICandidateMatchRepository`, or `IShortlistRepository`. No endpoint tests.  |
-| Auto-Generate Shortlist     | `auto_generate_shortlist` setting in `MatchingSettings` is read but not yet wired to trigger automatic shortlist generation. |
-| Shortlist Approval Workflow | No hiring manager approval/rejection of individual shortlist candidates — only full shortlist finalization.                  |
+| Item              | Description                                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Integration Tests | No Testcontainers tests for `MatchingDbContext`, `ICandidateMatchRepository`, or `IShortlistRepository`. No endpoint tests. |
 
 ### Completed
 
-| Item                              | Resolution                                                                                                                                                                        |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CandidateMatch Entity             | `CandidateMatch` with shared PK (ApplicationId), screening/assessment/composite scores, rank, MatchStrength.                                                                      |
-| Shortlist Entity                  | `Shortlist` aggregate root with `ShortlistCandidate` collection, Draft/Finalized lifecycle.                                                                                       |
-| Score Aggregation Service         | Weighted composite score computation with tenant-configurable screening/assessment weights from `MatchingSettings`.                                                               |
-| CvScreeningCompletedEvent Handler | Consumes event from Screening → creates `CandidateMatch` with idempotency check. Uses cross-module readers for application data.                                                  |
-| AssessmentCompletedEvent Handler  | Updates existing `CandidateMatch` with assessment score, recomputes composite.                                                                                                    |
-| Shortlist Generation              | Top-N candidates by composite score, Algorithm source attribution, ranked candidates.                                                                                             |
-| Shortlist Management              | Manual candidate add/remove on draft shortlists, soft-delete, duplicate detection.                                                                                                |
-| Shortlist Finalization            | Status lock, `CandidateShortlistedEvent` dispatch per candidate, application status update to "Shortlisted" via `IApplicationStatusUpdater`.                                      |
-| Cross-Module Readers              | `IScreeningScoreReader` (SharedKernel → Screening.Infrastructure), `IApplicationDataReader` (SharedKernel → Recruitment.Infrastructure).                                          |
-| API Endpoints                     | 7 endpoints: GET match, GET matches, POST generate shortlist, GET shortlist, GET shortlists, POST add candidate, DELETE remove candidate, POST finalize.                          |
-| Unit Tests                        | 39 tests: constants (4), score aggregation (8), matching service (5), shortlist service (11), event handlers (7), validators (4).                                                 |
-| Architecture Tests                | Module isolation and naming convention tests updated to reference Matching types.                                                                                                 |
-| IUnitOfWork Disambiguation        | Keyed service: `AddKeyedScoped<IUnitOfWork>("matching")` with `[FromKeyedServices]`.                                                                                              |
-| EF Core Migration                 | `InitialMatchingSchema` migration generated. Tables: `matching.candidate_matches`, `matching.shortlists`, `matching.shortlist_candidates` with 3 CHECK constraints and 8 indexes. |
+| Item                              | Resolution                                                                                                                                                                            |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CandidateMatch Entity             | `CandidateMatch` with shared PK (ApplicationId), screening/assessment/composite scores, rank, MatchStrength.                                                                          |
+| Shortlist Entity                  | `Shortlist` aggregate root with `ShortlistCandidate` collection, Draft/Finalized lifecycle.                                                                                           |
+| Score Aggregation Service         | Weighted composite score computation with tenant-configurable screening/assessment weights from `MatchingSettings`.                                                                   |
+| CvScreeningCompletedEvent Handler | Consumes event from Screening → creates `CandidateMatch` with idempotency check. Uses cross-module readers for application data.                                                      |
+| AssessmentCompletedEvent Handler  | Updates existing `CandidateMatch` with assessment score, recomputes composite.                                                                                                        |
+| Shortlist Generation              | Top-N candidates by composite score, Algorithm source attribution, ranked candidates.                                                                                                 |
+| Shortlist Management              | Manual candidate add/remove on draft shortlists, soft-delete, duplicate detection.                                                                                                    |
+| Shortlist Finalization            | Status lock, `CandidateShortlistedEvent` dispatch per approved candidate, application status update to "Shortlisted" via `IApplicationStatusUpdater`.                                 |
+| Auto-Generate Shortlist           | `CvScreeningCompletedMatchingHandler` auto-generates shortlist when `auto_generate_shortlist` is enabled and candidate count meets `shortlist_size` threshold. No duplicate drafts.   |
+| Shortlist Approval Workflow       | `ShortlistCandidateStatus` (Pending/Approved/Rejected) with PATCH approve/reject endpoints. Only Approved candidates proceed on finalization. CHECK constraint on status column.      |
+| Cross-Module Readers              | `IScreeningScoreReader` (SharedKernel → Screening.Infrastructure), `IApplicationDataReader` (SharedKernel → Recruitment.Infrastructure).                                              |
+| API Endpoints                     | 9 endpoints: GET match, GET matches, POST generate shortlist, GET shortlist, GET shortlists, POST add candidate, DELETE remove candidate, PATCH approve, PATCH reject, POST finalize. |
+| Unit Tests                        | 51 tests: constants (5), score aggregation (8), matching service (5), shortlist service (18), event handlers (11), validators (4).                                                    |
+| Architecture Tests                | Module isolation and naming convention tests updated to reference Matching types.                                                                                                     |
+| IUnitOfWork Disambiguation        | Keyed service: `AddKeyedScoped<IUnitOfWork>("matching")` with `[FromKeyedServices]`.                                                                                                  |
+| EF Core Migration                 | `InitialMatchingSchema` migration generated. Tables: `matching.candidate_matches`, `matching.shortlists`, `matching.shortlist_candidates` with 4 CHECK constraints and 8 indexes.     |
 
 ---
 

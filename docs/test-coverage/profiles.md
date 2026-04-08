@@ -21,20 +21,26 @@ Tests `FileType.IsValid()` and `SkillLevel.IsValid()` constant validators. Value
 
 ---
 
-## `ProfileServiceTests` (6 tests)
+## `ProfileServiceTests` (12 tests)
 
-Tests `ProfileService` — the application service for profile CRUD. Uses NSubstitute to mock `IApplicantProfileRepository` and keyed `IUnitOfWork`.
+Tests `ProfileService` — the application service for profile CRUD and profile completion evaluation. Uses NSubstitute to mock `IApplicantProfileRepository`, `IResumeRepository`, `ITenantSettingsReader`, `ILogger`, and keyed `IUnitOfWork`.
 
-| Test                                                    | What It Verifies                                       | Expected Outcome                                     |
-| ------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------- |
-| `GetByUserIdAsync_ProfileExists_ReturnsProfileResponse` | Existing profile maps entity to response DTO correctly | Response has matching userId, firstName, lastName    |
-| `GetByUserIdAsync_ProfileNotFound_ThrowsAppError`       | Missing profile throws `PROFILE_NOT_FOUND`             | Throws `AppError` with code `PROFILE_NOT_FOUND`      |
-| `CreateAsync_ValidRequest_CreatesAndReturnsProfile`     | Happy path: profile created with userId as PK          | `Add()` and `SaveChangesAsync()` called, DTO match   |
-| `CreateAsync_ProfileAlreadyExists_ThrowsAppError`       | Duplicate profile throws `PROFILE_ALREADY_EXISTS`      | Throws `AppError` with code `PROFILE_ALREADY_EXISTS` |
-| `UpdateAsync_ValidRequest_UpdatesOnlyProvidedFields`    | JSON merge patch: only non-null fields are applied     | Updated field changes, others remain unchanged       |
-| `UpdateAsync_ProfileNotFound_ThrowsAppError`            | Missing profile on update throws `PROFILE_NOT_FOUND`   | Throws `AppError` with code `PROFILE_NOT_FOUND`      |
+| Test                                                                   | What It Verifies                                       | Expected Outcome                                     |
+| ---------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------- |
+| `GetByUserIdAsync_ProfileExists_ReturnsProfileResponse`                | Existing profile maps entity to response DTO correctly | Response has matching userId, firstName, lastName    |
+| `GetByUserIdAsync_ProfileNotFound_ThrowsAppError`                      | Missing profile throws `PROFILE_NOT_FOUND`             | Throws `AppError` with code `PROFILE_NOT_FOUND`      |
+| `CreateAsync_ValidRequest_CreatesAndReturnsProfile`                    | Happy path: profile created with userId as PK          | `Add()` and `SaveChangesAsync()` called, DTO match   |
+| `CreateAsync_ProfileAlreadyExists_ThrowsAppError`                      | Duplicate profile throws `PROFILE_ALREADY_EXISTS`      | Throws `AppError` with code `PROFILE_ALREADY_EXISTS` |
+| `UpdateAsync_ValidRequest_UpdatesOnlyProvidedFields`                   | JSON merge patch: only non-null fields are applied     | Updated field changes, others remain unchanged       |
+| `UpdateAsync_ProfileNotFound_ThrowsAppError`                           | Missing profile on update throws `PROFILE_NOT_FOUND`   | Throws `AppError` with code `PROFILE_NOT_FOUND`      |
+| `EvaluateProfileCompletion_AllRequirementsMet_SetsProfileCompletedAt`  | All tenant-configured requirements met                 | `ProfileCompletedAt` set to current timestamp        |
+| `EvaluateProfileCompletion_MissingRequiredField_DoesNotComplete`       | Required field (e.g., Phone) is missing                | `ProfileCompletedAt` remains null                    |
+| `EvaluateProfileCompletion_InsufficientSkills_DoesNotComplete`         | Skills count below `MinimumSkillsCount` threshold      | `ProfileCompletedAt` remains null                    |
+| `EvaluateProfileCompletion_NoResume_WhenRequired_DoesNotComplete`      | `ResumeRequired=true` but no resume uploaded           | `ProfileCompletedAt` remains null                    |
+| `EvaluateProfileCompletion_PreviouslyComplete_RevokesWhenFieldRemoved` | Profile was complete, then a required field is removed | `ProfileCompletedAt` cleared to null                 |
+| `EvaluateProfileCompletion_NoSettings_DoesNotModifyCompletion`         | Tenant has no `ProfileSettings` configured             | `ProfileCompletedAt` not modified                    |
 
-**Why:** Profile CRUD is the primary way applicants interact with their data. Merge patch semantics must not accidentally null out unrelated fields. The shared PK with `auth.users` means `CreateAsync` must use the userId as the entity ID.
+**Why:** Profile CRUD is the primary way applicants interact with their data. Merge patch semantics must not accidentally null out unrelated fields. The completion evaluation tests verify that tenant-configurable requirements (fields, skills count, social links, documents, resume) are correctly checked, and that completion status is revoked when requirements are no longer met.
 
 ---
 
@@ -206,6 +212,7 @@ Tests `ResumeParseRecoveryService` — a `BackgroundService` that re-publishes `
 | **Repository Tests**         | No integration tests for `IApplicantProfileRepository` or `IResumeRepository` — only tested via mocked service-layer tests. | High     |
 | **Endpoint Tests**           | No `WebApplicationFactory` HTTP pipeline tests for profile CRUD (`GET/POST/PATCH /api/v1/profiles/me`) or resume endpoints. | Medium   |
 | **MassTransit Consumer E2E** | No end-to-end test with Testcontainers RabbitMQ for the resume upload → parse pipeline.                                     | Medium   |
+| **AzureBlobFileStorage**     | No integration tests for Azure Blob Storage `IFileStorage` implementation. `LocalFileStorage` has 6 unit tests.             | Low      |
 
 ### Blocked by AI Service (Phase 6)
 
