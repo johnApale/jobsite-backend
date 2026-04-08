@@ -43,8 +43,12 @@ public static class ProfilesModuleServiceCollectionExtensions
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IResumeService, ResumeService>();
 
-        // File storage
-        services.AddScoped<IFileStorage, LocalFileStorage>();
+        // File storage — Azure Blob in production, local filesystem in development
+        string fileStorageProvider = configuration["App:FileStorage:Provider"] ?? "Local";
+        if (string.Equals(fileStorageProvider, "Azure", StringComparison.OrdinalIgnoreCase))
+            services.AddScoped<IFileStorage, AzureBlobFileStorage>();
+        else
+            services.AddScoped<IFileStorage, LocalFileStorage>();
 
         // Resume parser
         services.AddScoped<IResumeParser, BasicResumeParser>();
