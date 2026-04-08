@@ -217,7 +217,7 @@
 
 ---
 
-### Phase 8 — HR Workflows Module
+### Phase 8 — HR Workflows Module ✅
 
 > Final interviews, panel feedback, and job offers — closing the pipeline.
 

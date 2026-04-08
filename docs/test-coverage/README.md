@@ -6,24 +6,27 @@
 
 | Project                   | Tests   | Status                                    |
 | ------------------------- | ------- | ----------------------------------------- |
-| Jobsite.UnitTests         | 650     | ✅ All passing                            |
+| Jobsite.UnitTests         | 686     | ✅ All passing                            |
 | Jobsite.ArchitectureTests | 35      | ✅ All passing                            |
 | Jobsite.IntegrationTests  | 97      | ✅ All passing (all tests require Docker) |
-| **Total**                 | **782** |                                           |
+| **Total**                 | **818** |                                           |
 
 ---
 
 ## Module Coverage
 
 | Module / Area      | Tests | Doc                                            |
-| ------------------ | ----- | ---------------------------------------------- | --- | -------- | --- | -------------------------- | --- | ---------- | --- | ------------------------------ |
+| ------------------ | ----- | ---------------------------------------------- |
 | SharedKernel       | 27    | [shared-kernel.md](shared-kernel.md)           |
 | Tenancy            | 25    | [tenancy.md](tenancy.md)                       |
 | Auth               | 53    | [auth.md](auth.md)                             |
 | Admin              | 39    | [admin.md](admin.md)                           |
 | Profiles           | 83    | [profiles.md](profiles.md)                     |
 | Recruitment        | 189   | [recruitment.md](recruitment.md)               |
-| Screening          | 144   | [screening.md](screening.md)                   |     | Matching | 39  | [matching.md](matching.md) |     | Middleware | 21  | [middleware.md](middleware.md) |
+| Screening          | 144   | [screening.md](screening.md)                   |
+| Matching           | 39    | [matching.md](matching.md)                     |
+| HR Workflows       | 36    | [hr-workflows.md](hr-workflows.md)             |
+| Middleware         | 21    | [middleware.md](middleware.md)                 |
 | Pipeline Behaviors | 7     | [pipeline-behaviors.md](pipeline-behaviors.md) |
 | Infrastructure     | 2     | [infrastructure.md](infrastructure.md)         |
 | Architecture Tests | 35    | [architecture.md](architecture.md)             |
