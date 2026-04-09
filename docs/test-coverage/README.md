@@ -65,8 +65,8 @@
 
 All 6 AI client contract tests are now implemented using WireMock (see [screening.md](screening.md#ai-service-contract-tests-wiremock)). The full screening pipeline E2E test is also implemented (see [screening.md](screening.md#e2e-screening-pipeline-tests)). Remaining gaps:
 
-| Area                               | Gap                                                                                        |
-| ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| Area                               | Gap                                                                                         |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
 | **Full Resume Parse Pipeline E2E** | End-to-end resume upload → basic parse → AI parse → persist requires operational AI Service |
 
 ### Blocked by Incomplete Modules
