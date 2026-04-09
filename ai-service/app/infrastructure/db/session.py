@@ -10,6 +10,13 @@ def init_session_factory(engine: AsyncEngine) -> None:
     _session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    """Return the session factory for use outside FastAPI dependency injection."""
+    if _session_factory is None:
+        raise RuntimeError("Session factory not initialized. Call init_session_factory first.")
+    return _session_factory
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     if _session_factory is None:
         raise RuntimeError("Session factory not initialized. Call init_session_factory first.")

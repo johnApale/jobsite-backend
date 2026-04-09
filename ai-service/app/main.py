@@ -33,6 +33,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.infrastructure.db.engine import create_engine
     from app.infrastructure.db.session import init_session_factory
     from app.infrastructure.messaging.connection import connect, disconnect
+    from app.infrastructure.messaging.consumer import register_consumer
+    from app.infrastructure.messaging.handlers import (
+        EXCHANGE_ANSWER_SCORING_REQUESTED,
+        EXCHANGE_FEEDBACK_GENERATION_REQUESTED,
+        EXCHANGE_RESUME_PARSE_REQUESTED,
+        EXCHANGE_SCREENING_EVALUATION_REQUESTED,
+        handle_answer_scoring,
+        handle_feedback_generation,
+        handle_resume_parse,
+        handle_screening_evaluation,
+    )
 
     engine = create_engine(settings)
     init_session_factory(engine)
@@ -44,8 +55,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     channel = await connect(settings.rabbitmq_url)
     await logger.ainfo("Message broker connected")
 
-    # Consumer registration will be added in Phase 3 when handlers are built
-    # e.g. await register_consumer(channel, "Jobsite.SharedKernel.Events:ResumeParseRequested", handler)
+    await register_consumer(channel, EXCHANGE_RESUME_PARSE_REQUESTED, handle_resume_parse)
+    await register_consumer(channel, EXCHANGE_SCREENING_EVALUATION_REQUESTED, handle_screening_evaluation)
+    await register_consumer(channel, EXCHANGE_ANSWER_SCORING_REQUESTED, handle_answer_scoring)
+    await register_consumer(channel, EXCHANGE_FEEDBACK_GENERATION_REQUESTED, handle_feedback_generation)
 
     yield
 
