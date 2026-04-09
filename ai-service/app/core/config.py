@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
 
+    # RabbitMQ
+    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000"]
 

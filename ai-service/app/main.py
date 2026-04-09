@@ -32,6 +32,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     from app.infrastructure.db.engine import create_engine
     from app.infrastructure.db.session import init_session_factory
+    from app.infrastructure.messaging.connection import connect, disconnect
 
     engine = create_engine(settings)
     init_session_factory(engine)
@@ -40,7 +41,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if not settings.openai_api_key:
         await logger.awarning("OPENAI_API_KEY is not set — AI endpoints will fail")
 
+    channel = await connect(settings.rabbitmq_url)
+    await logger.ainfo("Message broker connected")
+
+    # Consumer registration will be added in Phase 3 when handlers are built
+    # e.g. await register_consumer(channel, "Jobsite.SharedKernel.Events:ResumeParseRequested", handler)
+
     yield
+
+    await disconnect()
+    await logger.ainfo("Message broker disconnected")
 
     await engine.dispose()
     await logger.ainfo("Database engine disposed")
