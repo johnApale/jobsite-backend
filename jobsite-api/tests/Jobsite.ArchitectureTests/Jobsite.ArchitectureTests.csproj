@@ -27,21 +27,33 @@
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Infrastructure\Jobsite.Modules.Tenancy.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\Tenancy\Jobsite.Modules.Tenancy.Api\Jobsite.Modules.Tenancy.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Domain\Jobsite.Modules.Auth.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Application\Jobsite.Modules.Auth.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Infrastructure\Jobsite.Modules.Auth.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Auth\Jobsite.Modules.Auth.Api\Jobsite.Modules.Auth.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Domain\Jobsite.Modules.Admin.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Application\Jobsite.Modules.Admin.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Infrastructure\Jobsite.Modules.Admin.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Admin\Jobsite.Modules.Admin.Api\Jobsite.Modules.Admin.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\Profiles\Jobsite.Modules.Profiles.Domain\Jobsite.Modules.Profiles.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Profiles\Jobsite.Modules.Profiles.Application\Jobsite.Modules.Profiles.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Profiles\Jobsite.Modules.Profiles.Infrastructure\Jobsite.Modules.Profiles.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Profiles\Jobsite.Modules.Profiles.Api\Jobsite.Modules.Profiles.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Domain\Jobsite.Modules.Recruitment.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Application\Jobsite.Modules.Recruitment.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Infrastructure\Jobsite.Modules.Recruitment.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Recruitment\Jobsite.Modules.Recruitment.Api\Jobsite.Modules.Recruitment.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Domain\Jobsite.Modules.Screening.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Application\Jobsite.Modules.Screening.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Infrastructure\Jobsite.Modules.Screening.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Screening\Jobsite.Modules.Screening.Api\Jobsite.Modules.Screening.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\Matching\Jobsite.Modules.Matching.Domain\Jobsite.Modules.Matching.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Matching\Jobsite.Modules.Matching.Application\Jobsite.Modules.Matching.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\Matching\Jobsite.Modules.Matching.Infrastructure\Jobsite.Modules.Matching.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Matching\Jobsite.Modules.Matching.Api\Jobsite.Modules.Matching.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\HRWorkflows\Jobsite.Modules.HRWorkflows.Domain\Jobsite.Modules.HRWorkflows.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HRWorkflows\Jobsite.Modules.HRWorkflows.Application\Jobsite.Modules.HRWorkflows.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\HRWorkflows\Jobsite.Modules.HRWorkflows.Infrastructure\Jobsite.Modules.HRWorkflows.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HRWorkflows\Jobsite.Modules.HRWorkflows.Api\Jobsite.Modules.HRWorkflows.Api.csproj" />
   </ItemGroup>
 
 </Project>

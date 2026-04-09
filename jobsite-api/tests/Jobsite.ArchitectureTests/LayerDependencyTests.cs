@@ -1,11 +1,26 @@
 using System.Reflection;
 using FluentAssertions;
+using Jobsite.Modules.Admin.Application.Interfaces;
+using Jobsite.Modules.Admin.Domain.Entities;
+using Jobsite.Modules.Admin.Infrastructure.Persistence;
+using Jobsite.Modules.Auth.Application.Interfaces;
+using Jobsite.Modules.Auth.Domain.Entities;
+using Jobsite.Modules.Auth.Infrastructure.Persistence;
+using Jobsite.Modules.HRWorkflows.Application.Services;
+using Jobsite.Modules.HRWorkflows.Domain;
+using Jobsite.Modules.HRWorkflows.Infrastructure.Persistence;
+using Jobsite.Modules.Matching.Application.Services;
+using Jobsite.Modules.Matching.Domain;
+using Jobsite.Modules.Matching.Infrastructure.Persistence;
 using Jobsite.Modules.Profiles.Application.Interfaces;
 using Jobsite.Modules.Profiles.Domain.Entities;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence;
 using Jobsite.Modules.Recruitment.Application.Interfaces;
 using Jobsite.Modules.Recruitment.Domain.Entities;
 using Jobsite.Modules.Recruitment.Infrastructure.Persistence;
+using Jobsite.Modules.Screening.Application.Interfaces;
+using Jobsite.Modules.Screening.Domain.Entities;
+using Jobsite.Modules.Screening.Infrastructure.Persistence;
 using Jobsite.Modules.Tenancy.Application.Services;
 using Jobsite.Modules.Tenancy.Domain.Entities;
 using Jobsite.Modules.Tenancy.Infrastructure.Persistence;
@@ -14,7 +29,7 @@ using NetArchTest.Rules;
 namespace Jobsite.ArchitectureTests;
 
 /// <summary>
-/// Enforces the module layer dependency rules:
+/// Enforces the module layer dependency rules for all 8 modules:
 ///   SharedKernel ← no project references
 ///   Module.Domain ← SharedKernel only
 ///   Module.Application ← Module.Domain only
@@ -23,231 +38,114 @@ namespace Jobsite.ArchitectureTests;
 /// </summary>
 public sealed class LayerDependencyTests
 {
-    private static readonly Assembly TenancyDomain = typeof(Tenant).Assembly;
-    private static readonly Assembly TenancyApplication = typeof(ITenantService).Assembly;
-    private static readonly Assembly TenancyInfrastructure = typeof(CatalogDbContext).Assembly;
+    private static readonly Dictionary<string, Assembly> DomainAssemblies = new()
+    {
+        ["Jobsite.Modules.Tenancy"] = typeof(Tenant).Assembly,
+        ["Jobsite.Modules.Auth"] = typeof(User).Assembly,
+        ["Jobsite.Modules.Admin"] = typeof(CompanySettings).Assembly,
+        ["Jobsite.Modules.Profiles"] = typeof(ApplicantProfile).Assembly,
+        ["Jobsite.Modules.Recruitment"] = typeof(JobPosting).Assembly,
+        ["Jobsite.Modules.Screening"] = typeof(ScreeningResult).Assembly,
+        ["Jobsite.Modules.Matching"] = typeof(Jobsite.Modules.Matching.Domain.Entities.CandidateMatch).Assembly,
+        ["Jobsite.Modules.HRWorkflows"] = typeof(Jobsite.Modules.HRWorkflows.Domain.Entities.FinalInterview).Assembly,
+    };
 
-    private static readonly Assembly ProfilesDomain = typeof(ApplicantProfile).Assembly;
-    private static readonly Assembly ProfilesApplication = typeof(IProfileService).Assembly;
-    private static readonly Assembly ProfilesInfrastructure = typeof(ProfilesDbContext).Assembly;
+    private static readonly Dictionary<string, Assembly> ApplicationAssemblies = new()
+    {
+        ["Jobsite.Modules.Tenancy"] = typeof(ITenantService).Assembly,
+        ["Jobsite.Modules.Auth"] = typeof(IAuthService).Assembly,
+        ["Jobsite.Modules.Admin"] = typeof(IAdminSettingsService).Assembly,
+        ["Jobsite.Modules.Profiles"] = typeof(IProfileService).Assembly,
+        ["Jobsite.Modules.Recruitment"] = typeof(IJobPostingRepository).Assembly,
+        ["Jobsite.Modules.Screening"] = typeof(IAssessmentService).Assembly,
+        ["Jobsite.Modules.Matching"] = typeof(IMatchingService).Assembly,
+        ["Jobsite.Modules.HRWorkflows"] = typeof(IFeedbackAggregationService).Assembly,
+    };
 
-    private static readonly Assembly RecruitmentDomain = typeof(JobPosting).Assembly;
-    private static readonly Assembly RecruitmentApplication = typeof(IJobPostingRepository).Assembly;
-    private static readonly Assembly RecruitmentInfrastructure = typeof(RecruitmentDbContext).Assembly;
+    public static IEnumerable<object[]> AllModules()
+    {
+        foreach (string module in DomainAssemblies.Keys)
+        {
+            yield return [module];
+        }
+    }
 
-    // ── Tenancy Module ───────────────────────────────────────────────────
+    // ── Domain layer must not reference Application or Infrastructure ────
 
-    [Fact]
-    public void DomainLayer_ShouldNotReference_ApplicationLayer()
+    [Theory]
+    [MemberData(nameof(AllModules))]
+    public void DomainLayer_ShouldNotReference_ApplicationLayer(string moduleName)
     {
         // Arrange & Act
-        TestResult result = Types.InAssembly(TenancyDomain)
+        TestResult result = Types.InAssembly(DomainAssemblies[moduleName])
             .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Tenancy.Application")
+            .HaveDependencyOn($"{moduleName}.Application")
             .GetResult();
 
         // Assert
         result.IsSuccessful.Should().BeTrue(
-            "Domain layer must not reference Application layer");
+            $"{moduleName} Domain layer must not reference Application layer");
     }
 
-    [Fact]
-    public void DomainLayer_ShouldNotReference_InfrastructureLayer()
+    [Theory]
+    [MemberData(nameof(AllModules))]
+    public void DomainLayer_ShouldNotReference_InfrastructureLayer(string moduleName)
     {
         // Arrange & Act
-        TestResult result = Types.InAssembly(TenancyDomain)
+        TestResult result = Types.InAssembly(DomainAssemblies[moduleName])
             .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Tenancy.Infrastructure")
+            .HaveDependencyOn($"{moduleName}.Infrastructure")
             .GetResult();
 
         // Assert
         result.IsSuccessful.Should().BeTrue(
-            "Domain layer must not reference Infrastructure layer");
+            $"{moduleName} Domain layer must not reference Infrastructure layer");
     }
 
-    [Fact]
-    public void DomainLayer_ShouldNotReference_EFCore()
+    [Theory]
+    [MemberData(nameof(AllModules))]
+    public void DomainLayer_ShouldNotReference_EFCore(string moduleName)
     {
         // Arrange & Act
-        TestResult result = Types.InAssembly(TenancyDomain)
+        TestResult result = Types.InAssembly(DomainAssemblies[moduleName])
             .ShouldNot()
             .HaveDependencyOn("Microsoft.EntityFrameworkCore")
             .GetResult();
 
         // Assert
         result.IsSuccessful.Should().BeTrue(
-            "Domain layer must not reference EF Core");
+            $"{moduleName} Domain layer must not reference EF Core");
     }
 
-    [Fact]
-    public void ApplicationLayer_ShouldNotReference_InfrastructureLayer()
+    // ── Application layer must not reference Infrastructure or EF Core ───
+
+    [Theory]
+    [MemberData(nameof(AllModules))]
+    public void ApplicationLayer_ShouldNotReference_InfrastructureLayer(string moduleName)
     {
         // Arrange & Act
-        TestResult result = Types.InAssembly(TenancyApplication)
+        TestResult result = Types.InAssembly(ApplicationAssemblies[moduleName])
             .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Tenancy.Infrastructure")
+            .HaveDependencyOn($"{moduleName}.Infrastructure")
             .GetResult();
 
         // Assert
         result.IsSuccessful.Should().BeTrue(
-            "Application layer must not reference Infrastructure layer");
+            $"{moduleName} Application layer must not reference Infrastructure layer");
     }
 
-    [Fact]
-    public void ApplicationLayer_ShouldNotReference_EFCore()
+    [Theory]
+    [MemberData(nameof(AllModules))]
+    public void ApplicationLayer_ShouldNotReference_EFCore(string moduleName)
     {
         // Arrange & Act
-        TestResult result = Types.InAssembly(TenancyApplication)
-            .ShouldNot()
-            .HaveDependencyOn("Microsoft.EntityFrameworkCore")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Application layer must not reference EF Core");
-    }
-
-    // ── Profiles Module ──────────────────────────────────────────────────
-
-    [Fact]
-    public void ProfilesDomain_ShouldNotReference_ApplicationLayer()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(ProfilesDomain)
-            .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Profiles.Application")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Profiles Domain layer must not reference Application layer");
-    }
-
-    [Fact]
-    public void ProfilesDomain_ShouldNotReference_InfrastructureLayer()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(ProfilesDomain)
-            .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Profiles.Infrastructure")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Profiles Domain layer must not reference Infrastructure layer");
-    }
-
-    [Fact]
-    public void ProfilesDomain_ShouldNotReference_EFCore()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(ProfilesDomain)
+        TestResult result = Types.InAssembly(ApplicationAssemblies[moduleName])
             .ShouldNot()
             .HaveDependencyOn("Microsoft.EntityFrameworkCore")
             .GetResult();
 
         // Assert
         result.IsSuccessful.Should().BeTrue(
-            "Profiles Domain layer must not reference EF Core");
-    }
-
-    [Fact]
-    public void ProfilesApplication_ShouldNotReference_InfrastructureLayer()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(ProfilesApplication)
-            .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Profiles.Infrastructure")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Profiles Application layer must not reference Infrastructure layer");
-    }
-
-    [Fact]
-    public void ProfilesApplication_ShouldNotReference_EFCore()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(ProfilesApplication)
-            .ShouldNot()
-            .HaveDependencyOn("Microsoft.EntityFrameworkCore")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Profiles Application layer must not reference EF Core");
-    }
-
-    // ── Recruitment Module ───────────────────────────────────────────────
-
-    [Fact]
-    public void RecruitmentDomain_ShouldNotReference_ApplicationLayer()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(RecruitmentDomain)
-            .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Recruitment.Application")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Recruitment Domain layer must not reference Application layer");
-    }
-
-    [Fact]
-    public void RecruitmentDomain_ShouldNotReference_InfrastructureLayer()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(RecruitmentDomain)
-            .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Recruitment.Infrastructure")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Recruitment Domain layer must not reference Infrastructure layer");
-    }
-
-    [Fact]
-    public void RecruitmentDomain_ShouldNotReference_EFCore()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(RecruitmentDomain)
-            .ShouldNot()
-            .HaveDependencyOn("Microsoft.EntityFrameworkCore")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Recruitment Domain layer must not reference EF Core");
-    }
-
-    [Fact]
-    public void RecruitmentApplication_ShouldNotReference_InfrastructureLayer()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(RecruitmentApplication)
-            .ShouldNot()
-            .HaveDependencyOn("Jobsite.Modules.Recruitment.Infrastructure")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Recruitment Application layer must not reference Infrastructure layer");
-    }
-
-    [Fact]
-    public void RecruitmentApplication_ShouldNotReference_EFCore()
-    {
-        // Arrange & Act
-        TestResult result = Types.InAssembly(RecruitmentApplication)
-            .ShouldNot()
-            .HaveDependencyOn("Microsoft.EntityFrameworkCore")
-            .GetResult();
-
-        // Assert
-        result.IsSuccessful.Should().BeTrue(
-            "Recruitment Application layer must not reference EF Core");
+            $"{moduleName} Application layer must not reference EF Core");
     }
 }

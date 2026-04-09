@@ -1,14 +1,27 @@
 using System.Reflection;
 using FluentAssertions;
+using Jobsite.Modules.Admin.Application.Interfaces;
 using Jobsite.Modules.Admin.Domain.Entities;
 using Jobsite.Modules.Admin.Infrastructure.Persistence;
+using Jobsite.Modules.Auth.Application.Interfaces;
 using Jobsite.Modules.Auth.Domain.Entities;
 using Jobsite.Modules.Auth.Infrastructure.Persistence;
+using Jobsite.Modules.HRWorkflows.Application.Services;
 using Jobsite.Modules.HRWorkflows.Domain;
+using Jobsite.Modules.HRWorkflows.Infrastructure.Persistence;
+using Jobsite.Modules.Matching.Application.Services;
 using Jobsite.Modules.Matching.Domain;
+using Jobsite.Modules.Matching.Infrastructure.Persistence;
+using Jobsite.Modules.Profiles.Application.Interfaces;
 using Jobsite.Modules.Profiles.Domain;
+using Jobsite.Modules.Profiles.Infrastructure.Persistence;
+using Jobsite.Modules.Recruitment.Application.Interfaces;
 using Jobsite.Modules.Recruitment.Domain;
+using Jobsite.Modules.Recruitment.Infrastructure.Persistence;
+using Jobsite.Modules.Screening.Application.Interfaces;
 using Jobsite.Modules.Screening.Domain.Entities;
+using Jobsite.Modules.Screening.Infrastructure.Persistence;
+using Jobsite.Modules.Tenancy.Application.Services;
 using Jobsite.Modules.Tenancy.Domain.Entities;
 using Jobsite.Modules.Tenancy.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Domain;
@@ -35,16 +48,40 @@ public sealed class NamingConventionTests
         typeof(Jobsite.Modules.HRWorkflows.Domain.Entities.FinalInterview).Assembly,
     ];
 
+    private static readonly Assembly[] AllApplicationAssemblies =
+    [
+        typeof(ITenantService).Assembly,
+        typeof(IAuthService).Assembly,
+        typeof(IAdminSettingsService).Assembly,
+        typeof(IProfileService).Assembly,
+        typeof(IJobPostingRepository).Assembly,
+        typeof(IAssessmentService).Assembly,
+        typeof(IMatchingService).Assembly,
+        typeof(IFeedbackAggregationService).Assembly,
+    ];
+
     private static readonly Assembly[] AllInfrastructureAssemblies =
     [
         typeof(CatalogDbContext).Assembly,
         typeof(AuthDbContext).Assembly,
         typeof(AdminDbContext).Assembly,
-        typeof(Jobsite.Modules.Profiles.Infrastructure.Persistence.ProfilesDbContext).Assembly,
-        typeof(Jobsite.Modules.Recruitment.Infrastructure.Persistence.RecruitmentDbContext).Assembly,
-        typeof(Jobsite.Modules.Screening.Infrastructure.Persistence.ScreeningDbContext).Assembly,
-        typeof(Jobsite.Modules.Matching.Infrastructure.Persistence.MatchingDbContext).Assembly,
-        typeof(Jobsite.Modules.HRWorkflows.Infrastructure.Persistence.HRWorkflowsDbContext).Assembly,
+        typeof(ProfilesDbContext).Assembly,
+        typeof(RecruitmentDbContext).Assembly,
+        typeof(ScreeningDbContext).Assembly,
+        typeof(MatchingDbContext).Assembly,
+        typeof(HRWorkflowsDbContext).Assembly,
+    ];
+
+    private static readonly Assembly[] AllApiAssemblies =
+    [
+        typeof(Jobsite.Modules.Tenancy.Api.TenantEndpoints).Assembly,
+        typeof(Jobsite.Modules.Auth.Api.AuthEndpoints).Assembly,
+        typeof(Jobsite.Modules.Admin.Api.AdminEndpoints).Assembly,
+        typeof(Jobsite.Modules.Profiles.Api.ProfileEndpoints).Assembly,
+        typeof(Jobsite.Modules.Recruitment.Api.RecruitmentEndpoints).Assembly,
+        typeof(Jobsite.Modules.Screening.Api.ScreeningEndpoints).Assembly,
+        typeof(Jobsite.Modules.Matching.Api.MatchingEndpoints).Assembly,
+        typeof(Jobsite.Modules.HRWorkflows.Api.HRWorkflowsEndpoints).Assembly,
     ];
 
     [Fact]
@@ -103,6 +140,46 @@ public sealed class NamingConventionTests
 
             result.IsSuccessful.Should().BeTrue(
                 $"All concrete classes in {assembly.GetName().Name} must be sealed (excluding EF migrations). " +
+                $"Failing types: {string.Join(", ", result.FailingTypeNames ?? [])}");
+        }
+    }
+
+    [Fact]
+    public void AllApplicationLayers_ConcreteClasses_ShouldBeSealed()
+    {
+        foreach (Assembly assembly in AllApplicationAssemblies)
+        {
+            TestResult result = Types.InAssembly(assembly)
+                .That()
+                .AreClasses()
+                .And()
+                .AreNotAbstract()
+                .Should()
+                .BeSealed()
+                .GetResult();
+
+            result.IsSuccessful.Should().BeTrue(
+                $"All concrete classes in {assembly.GetName().Name} must be sealed. " +
+                $"Failing types: {string.Join(", ", result.FailingTypeNames ?? [])}");
+        }
+    }
+
+    [Fact]
+    public void AllApiLayers_ConcreteClasses_ShouldBeSealed()
+    {
+        foreach (Assembly assembly in AllApiAssemblies)
+        {
+            TestResult result = Types.InAssembly(assembly)
+                .That()
+                .AreClasses()
+                .And()
+                .AreNotAbstract()
+                .Should()
+                .BeSealed()
+                .GetResult();
+
+            result.IsSuccessful.Should().BeTrue(
+                $"All concrete classes in {assembly.GetName().Name} must be sealed. " +
                 $"Failing types: {string.Join(", ", result.FailingTypeNames ?? [])}");
         }
     }
