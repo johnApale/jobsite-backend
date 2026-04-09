@@ -2,7 +2,7 @@
 
 Standalone microservice database. This is **not** part of the modular monolith's tenant DB — it's a separate PostgreSQL database owned by the AI Service. Unlike the monolith (which uses database-per-tenant), this service uses a **single shared database with tenant ID filtering** because provisioning a separate database per tenant would be overkill for lightweight, mostly-transient data.
 
-The AI Service centralizes all AI capabilities for the platform. It communicates with the monolith via **HTTP for synchronous operations** (resume parsing, criteria generation, assessment question generation, AI screening) and via **message broker for asynchronous operations** (future AI Interview).
+The AI Service centralizes all AI capabilities for the platform. It communicates with the monolith via **HTTP for synchronous operations** (criteria suggestion, assessment question suggestion) and via **message broker for asynchronous operations** (resume parsing, AI screening, answer scoring, candidate feedback).
 
 ## Active Capabilities
 

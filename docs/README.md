@@ -71,7 +71,7 @@ Every step is configurable per tenant — thresholds, scoring weights, question 
 
 The core HR logic lives in a **modular monolith** — eight modules sharing a runtime but isolated by code boundaries and database schemas. Modules communicate via in-process domain events.
 
-The **AI Interview Service** is a standalone microservice with its own database. It's separated because it has different scaling needs (compute-intensive AI calls) and a different deployment lifecycle. It communicates with the monolith through a message broker.
+The **AI Service** is a standalone microservice with its own database. It's separated because it has different scaling needs (compute-intensive AI calls) and a different deployment lifecycle. It communicates with the monolith through HTTP for synchronous operations (criteria suggestion, question suggestion) and a message broker for asynchronous operations (resume parsing, AI screening, answer scoring, candidate feedback).
 
 ---
 

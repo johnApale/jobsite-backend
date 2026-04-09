@@ -12,7 +12,7 @@ D'Jobsite iConnect is built as a **modular monolith** with one **standalone micr
 
 The monolith contains eight modules that share a runtime process and a per-tenant database, but are isolated at the code level — each module owns its own PostgreSQL schema, entities, and business logic. Modules communicate through in-process domain events via a hand-rolled event bus.
 
-The AI Service is deployed separately because it has fundamentally different scaling and lifecycle needs: compute-intensive AI provider calls, specialized AI model integrations, and (eventually) media transcription and async batch processing. It communicates with the monolith via **HTTP for synchronous operations** (resume parsing, criteria generation, assessment question generation, AI screening) and via **message broker for asynchronous operations** (future AI Interview).
+The AI Service is deployed separately because it has fundamentally different scaling and lifecycle needs: compute-intensive AI provider calls, specialized AI model integrations, and (eventually) media transcription and async batch processing. It communicates with the monolith via **HTTP for synchronous operations** (criteria suggestion, assessment question suggestion) and via **message broker for asynchronous operations** (resume parsing, AI screening, answer scoring, candidate feedback).
 
 ```
                         ┌─────────────────────────┐
@@ -48,15 +48,14 @@ The AI Service is deployed separately because it has fundamentally different sca
                            │                 │
            HTTP (sync)     │                 │  Integration events
            ┌──────────────┘                 │  (RabbitMQ / Azure Service Bus)
-           │                                 │  (future — AI Interview)
+           │                                 │
            ▼                                 ▼
 ┌──────────────────────────────────┐     ┌──────────────────────┐
 │         AI Service               │────▶│     AI Service DB     │
 │    (separate deployment)         │     │   (shared, one       │
 │                                  │     │    instance, tenant   │
 │  Resume parsing, criteria gen,   │     │    ID filtering)     │
-│  AI screening, assessment Qs,    │     └──────────────────────┘
-│  AI interview (future)           │
+│  AI screening, assessment Qs     │     └──────────────────────┘
 └──────────────────────────────────┘
 ```
 
@@ -128,7 +127,7 @@ The human side of hiring. Schedules final interviews with panel support (multipl
 
 ### AI Service (Microservice)
 
-Standalone deployment with its own database. Centralizes all AI capabilities for the platform. Currently provides four active capabilities via HTTP: (1) **resume parsing** — AI-powered structured data extraction from resumes, (2) **criteria generation** — AI-suggested evaluation criteria from job descriptions, (3) **assessment question generation** — AI-suggested screening questions (feature-flagged), (4) **AI screening** — alternative scoring engine providing per-criterion AI analysis (feature-flagged). A fifth capability — **AI interview** (real-time AI-conducted interview sessions with media handling, transcription, and scoring) — is designed but deferred to a future release. The monolith communicates with the AI Service via direct HTTP calls for synchronous operations. A message broker connection is reserved for the future AI Interview capability (async, long-running sessions). Logs every AI API call for cost tracking, debugging, and compliance.
+Standalone deployment with its own database. Centralizes all AI capabilities for the platform. Currently provides four active capabilities: (1) **resume parsing** — AI-powered structured data extraction from resumes, (2) **criteria generation** — AI-suggested evaluation criteria from job descriptions, (3) **assessment question generation** — AI-suggested screening questions (feature-flagged), (4) **AI screening** — alternative scoring engine providing per-criterion AI analysis (feature-flagged). The monolith communicates with the AI Service via **HTTP for synchronous operations** (criteria suggestion, question suggestion) and via **message broker for asynchronous operations** (resume parsing, AI screening, answer scoring, candidate feedback). Logs every AI API call for cost tracking, debugging, and compliance.
 
 ---
 
@@ -149,12 +148,18 @@ The hiring pipeline is orchestrated through two types of events:
 | `OfferExtendedEvent`           | HR Workflows | Admin (audit)               |
 | `TenantProvisionedEvent`       | Tenancy      | Admin (seed settings)       |
 
-**Future integration events** (message broker, async, cross-service — deferred until AI Interview is implemented):
+**Integration events** (message broker, async, cross-service):
 
-| Event                             | Publisher  | Consumer   |
-| --------------------------------- | ---------- | ---------- |
-| `CandidateReadyForInterviewEvent` | Screening  | AI Service |
-| `InterviewCompletedEvent`         | AI Service | Matching   |
+| Event                          | Publisher  | Consumer   |
+| ------------------------------ | ---------- | ---------- |
+| `ResumeParseRequested`         | Profiles   | AI Service |
+| `ResumeParsed`                 | AI Service | Profiles   |
+| `ScreeningEvaluationRequested` | Screening  | AI Service |
+| `ScreeningEvaluated`           | AI Service | Screening  |
+| `AnswerScoringRequested`       | Screening  | AI Service |
+| `AnswersScored`                | AI Service | Screening  |
+| `FeedbackGenerationRequested`  | Screening  | AI Service |
+| `FeedbackGenerated`            | AI Service | Screening  |
 
 Domain events also trigger audit log entries in the Admin module.
 
@@ -248,7 +253,7 @@ The Admin module's `audit_logs` table is append-only and FK-free. Actor identity
 
 ### Resume Parsing
 
-Resumes are parsed once on upload by a background job in the Profiles module. Basic text extraction and skill extraction always run. When AI parsing is enabled (`ai_parsing_enabled` in `profile_settings`), the Profiles module calls the AI Service for richer structured extraction — skills with levels and years of experience, experience timeline, education details, and certifications — stored as `ai_parsed_content` on the resume record. If the AI Service is unavailable, the basic parser output is used as fallback. Every downstream consumer (Screening, Matching) reads pre-parsed data — no re-downloading, no re-parsing, no duplication across applications.
+Resumes are parsed once on upload by a background job in the Profiles module. Basic text extraction and skill extraction always run. When AI parsing is enabled (`ai_parsing_enabled` in `profile_settings`), the Profiles module publishes a `ResumeParseRequested` message to the broker; the AI Service consumes it, performs richer structured extraction — skills with levels and years of experience, experience timeline, education details, and certifications — and publishes a `ResumeParsed` message back. The Profiles module's consumer stores the result as `ai_parsed_content` on the resume record. If the AI Service is unavailable, the basic parser output is used as fallback. Every downstream consumer (Screening, Matching) reads pre-parsed data — no re-downloading, no re-parsing, no duplication across applications.
 
 ### Configuration
 
@@ -313,5 +318,5 @@ Each module's database design is documented in detail:
 - [Recruitment DB](RECRUITMENT_DB_DESIGN.md) — Jobs, applications, client companies, evaluation criteria, screening questions
 - [Screening DB](SCREENING_DB_DESIGN.md) — Criteria-based scoring, dual engine, assessment flow, candidate transparency
 - [HR Workflows DB](HR_WORKFLOWS_DB_DESIGN.md) — Interviews, panels, offers
-- [AI Service DB](AI_INTERVIEW_DB_DESIGN.md) — API logs, resume cache, deferred interview tables
+- [AI Service DB](AI_SERVICE_DB_DESIGN.md) — API logs, resume cache, deferred interview tables
 - [CHECK Constraints](CHECK_CONSTRAINTS.md) — All enum constraints across the platform

@@ -2,12 +2,12 @@
 
 ## Architecture
 
-D'Jobsite iConnect is a **modular monolith** (C#/.NET 10) with one standalone **AI Interview microservice** (Python/FastAPI).
+D'Jobsite iConnect is a **modular monolith** (C#/.NET 10) with one standalone **AI Service microservice** (Python/FastAPI).
 
 - Eight modules share a runtime and a per-tenant PostgreSQL database, isolated by schema.
 - Modules communicate via **domain events** (in-process event bus) — never direct table queries across module boundaries.
-- The AI Interview Service communicates via **message broker** (RabbitMQ / Azure Service Bus).
-- **Database-per-tenant** for the monolith. **Shared database with tenant ID filtering** for the AI Interview Service.
+- The AI Service communicates via **HTTP for synchronous calls** (criteria suggestion, question suggestion) and **message broker** (RabbitMQ / Azure Service Bus) **for asynchronous calls** (resume parsing, AI screening, answer scoring, candidate feedback).
+- **Database-per-tenant** for the monolith. **Shared database with tenant ID filtering** for the AI Service.
 
 See `docs/TECHNICAL_OVERVIEW.md` for the full architecture.
 
@@ -52,8 +52,8 @@ dotnet build jobsite-api/Jobsite.Api.slnx
 dotnet test                                              # all tests
 dotnet test --project jobsite-api/tests/Jobsite.UnitTests # unit only
 
-# AI Interview Service
-cd ai-interview && pytest
+# AI Service
+cd ai-service && pytest
 ```
 
 ## Database Design Docs

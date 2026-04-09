@@ -3,7 +3,7 @@ namespace Jobsite.SharedKernel.Domain;
 /// <summary>
 /// Marker interface for integration events published to the message broker
 /// (RabbitMQ / Azure Service Bus). Used for cross-service communication
-/// between the monolith and the AI Interview Service.
+/// between the monolith and the AI Service.
 /// </summary>
 public interface IIntegrationEvent
 {
