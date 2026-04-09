@@ -68,6 +68,7 @@ public sealed class TenantResolutionMiddleware
         }
 
         context.Items["Tenant"] = tenant;
+        context.Items["TenantId"] = tenant.Id;
         context.Items["TenantConnectionString"] = tenant.ConnectionString;
 
         await _next(context);
