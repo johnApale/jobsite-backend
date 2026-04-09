@@ -48,7 +48,7 @@ public sealed class JobPosting : AggregateRoot
     /// <summary>Lifecycle status: Draft, Published, Closed. Constrained by CHECK.</summary>
     public string Status { get; set; } = Constants.JobPostingStatus.Draft;
 
-    /// <summary>FK to <c>auth.users</c>. The Recruiter or HiringManager who created this posting.</summary>
+    /// <summary>Ref to <c>auth.users</c> (cross-module). The Recruiter or HiringManager who created this posting.</summary>
     public Guid PostedBy { get; set; }
 
     /// <summary>Set when status moves to Published. Used for "newest jobs" sorting.</summary>

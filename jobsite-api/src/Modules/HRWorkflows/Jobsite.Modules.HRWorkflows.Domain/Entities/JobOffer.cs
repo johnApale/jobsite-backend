@@ -12,7 +12,7 @@ public sealed class JobOffer : Entity
     /// <summary>Shared PK with <c>recruitment.applications.id</c>.</summary>
     public Guid ApplicationId { get; set; }
 
-    /// <summary>FK to <c>recruitment.client_companies.id</c>. Null if tenant is hiring for themselves.</summary>
+    /// <summary>Ref to <c>recruitment.client_companies.id</c> (cross-module). Null if tenant is hiring for themselves.</summary>
     public Guid? ClientCompanyId { get; set; }
 
     /// <summary>Lifecycle status: Draft, Pending, Accepted, Declined, Withdrawn, Expired.</summary>
@@ -45,7 +45,7 @@ public sealed class JobOffer : Entity
     /// <summary>Offer expiration deadline.</summary>
     public DateTime? ExpiresAt { get; set; }
 
-    /// <summary>FK to <c>auth.users.id</c> — who extended the offer.</summary>
+    /// <summary>Ref to <c>auth.users.id</c> (cross-module) — who extended the offer.</summary>
     public Guid ExtendedBy { get; set; }
 
     /// <summary>When the offer was sent to the candidate (Draft → Pending).</summary>

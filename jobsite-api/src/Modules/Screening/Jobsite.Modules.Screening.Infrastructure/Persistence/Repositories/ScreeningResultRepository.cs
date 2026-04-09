@@ -36,9 +36,9 @@ public sealed class ScreeningResultRepository : IScreeningResultRepository
         if (parameters.JobPostingId.HasValue)
         {
             // Filter by job posting — requires knowledge of which applications belong to which job.
-            // This is done via the cross-schema relationship. Since we don't have a navigation property,
+            // This is a cross-module reference. Since we don't have a navigation property,
             // we rely on the caller filtering by applicationIds or add job_posting_id to the query params.
-            // For now, this filter is not directly supported without a cross-module join.
+            // For now, this filter is not directly supported without a cross-module query.
         }
 
         if (!string.IsNullOrEmpty(parameters.Status))

@@ -11,10 +11,10 @@ public sealed class ShortlistCandidate : Entity
     /// <summary>FK to <c>matching.shortlists.id</c>.</summary>
     public Guid ShortlistId { get; set; }
 
-    /// <summary>FK to <c>recruitment.applications.id</c> (cross-schema, no navigation).</summary>
+    /// <summary>Ref to <c>recruitment.applications.id</c> (cross-module, no navigation).</summary>
     public Guid ApplicationId { get; set; }
 
-    /// <summary>FK to <c>auth.users.id</c> (cross-schema, no navigation).</summary>
+    /// <summary>Ref to <c>auth.users.id</c> (cross-module, no navigation).</summary>
     public Guid ApplicantUserId { get; set; }
 
     /// <summary>Composite score at time of shortlisting (0.00–100.00).</summary>

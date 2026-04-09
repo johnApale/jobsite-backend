@@ -27,8 +27,8 @@ public sealed class ScreeningQuestionResponseRepository : IScreeningQuestionResp
         Guid applicationId, string timing, CancellationToken ct = default)
     {
         // We don't store timing on the response entity — it's on the question.
-        // To filter by timing, we need to join with questions (cross-schema).
-        // Since we can't do a cross-schema join in EF, we return all responses
+        // To filter by timing, we need to join with questions (cross-module).
+        // Since we can't do a cross-module join in EF, we return all responses
         // and let the caller filter by matching question IDs.
         // The service layer fetches questions with timing and filters accordingly.
         return await _db.ScreeningQuestionResponses

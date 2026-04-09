@@ -8,7 +8,7 @@ namespace Jobsite.Modules.Matching.Domain.Entities;
 /// </summary>
 public sealed class Shortlist : AggregateRoot
 {
-    /// <summary>FK to <c>recruitment.job_postings.id</c> (cross-schema, no navigation).</summary>
+    /// <summary>Ref to <c>recruitment.job_postings.id</c> (cross-module, no navigation).</summary>
     public Guid JobPostingId { get; set; }
 
     /// <summary>Lifecycle status: Draft, Finalized.</summary>

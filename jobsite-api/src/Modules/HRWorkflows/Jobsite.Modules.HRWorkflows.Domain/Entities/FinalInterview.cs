@@ -27,7 +27,7 @@ public sealed class FinalInterview : Entity
     /// <summary>Physical address, video call URL, or phone number depending on type.</summary>
     public string? Location { get; set; }
 
-    /// <summary>FK to <c>auth.users.id</c> — the recruiter/hiring manager who scheduled this interview.</summary>
+    /// <summary>Ref to <c>auth.users.id</c> (cross-module) — the recruiter/hiring manager who scheduled this interview.</summary>
     public Guid ScheduledBy { get; set; }
 
     /// <summary>Aggregated recommendation: StrongHire, Hire, NoHire, StrongNoHire. Set by hiring manager.</summary>
@@ -36,7 +36,7 @@ public sealed class FinalInterview : Entity
     /// <summary>Hiring manager's summary of the interview outcome.</summary>
     public string? DecisionNotes { get; set; }
 
-    /// <summary>FK to <c>auth.users.id</c> — the hiring manager who made the final recommendation.</summary>
+    /// <summary>Ref to <c>auth.users.id</c> (cross-module) — the hiring manager who made the final recommendation.</summary>
     public Guid? DecidedBy { get; set; }
 
     /// <summary>When the final recommendation was recorded.</summary>

@@ -9,10 +9,10 @@ namespace Jobsite.Modules.Screening.Domain.Entities;
 /// </summary>
 public sealed class ScreeningQuestionResponse : Entity
 {
-    /// <summary>FK to <c>recruitment.applications.id</c> (cross-schema).</summary>
+    /// <summary>Ref to <c>recruitment.applications.id</c> (cross-module, no navigation).</summary>
     public Guid ApplicationId { get; set; }
 
-    /// <summary>FK to <c>recruitment.job_screening_questions.id</c> (cross-schema).</summary>
+    /// <summary>Ref to <c>recruitment.job_screening_questions.id</c> (cross-module, no navigation).</summary>
     public Guid QuestionId { get; set; }
 
     /// <summary>Free-text answer for FreeText questions. Null for MultipleChoice/YesNo.</summary>

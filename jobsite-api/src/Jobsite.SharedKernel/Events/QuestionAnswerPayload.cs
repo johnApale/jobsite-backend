@@ -7,7 +7,7 @@ namespace Jobsite.SharedKernel.Events;
 /// </summary>
 public sealed class QuestionAnswerPayload
 {
-    /// <summary>FK to <c>recruitment.job_screening_questions.id</c>.</summary>
+    /// <summary>Ref to <c>recruitment.job_screening_questions.id</c> (cross-module).</summary>
     public required Guid QuestionId { get; init; }
 
     /// <summary>Free-text answer (for <c>FreeText</c> questions).</summary>

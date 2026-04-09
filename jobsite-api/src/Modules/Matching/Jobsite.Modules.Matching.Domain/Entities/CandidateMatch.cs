@@ -4,7 +4,7 @@ namespace Jobsite.Modules.Matching.Domain.Entities;
 
 /// <summary>
 /// One candidate match per application — maps to <c>matching.candidate_matches</c>.
-/// Uses shared primary key with <c>recruitment.applications</c> (ApplicationId is both PK and FK).
+/// Uses shared primary key with <c>recruitment.applications</c> (ApplicationId is PK, cross-module reference).
 /// Aggregates screening and assessment scores into a weighted composite score.
 /// </summary>
 public sealed class CandidateMatch : Entity
@@ -12,10 +12,10 @@ public sealed class CandidateMatch : Entity
     /// <summary>Shared PK with <c>recruitment.applications.id</c>.</summary>
     public Guid ApplicationId { get; set; }
 
-    /// <summary>FK to <c>recruitment.job_postings.id</c> (cross-schema, no navigation).</summary>
+    /// <summary>Ref to <c>recruitment.job_postings.id</c> (cross-module, no navigation).</summary>
     public Guid JobPostingId { get; set; }
 
-    /// <summary>FK to <c>auth.users.id</c> (cross-schema, no navigation).</summary>
+    /// <summary>Ref to <c>auth.users.id</c> (cross-module, no navigation).</summary>
     public Guid ApplicantUserId { get; set; }
 
     /// <summary>Deterministic screening overall score (0.00–100.00).</summary>

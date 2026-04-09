@@ -12,7 +12,7 @@ public sealed class InterviewPanelist : Entity
     /// <summary>FK to <c>hr_workflows.final_interviews.application_id</c>.</summary>
     public Guid InterviewId { get; set; }
 
-    /// <summary>FK to <c>auth.users.id</c> — the staff member conducting the interview.</summary>
+    /// <summary>Ref to <c>auth.users.id</c> (cross-module) — the staff member conducting the interview.</summary>
     public Guid InterviewerId { get; set; }
 
     /// <summary>Panelist's overall rating (1.0–5.0). Null until feedback is submitted.</summary>

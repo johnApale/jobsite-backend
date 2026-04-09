@@ -14,13 +14,13 @@ public sealed class Application : AggregateRoot
     /// <summary>FK to <c>recruitment.job_postings</c>.</summary>
     public Guid JobPostingId { get; set; }
 
-    /// <summary>FK to <c>auth.users</c>. Must have role = Applicant.</summary>
+    /// <summary>Ref to <c>auth.users</c> (cross-module). Must have role = Applicant.</summary>
     public Guid ApplicantId { get; set; }
 
     /// <summary>Pipeline status. Constrained by CHECK.</summary>
     public string Status { get; set; } = Constants.ApplicationStatus.Submitted;
 
-    /// <summary>FK to <c>profiles.resumes</c>. The specific resume version at submission time.</summary>
+    /// <summary>Ref to <c>profiles.resumes</c> (cross-module). The specific resume version at submission time.</summary>
     public Guid ResumeId { get; set; }
 
     /// <summary>Optional cover letter submitted with this application.</summary>
