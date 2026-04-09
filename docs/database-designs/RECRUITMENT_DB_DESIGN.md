@@ -60,7 +60,7 @@ For agency tenants, `client_company_id` links the job to the external company be
 
 | department | varchar(100) | nullable | Organizational department (e.g., "Engineering", "Marketing") |
 | status | varchar(20) | NOT NULL | Enum: `Draft`, `Published`, `Closed` |
-| posted_by | uuid | NOT NULL, FK → auth.users.id | The Recruiter or HiringManager who created this posting |
+| posted_by | uuid | NOT NULL, ref → auth.users.id | The Recruiter or HiringManager who created this posting |
 | published_at | timestamp | nullable | Set when status moves to `Published`. Used for "newest jobs" sorting |
 | closes_at | timestamp | nullable | Optional auto-close date. Job stops accepting applications after this |
 | closed_at | timestamp | nullable | Set when status moves to `Closed` (manually or via auto-close) |
@@ -85,20 +85,20 @@ An applicant's submission to a specific job posting. This is the central record 
 
 One application per applicant per job, enforced by a unique constraint. The application references the specific resume version from `profiles.resumes` that was current at submission time, so re-uploads to the profile don't affect in-flight applications.
 
-| Column            | Type          | Constraints                        | Description                                                                                                                                                                                       |
-| ----------------- | ------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| id                | uuid          | PK                                 |                                                                                                                                                                                                   |
-| job_posting_id    | uuid          | NOT NULL, FK → job_postings.id     | The job this application is for                                                                                                                                                                   |
-| applicant_id      | uuid          | NOT NULL, FK → auth.users.id       | The applicant who submitted. Must have role = `Applicant` (enforced in app code)                                                                                                                  |
-| status            | varchar(20)   | NOT NULL                           | Enum: `Submitted`, `Screening`, `Assessment`, `Shortlisted`, `FinalInterview`, `Offered`, `Hired`, `Rejected`, `Withdrawn`                                                                        |
-| resume_id         | uuid          | NOT NULL, FK → profiles.resumes.id | The specific resume version submitted with this application. Points to the resume that was `is_latest` at submission time. Immutable — doesn't change if the applicant uploads a new resume later |
-| cover_letter_url  | varchar(2048) | nullable                           | Optional cover letter submitted with this specific application                                                                                                                                    |
-| rejection_reason  | varchar(500)  | nullable                           | Set when status moves to `Rejected`. Brief explanation (e.g., "Did not meet minimum skill requirements")                                                                                          |
-| rejected_at_stage | varchar(20)   | nullable                           | Enum: `Screening`, `Assessment`, `Shortlisted`, `FinalInterview`, `Offered`. Which pipeline stage rejected the candidate                                                                          |
-| withdrawn_at      | timestamp     | nullable                           | Set when applicant withdraws. Status moves to `Withdrawn`                                                                                                                                         |
-| submitted_at      | timestamp     | NOT NULL                           | When the application was submitted. Distinct from `created_at` for clarity                                                                                                                        |
-| created_at        | timestamp     | NOT NULL                           |                                                                                                                                                                                                   |
-| updated_at        | timestamp     | NOT NULL                           | Auto-set on modification — tracks status transitions                                                                                                                                              |
+| Column            | Type          | Constraints                         | Description                                                                                                                                                                                       |
+| ----------------- | ------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| id                | uuid          | PK                                  |                                                                                                                                                                                                   |
+| job_posting_id    | uuid          | NOT NULL, FK → job_postings.id      | The job this application is for                                                                                                                                                                   |
+| applicant_id      | uuid          | NOT NULL, ref → auth.users.id       | The applicant who submitted. Must have role = `Applicant` (enforced in app code)                                                                                                                  |
+| status            | varchar(20)   | NOT NULL                            | Enum: `Submitted`, `Screening`, `Assessment`, `Shortlisted`, `FinalInterview`, `Offered`, `Hired`, `Rejected`, `Withdrawn`                                                                        |
+| resume_id         | uuid          | NOT NULL, ref → profiles.resumes.id | The specific resume version submitted with this application. Points to the resume that was `is_latest` at submission time. Immutable — doesn't change if the applicant uploads a new resume later |
+| cover_letter_url  | varchar(2048) | nullable                            | Optional cover letter submitted with this specific application                                                                                                                                    |
+| rejection_reason  | varchar(500)  | nullable                            | Set when status moves to `Rejected`. Brief explanation (e.g., "Did not meet minimum skill requirements")                                                                                          |
+| rejected_at_stage | varchar(20)   | nullable                            | Enum: `Screening`, `Assessment`, `Shortlisted`, `FinalInterview`, `Offered`. Which pipeline stage rejected the candidate                                                                          |
+| withdrawn_at      | timestamp     | nullable                            | Set when applicant withdraws. Status moves to `Withdrawn`                                                                                                                                         |
+| submitted_at      | timestamp     | NOT NULL                            | When the application was submitted. Distinct from `created_at` for clarity                                                                                                                        |
+| created_at        | timestamp     | NOT NULL                            |                                                                                                                                                                                                   |
+| updated_at        | timestamp     | NOT NULL                            | Auto-set on modification — tracks status transitions                                                                                                                                              |
 
 **Constraints:**
 
@@ -196,11 +196,11 @@ auth.users             ||--o{ job_postings            : "staff member posts many
 profiles.resumes       ||--o{ applications            : "resume version used in application"
 ```
 
-Cross-schema FKs to `auth.users` for both `posted_by` and `applicant_id`, and to `profiles.resumes` for `resume_id`. User identity and resume versioning are foundational — referential integrity matters more than strict schema isolation here.
+Cross-schema references to `auth.users` for both `posted_by` and `applicant_id`, and to `profiles.resumes` for `resume_id` — all logical references with no DB-level FK constraints. Integrity is enforced at the application layer via SharedKernel interfaces and domain events.
 
 The `client_companies → job_postings` relationship is optional. For non-agency tenants, `client_company_id` is NULL and the `client_companies` table stays empty.
 
-`job_evaluation_criteria` and `job_screening_questions` are always loaded with the job posting for screening. Questions have a cross-schema consumer: `screening.screening_question_responses` references `job_screening_questions.id`.
+`job_evaluation_criteria` and `job_screening_questions` are always loaded with the job posting for screening. Questions have a cross-schema consumer: `screening.screening_question_responses` logically references `job_screening_questions.id` (no DB-level FK constraint).
 
 ---
 
@@ -396,7 +396,7 @@ Status transitions are driven by domain events from downstream modules. Recruitm
 
 ## Resume Versioning
 
-The application stores a `resume_id` FK pointing to the specific `profiles.resumes` record that was `is_latest` at submission time. This is intentional — if the applicant uploads a new resume after applying, the in-flight application still references the original version they submitted with.
+The application stores a `resume_id` pointing to the specific `profiles.resumes` record that was `is_latest` at submission time. This is intentional — if the applicant uploads a new resume after applying, the in-flight application still references the original version they submitted with.
 
 The Screening module follows the `resume_id` to get the `file_url`, `parsed_text`, and `extracted_skills` from the resume record. Because the resume is parsed once on upload (by the Profiles module's background parser), Screening doesn't need to re-download or re-parse the file — it reads the pre-parsed data directly. This means ten applications with the same resume all reference the same parsed data with zero duplication.
 
@@ -422,7 +422,7 @@ The Screening module follows the `resume_id` to get the `file_url`, `parsed_text
 
 **`closes_at` for auto-close, `closed_at` for actual close.** `closes_at` is a future deadline set when the job is published. A background job checks this and closes expired postings. `closed_at` records when the job actually closed, whether via auto-close or manual action. Both are useful for different purposes.
 
-**Cross-schema FKs to `auth.users`.** Both `posted_by` (staff) and `applicant_id` (applicant) reference `auth.users`. Same justification as Profiles — user identity is foundational. The FK on `applicant_id` ensures you can't have an application for a deleted user, and `posted_by` ensures every job has a traceable creator.
+**Cross-schema references to `auth.users` (no DB-level FK constraints).** Both `posted_by` (staff) and `applicant_id` (applicant) reference `auth.users`. Integrity is enforced at the application layer — user identity is foundational and guaranteed to exist before job postings or applications are created.
 
 **No `application_documents` join table.** The application references a resume via `resume_id` and has an optional `cover_letter_url` inline. These are the only two documents relevant to a specific application (as opposed to the profile's general document collection). If applications ever need arbitrary additional documents, a JSONB column like the profile's `documents` can be added — but the current design is simpler and sufficient.
 

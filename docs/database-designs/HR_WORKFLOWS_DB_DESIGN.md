@@ -14,33 +14,33 @@ A scheduled final interview for a shortlisted candidate. This is the human inter
 
 One-to-one with `recruitment.applications` using a shared primary key. An application can have at most one final interview.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| application_id | uuid | PK, FK → recruitment.applications.id | Shared key — one final interview per application |
-| status | varchar(20) | NOT NULL | Enum: `Scheduled`, `InProgress`, `Completed`, `Cancelled`, `NoShow` |
-| interview_type | varchar(20) | NOT NULL | Enum: `InPerson`, `Video`, `Phone` |
-| scheduled_at | timestamp | NOT NULL | When the interview is scheduled to take place |
-| duration_minutes | integer | NOT NULL, DEFAULT 60 | Expected interview duration |
-| location | varchar(500) | nullable | Physical address for `InPerson`, video call URL for `Video`, phone number for `Phone` |
-| scheduled_by | uuid | NOT NULL, FK → auth.users.id | The recruiter or hiring manager who scheduled this interview |
-| overall_recommendation | varchar(20) | nullable | Enum: `StrongHire`, `Hire`, `NoHire`, `StrongNoHire`. Aggregated from panelist recommendations. Set by hiring manager after reviewing all feedback |
-| decision_notes | text | nullable | Hiring manager's summary of the interview outcome and reasoning for the recommendation |
-| decided_by | uuid | nullable, FK → auth.users.id | The hiring manager who made the final recommendation |
-| decided_at | timestamp | nullable | When the final recommendation was recorded |
-| completed_at | timestamp | nullable | When the interview actually finished |
-| cancelled_at | timestamp | nullable | When the interview was cancelled. Set when status → `Cancelled` |
-| cancellation_reason | varchar(500) | nullable | Why it was cancelled (e.g., "Candidate requested reschedule", "Position filled") |
-| created_at | timestamp | NOT NULL | |
-| updated_at | timestamp | NOT NULL | Auto-set on modification |
+| Column                 | Type         | Constraints                           | Description                                                                                                                                        |
+| ---------------------- | ------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| application_id         | uuid         | PK, ref → recruitment.applications.id | Shared key — one final interview per application                                                                                                   |
+| status                 | varchar(20)  | NOT NULL                              | Enum: `Scheduled`, `InProgress`, `Completed`, `Cancelled`, `NoShow`                                                                                |
+| interview_type         | varchar(20)  | NOT NULL                              | Enum: `InPerson`, `Video`, `Phone`                                                                                                                 |
+| scheduled_at           | timestamp    | NOT NULL                              | When the interview is scheduled to take place                                                                                                      |
+| duration_minutes       | integer      | NOT NULL, DEFAULT 60                  | Expected interview duration                                                                                                                        |
+| location               | varchar(500) | nullable                              | Physical address for `InPerson`, video call URL for `Video`, phone number for `Phone`                                                              |
+| scheduled_by           | uuid         | NOT NULL, ref → auth.users.id         | The recruiter or hiring manager who scheduled this interview                                                                                       |
+| overall_recommendation | varchar(20)  | nullable                              | Enum: `StrongHire`, `Hire`, `NoHire`, `StrongNoHire`. Aggregated from panelist recommendations. Set by hiring manager after reviewing all feedback |
+| decision_notes         | text         | nullable                              | Hiring manager's summary of the interview outcome and reasoning for the recommendation                                                             |
+| decided_by             | uuid         | nullable, ref → auth.users.id         | The hiring manager who made the final recommendation                                                                                               |
+| decided_at             | timestamp    | nullable                              | When the final recommendation was recorded                                                                                                         |
+| completed_at           | timestamp    | nullable                              | When the interview actually finished                                                                                                               |
+| cancelled_at           | timestamp    | nullable                              | When the interview was cancelled. Set when status → `Cancelled`                                                                                    |
+| cancellation_reason    | varchar(500) | nullable                              | Why it was cancelled (e.g., "Candidate requested reschedule", "Position filled")                                                                   |
+| created_at             | timestamp    | NOT NULL                              |                                                                                                                                                    |
+| updated_at             | timestamp    | NOT NULL                              | Auto-set on modification                                                                                                                           |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_final_interviews_status | status | Non-unique | Filter by interview status (upcoming, completed, etc.) |
-| ix_final_interviews_scheduled_at | scheduled_at | Non-unique | Calendar views, upcoming interview queries |
-| ix_final_interviews_scheduled_by | scheduled_by | Non-unique | "Interviews I scheduled" for recruiters |
-| ix_final_interviews_recommendation | overall_recommendation | Non-unique | Filter by recommendation for hiring dashboards |
+| Name                               | Columns                | Type       | Purpose                                                |
+| ---------------------------------- | ---------------------- | ---------- | ------------------------------------------------------ |
+| ix_final_interviews_status         | status                 | Non-unique | Filter by interview status (upcoming, completed, etc.) |
+| ix_final_interviews_scheduled_at   | scheduled_at           | Non-unique | Calendar views, upcoming interview queries             |
+| ix_final_interviews_scheduled_by   | scheduled_by           | Non-unique | "Interviews I scheduled" for recruiters                |
+| ix_final_interviews_recommendation | overall_recommendation | Non-unique | Filter by recommendation for hiring dashboards         |
 
 ---
 
@@ -48,32 +48,32 @@ One-to-one with `recruitment.applications` using a shared primary key. An applic
 
 Individual interviewers assigned to a final interview. Each panelist provides their own independent rating, notes, and hire/no-hire recommendation. A panel can be one person (simple interview) or several (panel interview).
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| interview_id | uuid | NOT NULL, FK → final_interviews.application_id | The interview this panelist is assigned to |
-| interviewer_id | uuid | NOT NULL, FK → auth.users.id | The staff member conducting the interview. Typically has `Interviewer`, `HiringManager`, or `Recruiter` role |
-| rating | decimal(3,1) | nullable | Panelist's overall rating (1.0–5.0). NULL until feedback is submitted |
-| recommendation | varchar(20) | nullable | Enum: `StrongHire`, `Hire`, `NoHire`, `StrongNoHire`. Panelist's individual recommendation. NULL until feedback is submitted |
-| strengths | text | nullable | What the candidate did well in this interviewer's assessment |
-| concerns | text | nullable | Areas of weakness or concern |
-| notes | text | nullable | General interview notes, observations, questions asked |
-| feedback_submitted_at | timestamp | nullable | When this panelist submitted their feedback. NULL = hasn't submitted yet |
-| created_at | timestamp | NOT NULL | |
+| Column                | Type         | Constraints                                    | Description                                                                                                                  |
+| --------------------- | ------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| id                    | uuid         | PK                                             |                                                                                                                              |
+| interview_id          | uuid         | NOT NULL, FK → final_interviews.application_id | The interview this panelist is assigned to                                                                                   |
+| interviewer_id        | uuid         | NOT NULL, ref → auth.users.id                  | The staff member conducting the interview. Typically has `Interviewer`, `HiringManager`, or `Recruiter` role                 |
+| rating                | decimal(3,1) | nullable                                       | Panelist's overall rating (1.0–5.0). NULL until feedback is submitted                                                        |
+| recommendation        | varchar(20)  | nullable                                       | Enum: `StrongHire`, `Hire`, `NoHire`, `StrongNoHire`. Panelist's individual recommendation. NULL until feedback is submitted |
+| strengths             | text         | nullable                                       | What the candidate did well in this interviewer's assessment                                                                 |
+| concerns              | text         | nullable                                       | Areas of weakness or concern                                                                                                 |
+| notes                 | text         | nullable                                       | General interview notes, observations, questions asked                                                                       |
+| feedback_submitted_at | timestamp    | nullable                                       | When this panelist submitted their feedback. NULL = hasn't submitted yet                                                     |
+| created_at            | timestamp    | NOT NULL                                       |                                                                                                                              |
 
 **Constraints:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
+| Name                               | Columns                      | Type   | Purpose                                          |
+| ---------------------------------- | ---------------------------- | ------ | ------------------------------------------------ |
 | uq_panelists_interview_interviewer | interview_id, interviewer_id | Unique | One feedback entry per interviewer per interview |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_panelists_interview_id | interview_id | Non-unique | "All panelists for this interview" |
-| ix_panelists_interviewer_id | interviewer_id | Non-unique | "All interviews this person is assigned to" — interviewer's dashboard |
-| ix_panelists_feedback_pending | interview_id, feedback_submitted_at | Non-unique | Find panelists who haven't submitted feedback yet |
+| Name                          | Columns                             | Type       | Purpose                                                               |
+| ----------------------------- | ----------------------------------- | ---------- | --------------------------------------------------------------------- |
+| ix_panelists_interview_id     | interview_id                        | Non-unique | "All panelists for this interview"                                    |
+| ix_panelists_interviewer_id   | interviewer_id                      | Non-unique | "All interviews this person is assigned to" — interviewer's dashboard |
+| ix_panelists_feedback_pending | interview_id, feedback_submitted_at | Non-unique | Find panelists who haven't submitted feedback yet                     |
 
 ---
 
@@ -83,36 +83,36 @@ A formal job offer extended to a candidate. Created after a positive final inter
 
 One-to-one with `recruitment.applications` using a shared primary key. An application can have at most one active offer.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| application_id | uuid | PK, FK → recruitment.applications.id | Shared key — one offer per application |
-| client_company_id | uuid | nullable, FK → recruitment.client_companies.id | The client company the offer is on behalf of. Denormalized from the job posting for offer letter generation. NULL if the tenant is hiring for themselves |
-| status | varchar(20) | NOT NULL | Enum: `Draft`, `Pending`, `Accepted`, `Declined`, `Withdrawn`, `Expired` |
-| salary | decimal(12,2) | NOT NULL | Offered salary amount |
-| salary_currency | varchar(3) | NOT NULL | ISO 4217 currency code (e.g., `USD`, `EUR`) |
-| salary_period | varchar(20) | NOT NULL | Enum: `Annual`, `Monthly`, `Hourly`. Pay period for the salary figure |
-| employment_type | varchar(20) | NOT NULL | Enum: `FullTime`, `PartTime`, `Contract`, `Temporary`. Should match or be compatible with the job posting's employment type |
-| start_date | date | nullable | Proposed start date |
-| benefits | text | nullable | Description of benefits package (health, PTO, equity, etc.) |
-| additional_terms | text | nullable | Any other terms or conditions (relocation assistance, signing bonus, etc.) |
-| offer_letter_url | varchar(2048) | nullable | CDN/blob storage URL to the formal offer letter document |
-| expires_at | timestamp | nullable | Offer expiration deadline. Status moves to `Expired` after this |
-| extended_by | uuid | NOT NULL, FK → auth.users.id | The hiring manager or recruiter who extended the offer |
-| extended_at | timestamp | nullable | When the offer was sent to the candidate. Set when status moves from `Draft` to `Pending` |
-| responded_at | timestamp | nullable | When the candidate accepted or declined |
-| decline_reason | varchar(500) | nullable | If declined: why the candidate turned it down (free-text, optional) |
-| withdrawn_at | timestamp | nullable | If the company withdrew the offer before the candidate responded |
-| withdrawal_reason | varchar(500) | nullable | Why the offer was withdrawn |
-| created_at | timestamp | NOT NULL | |
-| updated_at | timestamp | NOT NULL | Auto-set on modification |
+| Column            | Type          | Constraints                                     | Description                                                                                                                                              |
+| ----------------- | ------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| application_id    | uuid          | PK, ref → recruitment.applications.id           | Shared key — one offer per application                                                                                                                   |
+| client_company_id | uuid          | nullable, ref → recruitment.client_companies.id | The client company the offer is on behalf of. Denormalized from the job posting for offer letter generation. NULL if the tenant is hiring for themselves |
+| status            | varchar(20)   | NOT NULL                                        | Enum: `Draft`, `Pending`, `Accepted`, `Declined`, `Withdrawn`, `Expired`                                                                                 |
+| salary            | decimal(12,2) | NOT NULL                                        | Offered salary amount                                                                                                                                    |
+| salary_currency   | varchar(3)    | NOT NULL                                        | ISO 4217 currency code (e.g., `USD`, `EUR`)                                                                                                              |
+| salary_period     | varchar(20)   | NOT NULL                                        | Enum: `Annual`, `Monthly`, `Hourly`. Pay period for the salary figure                                                                                    |
+| employment_type   | varchar(20)   | NOT NULL                                        | Enum: `FullTime`, `PartTime`, `Contract`, `Temporary`. Should match or be compatible with the job posting's employment type                              |
+| start_date        | date          | nullable                                        | Proposed start date                                                                                                                                      |
+| benefits          | text          | nullable                                        | Description of benefits package (health, PTO, equity, etc.)                                                                                              |
+| additional_terms  | text          | nullable                                        | Any other terms or conditions (relocation assistance, signing bonus, etc.)                                                                               |
+| offer_letter_url  | varchar(2048) | nullable                                        | CDN/blob storage URL to the formal offer letter document                                                                                                 |
+| expires_at        | timestamp     | nullable                                        | Offer expiration deadline. Status moves to `Expired` after this                                                                                          |
+| extended_by       | uuid          | NOT NULL, ref → auth.users.id                   | The hiring manager or recruiter who extended the offer                                                                                                   |
+| extended_at       | timestamp     | nullable                                        | When the offer was sent to the candidate. Set when status moves from `Draft` to `Pending`                                                                |
+| responded_at      | timestamp     | nullable                                        | When the candidate accepted or declined                                                                                                                  |
+| decline_reason    | varchar(500)  | nullable                                        | If declined: why the candidate turned it down (free-text, optional)                                                                                      |
+| withdrawn_at      | timestamp     | nullable                                        | If the company withdrew the offer before the candidate responded                                                                                         |
+| withdrawal_reason | varchar(500)  | nullable                                        | Why the offer was withdrawn                                                                                                                              |
+| created_at        | timestamp     | NOT NULL                                        |                                                                                                                                                          |
+| updated_at        | timestamp     | NOT NULL                                        | Auto-set on modification                                                                                                                                 |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_job_offers_status | status | Non-unique | Filter by offer status for dashboards |
+| Name                      | Columns     | Type       | Purpose                                 |
+| ------------------------- | ----------- | ---------- | --------------------------------------- |
+| ix_job_offers_status      | status      | Non-unique | Filter by offer status for dashboards   |
 | ix_job_offers_extended_by | extended_by | Non-unique | "Offers I extended" for hiring managers |
-| ix_job_offers_expires_at | expires_at | Non-unique | Background job to expire stale offers |
+| ix_job_offers_expires_at  | expires_at  | Non-unique | Background job to expire stale offers   |
 
 ---
 
@@ -250,6 +250,6 @@ Draft → Pending → Accepted
 
 **`client_company_id` denormalized on job offers.** The client company is available via `application → job_posting → client_company`, but the offer letter needs the employer name directly — it's the company making the offer, not the agency. Denormalizing here makes offer letter generation self-contained without traversing the full FK chain. NULL for non-agency tenants.
 
-**Cross-schema FKs to `recruitment.applications`, `recruitment.client_companies`, and `auth.users`.** HR Workflows is the final stretch of the pipeline that started in Recruitment. The FKs make the dependency chain explicit: application → final interview → offer → hired.
+**Cross-schema references to `recruitment.applications`, `recruitment.client_companies`, and `auth.users` (no DB-level FK constraints).** HR Workflows is the final stretch of the pipeline that started in Recruitment. The logical references make the dependency chain explicit: application → final interview → offer → hired. Integrity is enforced via SharedKernel interfaces and domain events (e.g., `CandidateShortlistedEvent` triggers final interview creation).
 
 **No `updated_at` on `interview_panelists`.** Panelist feedback is submitted once. After `feedback_submitted_at` is set, the record is effectively immutable. If feedback needs correction, the panelist can re-submit (update the row), but that's rare enough to not warrant a general change-tracking timestamp.

@@ -4,7 +4,7 @@
 
 ## Overview
 
-The Matching module aggregates screening and assessment scores into weighted composite scores, ranks candidates per job posting, and generates shortlists for hiring manager review. All three tables use cross-schema foreign keys to `recruitment.applications`, `recruitment.job_postings`, and `auth.users`.
+The Matching module aggregates screening and assessment scores into weighted composite scores, ranks candidates per job posting, and generates shortlists for hiring manager review. All three tables have cross-schema reference columns pointing to `recruitment.applications`, `recruitment.job_postings`, and `auth.users` — these are logical references with no DB-level FK constraints (integrity is enforced via SharedKernel interfaces and domain events).
 
 ---
 
@@ -12,13 +12,13 @@ The Matching module aggregates screening and assessment scores into weighted com
 
 ### candidate_matches
 
-One row per application that passes screening. Uses a **shared primary key** with `recruitment.applications` — `application_id` is both the PK and FK.
+One row per application that passes screening. Uses a **shared primary key** with `recruitment.applications` — `application_id` is both the PK and a logical reference (no DB-level FK constraint).
 
 | Column                    | Type           | Nullable | Default | Description                                          |
 | ------------------------- | -------------- | -------- | ------- | ---------------------------------------------------- |
-| `application_id`          | `uuid`         | NOT NULL | —       | PK / FK to `recruitment.applications.id`             |
-| `job_posting_id`          | `uuid`         | NOT NULL | —       | FK to `recruitment.job_postings.id`                  |
-| `applicant_user_id`       | `uuid`         | NOT NULL | —       | FK to `auth.users.id`                                |
+| `application_id`          | `uuid`         | NOT NULL | —       | PK / logical ref to `recruitment.applications.id`    |
+| `job_posting_id`          | `uuid`         | NOT NULL | —       | Ref to `recruitment.job_postings.id`                 |
+| `applicant_user_id`       | `uuid`         | NOT NULL | —       | Ref to `auth.users.id`                               |
 | `screening_score`         | `decimal(5,2)` | NOT NULL | —       | Deterministic screening overall score (0–100)        |
 | `assessment_score`        | `decimal(5,2)` | NULL     | —       | Assessment score; NULL until assessment completes    |
 | `composite_score`         | `decimal(5,2)` | NOT NULL | —       | Weighted composite of screening + assessment         |
@@ -40,11 +40,11 @@ One row per application that passes screening. Uses a **shared primary key** wit
 
 - `chk_matches_match_strength`: `match_strength IS NULL OR match_strength IN ('Strong', 'Good', 'Moderate', 'Weak')`
 
-**Cross-schema FKs (added via raw SQL in migration):**
+**Cross-schema references (no DB-level FK constraints):**
 
-- `application_id` → `recruitment.applications(id)`
-- `job_posting_id` → `recruitment.job_postings(id)`
-- `applicant_user_id` → `auth.users(id)`
+- `application_id` → logical reference to `recruitment.applications(id)`
+- `job_posting_id` → logical reference to `recruitment.job_postings(id)`
+- `applicant_user_id` → logical reference to `auth.users(id)`
 
 ---
 
@@ -52,17 +52,17 @@ One row per application that passes screening. Uses a **shared primary key** wit
 
 Per-job-posting shortlist of top candidates. Aggregate root that transitions from Draft → Finalized.
 
-| Column             | Type           | Nullable | Default             | Description                               |
-| ------------------ | -------------- | -------- | ------------------- | ----------------------------------------- |
-| `id`               | `uuid`         | NOT NULL | `gen_random_uuid()` | Primary key                               |
-| `job_posting_id`   | `uuid`         | NOT NULL | —                   | FK to `recruitment.job_postings.id`       |
-| `status`           | `varchar(20)`  | NOT NULL | —                   | Draft / Finalized                         |
-| `generated_by`     | `varchar(100)` | NOT NULL | —                   | "Algorithm" or user identifier            |
-| `total_candidates` | `int`          | NOT NULL | —                   | Count of active (non-removed) candidates  |
-| `finalized_at`     | `timestamptz`  | NULL     | —                   | When the shortlist was finalized          |
-| `finalized_by`     | `uuid`         | NULL     | —                   | FK to `auth.users.id`; user who finalized |
-| `created_at`       | `timestamptz`  | NOT NULL | `NOW()`             | Row creation timestamp                    |
-| `updated_at`       | `timestamptz`  | NOT NULL | `NOW()`             | Last update timestamp                     |
+| Column             | Type           | Nullable | Default             | Description                                |
+| ------------------ | -------------- | -------- | ------------------- | ------------------------------------------ |
+| `id`               | `uuid`         | NOT NULL | `gen_random_uuid()` | Primary key                                |
+| `job_posting_id`   | `uuid`         | NOT NULL | —                   | Ref to `recruitment.job_postings.id`       |
+| `status`           | `varchar(20)`  | NOT NULL | —                   | Draft / Finalized                          |
+| `generated_by`     | `varchar(100)` | NOT NULL | —                   | "Algorithm" or user identifier             |
+| `total_candidates` | `int`          | NOT NULL | —                   | Count of active (non-removed) candidates   |
+| `finalized_at`     | `timestamptz`  | NULL     | —                   | When the shortlist was finalized           |
+| `finalized_by`     | `uuid`         | NULL     | —                   | Ref to `auth.users.id`; user who finalized |
+| `created_at`       | `timestamptz`  | NOT NULL | `NOW()`             | Row creation timestamp                     |
+| `updated_at`       | `timestamptz`  | NOT NULL | `NOW()`             | Last update timestamp                      |
 
 **Indexes:**
 
@@ -73,10 +73,10 @@ Per-job-posting shortlist of top candidates. Aggregate root that transitions fro
 
 - `chk_shortlists_status`: `status IN ('Draft', 'Finalized')`
 
-**Cross-schema FKs (added via raw SQL in migration):**
+**Cross-schema references (no DB-level FK constraints):**
 
-- `job_posting_id` → `recruitment.job_postings(id)`
-- `finalized_by` → `auth.users(id)`
+- `job_posting_id` → logical reference to `recruitment.job_postings(id)`
+- `finalized_by` → logical reference to `auth.users(id)`
 
 ---
 
@@ -88,8 +88,8 @@ Candidates on a shortlist. Unique constraint prevents the same candidate from ap
 | ------------------- | -------------- | -------- | ------------------- | ----------------------------------------------- |
 | `id`                | `uuid`         | NOT NULL | `gen_random_uuid()` | Primary key                                     |
 | `shortlist_id`      | `uuid`         | NOT NULL | —                   | FK to `matching.shortlists.id` (cascade delete) |
-| `application_id`    | `uuid`         | NOT NULL | —                   | FK to `recruitment.applications.id`             |
-| `applicant_user_id` | `uuid`         | NOT NULL | —                   | FK to `auth.users.id`                           |
+| `application_id`    | `uuid`         | NOT NULL | —                   | Ref to `recruitment.applications.id`            |
+| `applicant_user_id` | `uuid`         | NOT NULL | —                   | Ref to `auth.users.id`                          |
 | `composite_score`   | `decimal(5,2)` | NOT NULL | —                   | Composite score at time of shortlisting         |
 | `rank`              | `int`          | NOT NULL | —                   | Position in shortlist (1-based)                 |
 | `source`            | `varchar(20)`  | NOT NULL | —                   | Algorithm / Manual                              |
@@ -109,10 +109,10 @@ Candidates on a shortlist. Unique constraint prevents the same candidate from ap
 - `chk_shortlist_candidates_source`: `source IN ('Algorithm', 'Manual')`
 - `chk_shortlist_candidates_status`: `status IN ('Pending', 'Approved', 'Rejected')`
 
-**Cross-schema FKs (added via raw SQL in migration):**
+**Cross-schema references (no DB-level FK constraints):**
 
-- `application_id` → `recruitment.applications(id)`
-- `applicant_user_id` → `auth.users(id)`
+- `application_id` → logical reference to `recruitment.applications(id)`
+- `applicant_user_id` → logical reference to `auth.users(id)`
 
 ---
 

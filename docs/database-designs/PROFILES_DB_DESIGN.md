@@ -12,29 +12,29 @@ Read-heavy tables. Recruitment, Screening, and Matching all query this module's 
 
 One-to-one with `auth.users` where the user's role is `Applicant`. Staff users (Recruiter, HiringManager, Interviewer, AgencyAdmin) don't have profiles — they don't go through the hiring pipeline. Created when an applicant registers (either email/password or OAuth) and fills out their profile.
 
-Uses a shared primary key pattern — `user_id` is both the PK and the FK to `auth.users`. Same approach as `tenant_brandings` in the catalog DB.
+Uses a shared primary key pattern — `user_id` is both the PK and a logical reference to `auth.users` (no DB-level FK constraint). Same approach as `tenant_brandings` in the catalog DB.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| user_id | uuid | PK, FK → auth.users.id | Shared key — also the primary key. One profile per applicant |
-| phone | varchar(20) | nullable | Contact phone number. Not required on initial registration |
-| city | varchar(100) | nullable | Current city. Used for location-based job matching |
-| country | varchar(100) | nullable | Current country |
-| headline | varchar(200) | nullable | Short professional headline (e.g., "Senior .NET Developer with 8 years experience") |
-| summary | text | nullable | Professional summary / bio. Free-form text, no length limit enforced at DB level |
-| skills | jsonb | NOT NULL, DEFAULT '[]' | Array of skill objects with proficiency and years. Queryable with GIN index. See Skills Format below |
-| documents | jsonb | NOT NULL, DEFAULT '[]' | Additional documents: cover letters, certifications, portfolios. See Documents Format below |
-| social_links | jsonb | NOT NULL, DEFAULT '{}' | Social media and professional profile URLs. See Social Links Format below |
-| profile_completed_at | timestamp | nullable | Set when the applicant has filled the tenant's required fields. Used to filter incomplete profiles from job matching |
-| created_at | timestamp | NOT NULL | |
-| updated_at | timestamp | NOT NULL | Auto-set on modification |
+| Column               | Type         | Constraints             | Description                                                                                                          |
+| -------------------- | ------------ | ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| user_id              | uuid         | PK, ref → auth.users.id | Shared key — also the primary key. One profile per applicant                                                         |
+| phone                | varchar(20)  | nullable                | Contact phone number. Not required on initial registration                                                           |
+| city                 | varchar(100) | nullable                | Current city. Used for location-based job matching                                                                   |
+| country              | varchar(100) | nullable                | Current country                                                                                                      |
+| headline             | varchar(200) | nullable                | Short professional headline (e.g., "Senior .NET Developer with 8 years experience")                                  |
+| summary              | text         | nullable                | Professional summary / bio. Free-form text, no length limit enforced at DB level                                     |
+| skills               | jsonb        | NOT NULL, DEFAULT '[]'  | Array of skill objects with proficiency and years. Queryable with GIN index. See Skills Format below                 |
+| documents            | jsonb        | NOT NULL, DEFAULT '[]'  | Additional documents: cover letters, certifications, portfolios. See Documents Format below                          |
+| social_links         | jsonb        | NOT NULL, DEFAULT '{}'  | Social media and professional profile URLs. See Social Links Format below                                            |
+| profile_completed_at | timestamp    | nullable                | Set when the applicant has filled the tenant's required fields. Used to filter incomplete profiles from job matching |
+| created_at           | timestamp    | NOT NULL                |                                                                                                                      |
+| updated_at           | timestamp    | NOT NULL                | Auto-set on modification                                                                                             |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_profiles_skills | skills | GIN | JSONB containment queries for skill matching (e.g., `skills @> '[{"name": "C#"}]'`) |
-| ix_profiles_city_country | city, country | Non-unique | Location-based job matching and filtering |
+| Name                     | Columns       | Type       | Purpose                                                                             |
+| ------------------------ | ------------- | ---------- | ----------------------------------------------------------------------------------- |
+| ix_profiles_skills       | skills        | GIN        | JSONB containment queries for skill matching (e.g., `skills @> '[{"name": "C#"}]'`) |
+| ix_profiles_city_country | city, country | Non-unique | Location-based job matching and filtering                                           |
 
 No index on `user_id` — it's the primary key.
 
@@ -44,30 +44,30 @@ No index on `user_id` — it's the primary key.
 
 Every resume an applicant uploads. Parsed once on upload, stored permanently. The applicant can upload multiple versions over time — `is_latest` marks the current one. Applications reference a specific resume version, so updating the profile resume doesn't affect in-flight applications.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| user_id | uuid | NOT NULL, FK → auth.users.id | The applicant who owns this resume |
-| file_url | varchar(2048) | NOT NULL | CDN/blob storage URL to the uploaded file (PDF/DOCX) |
-| original_filename | varchar(500) | NOT NULL | Original filename at upload time. Display purposes |
-| file_size_bytes | integer | nullable | File size for display and storage quota enforcement |
-| file_type | varchar(20) | NOT NULL | Enum: `PDF`, `DOCX`. Determines which parser to use |
-| is_latest | boolean | NOT NULL, DEFAULT true | Whether this is the applicant's current resume. Only one per user should be true at a time — enforced in application code |
-| is_parsed | boolean | NOT NULL, DEFAULT false | Whether parsing has completed. False on upload, true after background job finishes |
-| parsed_text | text | nullable | Full text extracted from the resume. Set by background parser. NULL until parsed |
-| extracted_skills | jsonb | nullable | Skills parsed from the resume. See Extracted Skills Format below. NULL until parsed |
-| parsed_at | timestamp | nullable | When parsing completed. NULL until parsed |
-| parse_error | varchar(500) | nullable | If parsing failed: what went wrong (e.g., "Password-protected PDF", "Corrupted file"). NULL on success |
-| uploaded_at | timestamp | NOT NULL | When the applicant uploaded this file |
-| created_at | timestamp | NOT NULL | |
+| Column            | Type          | Constraints                   | Description                                                                                                               |
+| ----------------- | ------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| id                | uuid          | PK                            |                                                                                                                           |
+| user_id           | uuid          | NOT NULL, ref → auth.users.id | The applicant who owns this resume                                                                                        |
+| file_url          | varchar(2048) | NOT NULL                      | CDN/blob storage URL to the uploaded file (PDF/DOCX)                                                                      |
+| original_filename | varchar(500)  | NOT NULL                      | Original filename at upload time. Display purposes                                                                        |
+| file_size_bytes   | integer       | nullable                      | File size for display and storage quota enforcement                                                                       |
+| file_type         | varchar(20)   | NOT NULL                      | Enum: `PDF`, `DOCX`. Determines which parser to use                                                                       |
+| is_latest         | boolean       | NOT NULL, DEFAULT true        | Whether this is the applicant's current resume. Only one per user should be true at a time — enforced in application code |
+| is_parsed         | boolean       | NOT NULL, DEFAULT false       | Whether parsing has completed. False on upload, true after background job finishes                                        |
+| parsed_text       | text          | nullable                      | Full text extracted from the resume. Set by background parser. NULL until parsed                                          |
+| extracted_skills  | jsonb         | nullable                      | Skills parsed from the resume. See Extracted Skills Format below. NULL until parsed                                       |
+| parsed_at         | timestamp     | nullable                      | When parsing completed. NULL until parsed                                                                                 |
+| parse_error       | varchar(500)  | nullable                      | If parsing failed: what went wrong (e.g., "Password-protected PDF", "Corrupted file"). NULL on success                    |
+| uploaded_at       | timestamp     | NOT NULL                      | When the applicant uploaded this file                                                                                     |
+| created_at        | timestamp     | NOT NULL                      |                                                                                                                           |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_resumes_user_id | user_id | Non-unique | "All resumes for this applicant" and finding the latest |
-| ix_resumes_is_parsed | is_parsed | Non-unique | Background parser queue: find unparsed resumes |
-| ix_resumes_user_latest | user_id, is_latest | Non-unique | Quick lookup for the applicant's current resume |
+| Name                   | Columns            | Type       | Purpose                                                 |
+| ---------------------- | ------------------ | ---------- | ------------------------------------------------------- |
+| ix_resumes_user_id     | user_id            | Non-unique | "All resumes for this applicant" and finding the latest |
+| ix_resumes_is_parsed   | is_parsed          | Non-unique | Background parser queue: find unparsed resumes          |
+| ix_resumes_user_latest | user_id, is_latest | Non-unique | Quick lookup for the applicant's current resume         |
 
 ---
 
@@ -88,7 +88,7 @@ auth.users ||--o| applicant_profiles : "has (optional, one-to-one, applicants on
 auth.users ||--o{ resumes : "has many (resume history)"
 ```
 
-Both FKs reference `auth.users` across schemas. User identity is foundational — the FKs ensure you can't have orphaned profiles or resumes for deleted users.
+Both tables reference `auth.users` across schemas as logical references (no DB-level FK constraints). Integrity is enforced at the application layer via SharedKernel interfaces — the Auth module guarantees user existence before downstream modules create related records.
 
 ---
 
@@ -165,6 +165,7 @@ Skills are stored as a JSONB array on `applicant_profiles`. Each skill has a nam
 **`years`** (optional): Years of experience with this specific skill. Used by Screening for per-skill matching against job requirements (e.g., job requires "C# with 5+ years", applicant has 7 → strong match).
 
 **Why JSONB instead of a normalized skills table?**
+
 - Skills are always read and written as a set — you never update one skill in isolation
 - The GIN index supports containment queries (`@>`) which is all the Screening module needs for filtering ("has C#?")
 - Detailed scoring (per-skill years vs requirements) is done in application code after loading the JSONB — not in SQL
@@ -190,6 +191,7 @@ Social media and professional profile URLs. Stored as a JSONB object (key-value 
 Keys are lowercase platform identifiers. Values are full URLs. No fixed list of keys — the application code (and tenant configuration, see below) determines which platforms are shown in the UI and which are required.
 
 **Why JSONB instead of columns or a separate table?**
+
 - The list of platforms will grow unpredictably (LinkedIn today, Bluesky tomorrow)
 - Adding a column per platform means a migration every time a new platform is relevant
 - A separate `social_links` table with `platform` + `url` rows adds a join for data that's always read as a set
@@ -245,6 +247,7 @@ Example configuration (stored in Admin's `CompanySettings` as JSONB):
 ```
 
 This means:
+
 - Acme requires phone, 3+ skills, LinkedIn, a cover letter, and at least one resume uploaded
 - Beta might only require a resume and 1 skill
 - The Profiles module validates against whatever the tenant has configured
@@ -258,18 +261,21 @@ The Profiles module reads the tenant's field requirements at validation time. Th
 The profile schema is designed to support the Screening and Matching scoring pipeline efficiently. Here's how the modules use the data:
 
 **Pre-filter (SQL, fast):** The Screening module uses indexed columns and GIN queries to narrow the candidate pool before doing expensive scoring:
+
 - `skills @> '[{"name": "C#"}]'` — GIN index, checks skill presence without parsing
 - `city = {job_city}` — indexed, location match
 - Has a latest parsed resume — join to `resumes` where `is_latest = true AND is_parsed = true`
 - `profile_completed_at IS NOT NULL` — incomplete profiles deprioritized
 
 **Detailed scoring (application code, per-candidate):** After pre-filtering, the Screening and Matching services load the full profile and resume data, then run weighted scoring algorithms in code:
+
 - Per-skill matching: compare each skill's `name`, `level`, and `years` against job requirements
 - Skill coverage: percentage of required skills the applicant has
 - Experience weighting: per-skill years vs job's per-skill requirements
 - Resume analysis: read `parsed_text` and `extracted_skills` from the resume record — no re-parsing
 
 **Why scoring lives in code, not SQL:**
+
 - Scoring algorithms are business logic that changes frequently (weight adjustments, new factors)
 - Multi-factor scoring with weighting doesn't map cleanly to SQL — it's cleaner in C#
 - The pre-filter in SQL reduces the set to a manageable size (dozens to low hundreds per job), so the in-code scoring isn't a performance concern
@@ -291,7 +297,7 @@ The profile schema is designed to support the Screening and Matching scoring pip
 
 **No `updated_at` on resumes.** Resumes are immutable after parsing. They're uploaded, parsed once, and then only read. The only state change is `is_latest` toggling to false when a new version is uploaded — and that's tracked by the new resume's `uploaded_at`. If a re-parse is ever needed, `parsed_at` updates — but that's rare enough to not warrant a general `updated_at`.
 
-**Cross-schema FK to `auth.users`.** Both tables reference Auth. User identity is foundational — the FKs ensure no orphaned data.
+**Cross-schema references to `auth.users` (no DB-level FK constraints).** Both tables reference Auth. Integrity is enforced at the application layer — the Auth module guarantees user existence via domain events before Profiles creates related records.
 
 **`resume_url` removed from `applicant_profiles`.** No longer needed — the latest resume is found via the `resumes` table (`is_latest = true`). The profile stays focused on the applicant's self-reported data.
 
