@@ -95,8 +95,5 @@ public sealed class JobOfferConfiguration : IEntityTypeConfiguration<JobOffer>
         // Ignore Entity.Id — we use ApplicationId as PK
         builder.Ignore(o => o.Id);
 
-        // Note: Cross-schema FK to recruitment.applications is added via raw SQL in migration.
-        // Note: Cross-schema FK to recruitment.client_companies (client_company_id) is added via raw SQL in migration.
-        // Note: Cross-schema FK to auth.users (extended_by) is added via raw SQL in migration.
     }
 }

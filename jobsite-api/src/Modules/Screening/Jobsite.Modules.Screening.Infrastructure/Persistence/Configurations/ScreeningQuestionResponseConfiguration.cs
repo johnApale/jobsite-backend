@@ -56,7 +56,5 @@ public sealed class ScreeningQuestionResponseConfiguration : IEntityTypeConfigur
         builder.HasIndex(r => r.ApplicationId)
             .HasDatabaseName("ix_question_responses_application_id");
 
-        // Note: Cross-schema FK to recruitment.applications is added via raw SQL in migration.
-        // Note: Cross-schema FK to recruitment.job_screening_questions is added via raw SQL in migration.
     }
 }

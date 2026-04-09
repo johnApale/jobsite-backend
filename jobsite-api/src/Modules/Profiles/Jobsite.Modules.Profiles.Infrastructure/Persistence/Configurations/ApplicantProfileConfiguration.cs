@@ -6,8 +6,7 @@ namespace Jobsite.Modules.Profiles.Infrastructure.Persistence.Configurations;
 
 /// <summary>
 /// EF Core configuration for the <c>profiles.applicant_profiles</c> table.
-/// Shared PK with <c>auth.users</c> — the Id column is both PK and FK.
-/// Cross-schema FK added via raw SQL in the migration.
+/// Uses <c>user_id</c> as PK — logical reference to <c>auth.users</c> (no DB-level FK).
 /// </summary>
 public sealed class ApplicantProfileConfiguration : IEntityTypeConfiguration<ApplicantProfile>
 {

@@ -7,8 +7,6 @@ namespace Jobsite.Modules.Recruitment.Infrastructure.Persistence.Configurations;
 
 /// <summary>
 /// EF Core configuration for the <c>recruitment.applications</c> table.
-/// Cross-schema FKs to <c>auth.users</c> (applicant_id) and <c>profiles.resumes</c> (resume_id)
-/// added via raw SQL in migration.
 /// </summary>
 public sealed class ApplicationConfiguration : IEntityTypeConfiguration<ApplicationEntity>
 {

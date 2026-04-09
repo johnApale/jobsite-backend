@@ -92,9 +92,6 @@ public sealed class ScreeningResultConfiguration : IEntityTypeConfiguration<Scre
         builder.HasIndex(r => r.OverallScore)
             .HasDatabaseName("ix_screening_results_overall_score");
 
-        // Note: Cross-schema FK to recruitment.applications is added via raw SQL in migration.
-        // Note: Cross-schema FK to auth.users for reviewed_by is added via raw SQL in migration.
-
         // Ignore Entity.Id — we use ApplicationId as PK
         builder.Ignore(r => r.Id);
     }

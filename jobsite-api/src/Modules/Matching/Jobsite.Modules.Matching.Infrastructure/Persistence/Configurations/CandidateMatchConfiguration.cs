@@ -72,8 +72,5 @@ public sealed class CandidateMatchConfiguration : IEntityTypeConfiguration<Candi
         // Ignore Entity.Id — we use ApplicationId as PK
         builder.Ignore(m => m.Id);
 
-        // Note: Cross-schema FK to recruitment.applications is added via raw SQL in migration.
-        // Note: Cross-schema FK to recruitment.job_postings is added via raw SQL in migration.
-        // Note: Cross-schema FK to auth.users is added via raw SQL in migration.
     }
 }

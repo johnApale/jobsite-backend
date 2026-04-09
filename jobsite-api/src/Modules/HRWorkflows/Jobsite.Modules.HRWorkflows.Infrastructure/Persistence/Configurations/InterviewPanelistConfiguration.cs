@@ -61,6 +61,5 @@ public sealed class InterviewPanelistConfiguration : IEntityTypeConfiguration<In
         builder.HasIndex(p => new { p.InterviewId, p.FeedbackSubmittedAt })
             .HasDatabaseName("ix_panelists_feedback_pending");
 
-        // Note: Cross-schema FK to auth.users (interviewer_id) is added via raw SQL in migration.
     }
 }

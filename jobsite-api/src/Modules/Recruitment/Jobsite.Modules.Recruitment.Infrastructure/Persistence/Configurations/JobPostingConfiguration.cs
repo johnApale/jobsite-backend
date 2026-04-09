@@ -7,7 +7,6 @@ namespace Jobsite.Modules.Recruitment.Infrastructure.Persistence.Configurations;
 
 /// <summary>
 /// EF Core configuration for the <c>recruitment.job_postings</c> table.
-/// Cross-schema FK to <c>auth.users</c> for <c>posted_by</c> added via raw SQL in migration.
 /// </summary>
 public sealed class JobPostingConfiguration : IEntityTypeConfiguration<JobPosting>
 {

@@ -93,7 +93,5 @@ public sealed class FinalInterviewConfiguration : IEntityTypeConfiguration<Final
         // Ignore Entity.Id — we use ApplicationId as PK
         builder.Ignore(i => i.Id);
 
-        // Note: Cross-schema FK to recruitment.applications is added via raw SQL in migration.
-        // Note: Cross-schema FK to auth.users (scheduled_by, decided_by) is added via raw SQL in migration.
     }
 }

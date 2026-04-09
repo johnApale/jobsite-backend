@@ -58,7 +58,5 @@ public sealed class ShortlistConfiguration : IEntityTypeConfiguration<Shortlist>
             .HasForeignKey(c => c.ShortlistId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Note: Cross-schema FK to recruitment.job_postings is added via raw SQL in migration.
-        // Note: Cross-schema FK to auth.users for finalized_by is added via raw SQL in migration.
     }
 }

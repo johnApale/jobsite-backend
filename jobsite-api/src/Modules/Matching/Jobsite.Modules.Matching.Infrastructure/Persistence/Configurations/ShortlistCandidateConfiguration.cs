@@ -68,7 +68,5 @@ public sealed class ShortlistCandidateConfiguration : IEntityTypeConfiguration<S
         builder.HasIndex(c => c.ApplicationId)
             .HasDatabaseName("ix_shortlist_candidates_application_id");
 
-        // Note: Cross-schema FK to recruitment.applications is added via raw SQL in migration.
-        // Note: Cross-schema FK to auth.users is added via raw SQL in migration.
     }
 }
