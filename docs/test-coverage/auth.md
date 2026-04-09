@@ -202,3 +202,11 @@ Tests domain constant validation methods for `UserRole`, `UserStatus`, and `Exte
 | `Validate_EmptyToken_HasValidationError`       | Empty reset token rejected      | Error on `Token`       |
 | `Validate_EmptyNewPassword_HasValidationError` | Empty new password rejected     | Error on `NewPassword` |
 | `Validate_ShortNewPassword_HasValidationError` | Password under 8 chars rejected | Error on `NewPassword` |
+
+---
+
+## Endpoint Tests (WebApplicationFactory)
+
+15 HTTP pipeline tests for Auth endpoints (`/api/v1/auth/*`) using `WebApplicationFactory<Program>` against real PostgreSQL. Covers register, login, refresh, logout, get-me, JWT auth, snake_case serialization, error envelope shape, and a full auth lifecycle E2E test.
+
+See [integration.md](integration.md#authendpointtests-15-tests) for the full test table.

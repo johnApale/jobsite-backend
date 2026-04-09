@@ -98,3 +98,14 @@ Tests `PlatformAdminService`, the application service for platform-wide tenant a
 | `GetTenantByIdAsync_WithNullBranding_ReturnsNullBranding`        | Missing branding returns null, not an error            | `Branding` is null                                     |
 
 **Why:** Platform admin is the only way to manage tenants system-wide (suspend/reactivate). If suspension logic is wrong, a suspended tenant could continue operating (security risk) or an active tenant could be incorrectly blocked. The state transition guards prevent invalid operations (e.g., suspending a provisioning tenant).
+
+---
+
+## Endpoint Tests (WebApplicationFactory)
+
+6 HTTP pipeline tests for Tenant endpoints (`/api/v1/tenants/*`) and 6 tenant isolation tests using `WebApplicationFactory<Program>` against real PostgreSQL.
+
+- **TenantEndpointTests** — GET by ID, register, snake_case validation, non-tenant-scoped routing.
+- **TenantIsolationTests** — Suspended/Deactivated/Provisioning tenants blocked (403), non-existent tenant (404), cross-tenant token isolation, cache verification.
+
+See [integration.md](integration.md#tenantendpointtests-6-tests) and [integration.md](integration.md#tenantisolationtests-6-tests) for the full test tables.

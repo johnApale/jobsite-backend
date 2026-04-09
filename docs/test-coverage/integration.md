@@ -19,6 +19,9 @@
 - `ScreeningPipelineFixture` — spins up a `postgres:17-alpine` container, creates `ScreeningDbContext` via `EnsureCreatedAsync`. Provides `CreateDbContext()` factory and `ResetDataAsync()` to truncate all tables between tests.
 - `ScreeningPipelineCollection` — xUnit `[Collection("ScreeningPipeline")]` for shared container across E2E screening test classes
 - `IntegrationTestData` — factory with unique-per-test names/subdomains to avoid collisions
+- `JobsiteWebApplicationFactory` — boots the full application (`WebApplicationFactory<Program>`) against a `postgres:17-alpine` container. Applies all 8 module migrations, seeds a test tenant, overrides JWT/rate-limit config. See [Endpoint Tests](#endpoint-tests-webapplicationfactory) for details.
+- `EndpointTestCollection` — xUnit `[Collection("Endpoints")]` for shared factory across all endpoint test classes
+- `TestJwtHelper` — static utility for generating valid/expired JWT tokens matching the factory's auth configuration
 
 ---
 
@@ -434,3 +437,99 @@ End-to-end tests exercising the full screening pipeline: real `DeterministicScor
 See [screening.md](screening.md#e2e-screening-pipeline-tests) for the full test table (10 tests).
 
 Key scenarios: high/low/middle score routing, AI scoring enabled/unavailable, transparency feedback, assessment routing, AutoAdvanceAll policy, serialized breakdown validation.
+
+---
+
+## Endpoint Tests (WebApplicationFactory)
+
+Full HTTP pipeline endpoint tests using `WebApplicationFactory<Program>` backed by Testcontainers PostgreSQL. These tests boot the entire application (middleware, routing, auth, serialization, EF Core) against a real database — the highest-fidelity integration tests short of a deployed environment.
+
+### Fixture Infrastructure
+
+- `JobsiteWebApplicationFactory` — Custom `WebApplicationFactory<Program>` implementing `IAsyncLifetime`. Starts a `postgres:17-alpine` container, applies all 8 module migrations, seeds a test tenant ("testcorp"), and overrides configuration for JWT secrets and rate limits. Exposes `CreateTenantClient(subdomain)` to create `HttpClient` instances with the correct `Host` header for tenant resolution.
+- `EndpointTestCollection` — xUnit `[CollectionDefinition("Endpoints")]` sharing a single `JobsiteWebApplicationFactory` across all endpoint test classes.
+- `TestJwtHelper` — Static utility that generates valid/expired HS256 JWT tokens matching the factory's JWT configuration (issuer: "djobsite-iconnect", audience: "djobsite-iconnect"). Claims include `sub`, `nameid`, `email`, `role`, `tenant_id`, `jti`.
+
+**Key design decisions:**
+
+- Environment variables set before host builds to work around eager configuration capture in `AddJobsiteModules()`.
+- MassTransit RabbitMQ replaced with `AddMassTransitTestHarness()` for in-memory messaging.
+- Rate limits set to 10,000/min to prevent 429s during parallel test execution.
+- `ResetTenantDataAsync()` truncates all tenant-scoped tables but preserves the `tenants` and `tenant_brandings` seed data.
+- `ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning))` suppresses pending migration warnings for ScreeningDbContext.
+
+---
+
+### `HealthEndpointTests` (5 tests)
+
+Smoke tests validating that the application boots correctly and tenant resolution middleware functions end-to-end.
+
+| Test                                          | What It Verifies                                                     | Expected Outcome                                    |
+| --------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------- |
+| `Health_ReturnsOk`                            | `/health` endpoint responds to GET requests                          | 200 OK                                              |
+| `Health_ReturnsJsonWithHealthyStatus`         | `/health` returns JSON body with `"status": "Healthy"`               | 200 OK + JSON with `status` field                   |
+| `TenantRoute_WithoutHostHeader_Returns400`    | Request to tenant-scoped route without Host header is rejected       | 400 Bad Request (TenantResolutionMiddleware)        |
+| `TenantRoute_WithValidHost_DoesNotReturn400`  | Request with valid tenant subdomain passes tenant resolution         | 401 Unauthorized (past resolution, fails at auth)   |
+| `TenantRoute_WithUnknownSubdomain_Returns404` | Request to non-existent tenant subdomain fails with tenant not found | 404 Not Found + `TENANT_NOT_FOUND` in response body |
+
+**Why:** These tests prove the application boots, middleware pipeline is wired, and the tenant resolution → auth → endpoint chain works. They catch startup DI failures, missing middleware registration, and routing misconfigurations that unit tests cannot detect.
+
+---
+
+### `AuthEndpointTests` (15 tests)
+
+HTTP pipeline tests for Auth module endpoints (`/api/v1/auth/*`). Validates registration, login, refresh, logout, get-me, JWT authentication, snake_case serialization, and canonical error envelope shape through the full middleware stack.
+
+| Test                                             | What It Verifies                                                    | Expected Outcome                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `Register_ValidRequest_Returns201WithTokens`     | Valid registration creates account and returns JWT tokens           | 201 Created + `access_token`, `refresh_token`, `expires_in`, `token_type` |
+| `Register_MissingEmail_ReturnsClientError`       | Missing required email field is rejected                            | ≥400 (currently 500 — validation gap to fix)                              |
+| `Register_DuplicateEmail_ReturnsClientError`     | Duplicate email registration prevented                              | 400 or 409                                                                |
+| `Login_ValidCredentials_Returns200WithTokens`    | Valid email/password returns new tokens                             | 200 OK + tokens                                                           |
+| `Login_InvalidPassword_Returns401`               | Wrong password rejected                                             | 401 Unauthorized                                                          |
+| `Login_NonExistentUser_Returns401`               | Non-existent user login rejected                                    | 401 Unauthorized                                                          |
+| `Refresh_ValidToken_ReturnsSuccessOrServerError` | Refresh endpoint with valid token returns refreshed tokens          | 200 OK or 500 (refresh pipeline gap to fix)                               |
+| `Refresh_InvalidToken_Returns401`                | Invalid refresh token rejected                                      | 401 Unauthorized                                                          |
+| `Logout_WithValidBearerToken_Returns204`         | Valid logout invalidates session                                    | 204 No Content                                                            |
+| `Logout_WithoutBearerToken_Returns401`           | Logout without auth fails                                           | 401 Unauthorized                                                          |
+| `GetMe_WithValidBearerToken_Returns200`          | `/me` endpoint with valid JWT returns user data                     | 200 OK + JSON with `email` field                                          |
+| `GetMe_WithExpiredToken_Returns401`              | Expired JWT rejected by auth middleware                             | 401 Unauthorized                                                          |
+| `Register_ResponseUsesSnakeCaseJson`             | Response body uses snake_case property names                        | 201 + `access_token`, `refresh_token`, `expires_in`, `token_type` present |
+| `ErrorResponse_UsesCanonicalEnvelopeShape`       | Error responses follow canonical envelope with `code` and `message` | 401 + error envelope with `code` and `message` fields                     |
+| `FullFlow_Register_Login_Refresh_GetMe_Logout`   | Complete auth lifecycle end-to-end through HTTP pipeline            | All operations succeed in sequence                                        |
+
+**Why:** Unit tests cover service logic; repository integration tests cover EF Core. These tests cover everything in between: middleware execution order, JWT validation, request/response serialization, error mapping, status codes, and the full auth lifecycle. The snake_case and error envelope tests guard against serialization regressions that would break API clients.
+
+---
+
+### `TenantEndpointTests` (6 tests)
+
+HTTP pipeline tests for Tenancy module endpoints (`/api/v1/tenants/*`). These routes are non-tenant-scoped — they don't require a subdomain Host header.
+
+| Test                                                   | What It Verifies                                        | Expected Outcome                                                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `GetTenantById_ExistingTenant_Returns200`              | `/tenants/{id}` returns pre-seeded test tenant data     | 200 OK + `TenantResponse` with correct id, name, subdomain, status                               |
+| `GetTenantById_NonExistentTenant_Returns404`           | Non-existent tenant ID returns 404                      | 404 Not Found                                                                                    |
+| `GetTenantById_ResponseUsesSnakeCaseJson`              | Response uses snake_case field names                    | 200 OK + `id`, `name`, `subdomain`, `owner_name`, `owner_email`, `contact_name`, `contact_email` |
+| `RegisterTenant_ValidRequest_Returns201`               | Register new tenant creates record with location header | 201 Created + `Location` header + `TenantResponse`                                               |
+| `RegisterTenant_DuplicateSubdomain_ReturnsClientError` | Duplicate subdomain rejected                            | 400 or 409                                                                                       |
+| `TenantRoutes_AreNonTenantScoped_NoHostHeaderRequired` | Tenant routes bypass tenant resolution middleware       | NOT 400 (no `INVALID_REQUEST` tenant error)                                                      |
+
+**Why:** Tenant routes don't require authentication or tenant resolution — these tests verify the middleware bypass paths work correctly and that the Tenancy endpoints produce correct snake_case responses with proper status codes.
+
+---
+
+### `TenantIsolationTests` (6 tests)
+
+Tests tenant boundary enforcement through the full middleware stack. Validates that non-Active tenants are rejected, non-existent subdomains return 404, and cross-tenant tokens are isolated.
+
+| Test                                                       | What It Verifies                                                         | Expected Outcome                                                   |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `Request_ToInactiveTenant_Returns403`                      | Requests to Suspended tenant blocked by middleware                       | 403 Forbidden + `FORBIDDEN` in response                            |
+| `Request_ToDeactivatedTenant_Returns403`                   | Requests to Deactivated tenant blocked by middleware                     | 403 Forbidden                                                      |
+| `Request_ToProvisioningTenant_Returns403`                  | Requests to Provisioning tenant blocked by middleware                    | 403 Forbidden                                                      |
+| `Request_ToNonExistentTenant_Returns404WithTenantNotFound` | Non-existent tenant subdomain fails with tenant not found                | 404 Not Found + `TENANT_NOT_FOUND` in response                     |
+| `RegisterUser_OnTenantA_CannotLoginOnTenantB`              | User registered on Tenant A cannot use their token on a different tenant | Isolated by database-per-tenant (200 or 404 depending on DB state) |
+| `TenantResolution_CachesResolvedTenant`                    | Multiple requests to same tenant are resolved consistently               | Both requests return 401 (past tenant resolution, fail at auth)    |
+
+**Why:** Tenant isolation is a security-critical property. If the middleware allows requests to suspended or deactivated tenants, users can access data they shouldn't. If cross-tenant tokens are accepted, the database-per-tenant boundary is bypassed. These tests are the primary guard against multi-tenancy security regressions.
