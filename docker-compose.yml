@@ -46,6 +46,42 @@ services:
       timeout: 3s
       retries: 5
 
+  jobsite-api:
+    build:
+      context: ./jobsite-api
+      dockerfile: Dockerfile
+    container_name: djobsite-api
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__CatalogDb: "Host=postgres;Port=5432;Database=djobsite_catalog;Username=postgres;Password=postgres"
+      App__MessageBroker__Host: rabbitmq
+      App__Redis__ConnectionString: "redis:6379"
+      App__AiServiceUrl: "http://ai-service:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: djobsite-ai-service
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/jobsite_ai"
+      JWT_SECRET: "CHANGE-ME-in-production-this-must-be-at-least-32-chars"
+      LOG_LEVEL: "INFO"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   rabbitmq_data:
