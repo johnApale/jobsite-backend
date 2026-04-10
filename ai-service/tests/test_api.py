@@ -47,13 +47,23 @@ def api_client(shared_mock_provider) -> TestClient:
     mock_engine = MagicMock()
     mock_engine.dispose = AsyncMock()
 
+    mock_channel = MagicMock()
+
     with patch.object(app.main, "get_settings", return_value=settings), \
          patch("app.infrastructure.db.engine.create_engine", return_value=mock_engine), \
          patch("app.infrastructure.db.session.init_session_factory"), \
+         patch("app.infrastructure.messaging.connection.connect_robust", new_callable=AsyncMock) as mock_rmq, \
+         patch("app.infrastructure.messaging.consumer.register_consumer", new_callable=AsyncMock), \
+         patch("app.infrastructure.messaging.connection.disconnect", new_callable=AsyncMock), \
          patch.object(app.api.routes.resume, "get_ai_provider", return_value=shared_mock_provider), \
          patch.object(app.api.routes.criteria, "get_ai_provider", return_value=shared_mock_provider), \
          patch.object(app.api.routes.assessment, "get_ai_provider", return_value=shared_mock_provider), \
          patch.object(app.api.routes.screening, "get_ai_provider", return_value=shared_mock_provider):
+
+        mock_connection = AsyncMock()
+        mock_connection.channel = AsyncMock(return_value=mock_channel)
+        mock_rmq.return_value = mock_connection
+        mock_channel.set_qos = AsyncMock()
 
         app_instance = app.main.create_app()
 
