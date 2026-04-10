@@ -53,6 +53,9 @@ jobs:
       - name: Restore
         run: dotnet restore jobsite-api/Jobsite.Api.slnx
 
+      - name: Format check
+        run: dotnet format jobsite-api/Jobsite.Api.slnx --verify-no-changes --no-restore
+
       - name: Build
         run: dotnet build jobsite-api/Jobsite.Api.slnx --no-restore --configuration Release
 
@@ -81,6 +84,12 @@ jobs:
 
       - name: Install dependencies
         run: pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
 
       - name: Run tests
         run: pytest --tb=short -q
