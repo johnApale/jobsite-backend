@@ -1,0 +1,96 @@
+# Render Blueprint — D'Jobsite iConnect Staging
+# Docs: https://docs.render.com/blueprint-spec
+
+services:
+  # ── .NET Modular Monolith API ──────────────────────────────────────
+  - type: web
+    name: djobsite-api
+    runtime: docker
+    dockerfilePath: ./jobsite-api/Dockerfile
+    dockerContext: ./jobsite-api
+    plan: starter
+    region: oregon
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Staging
+      - key: ConnectionStrings__CatalogDb
+        fromDatabase:
+          name: djobsite-staging-db
+          property: connectionString
+      - key: App__JwtSecret
+        sync: false # set manually in Render dashboard
+      - key: App__AiServiceUrl
+        fromService:
+          type: pserv
+          name: djobsite-ai-service
+          property: hostport
+      - key: App__MessageBroker__Host
+        sync: false
+      - key: App__MessageBroker__Port
+        value: "5672"
+      - key: App__MessageBroker__Username
+        sync: false
+      - key: App__MessageBroker__Password
+        sync: false
+      - key: App__MessageBroker__VirtualHost
+        sync: false
+      - key: App__Redis__ConnectionString
+        fromService:
+          type: redis
+          name: djobsite-staging-redis
+          property: connectionString
+      - key: App__FileStorage__Provider
+        value: S3
+      - key: App__FileStorage__S3__ServiceUrl
+        sync: false
+      - key: App__FileStorage__S3__AccessKey
+        sync: false
+      - key: App__FileStorage__S3__SecretKey
+        sync: false
+      - key: App__FileStorage__S3__BucketName
+        value: djobsite-staging-uploads
+      - key: App__Cors__AllowedOrigins__0
+        sync: false
+
+  # ── Python AI Service (private — not internet-exposed) ─────────────
+  - type: pserv
+    name: djobsite-ai-service
+    runtime: docker
+    dockerfilePath: ./ai-service/Dockerfile
+    dockerContext: ./ai-service
+    plan: starter
+    region: oregon
+    autoDeploy: false
+    envVars:
+      - key: DATABASE_URL
+        sync: false # set manually — asyncpg connection string
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: RABBITMQ_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ENABLE_DOCS
+        value: "true"
+
+databases:
+  - name: djobsite-staging-db
+    plan: free
+    databaseName: djobsite_catalog
+    postgresMajorVersion: "17"
+    region: oregon
+
+  - name: djobsite-staging-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
