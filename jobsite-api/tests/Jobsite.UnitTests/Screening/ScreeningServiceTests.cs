@@ -5,6 +5,7 @@ using Jobsite.Modules.Screening.Application.Services;
 using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.SharedKernel.Errors;
+using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -17,9 +18,8 @@ public sealed class ScreeningServiceTests
     private readonly IScreeningResultRepository _resultRepo = Substitute.For<IScreeningResultRepository>();
     private readonly IScreeningQuestionResponseRepository _responseRepo = Substitute.For<IScreeningQuestionResponseRepository>();
     private readonly IDeterministicScoringEngine _deterministicEngine = Substitute.For<IDeterministicScoringEngine>();
-    private readonly IAiScoringClient _aiScoringClient = Substitute.For<IAiScoringClient>();
-    private readonly IAiCandidateFeedbackClient _feedbackClient = Substitute.For<IAiCandidateFeedbackClient>();
-    private readonly IAiAnswerScoringClient _aiAnswerScoringClient = Substitute.For<IAiAnswerScoringClient>();
+    private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
+    private readonly ITenantIdProvider _tenantIdProvider = Substitute.For<ITenantIdProvider>();
     private readonly IJobCriteriaReader _criteriaReader = Substitute.For<IJobCriteriaReader>();
     private readonly IJobScreeningQuestionsReader _questionsReader = Substitute.For<IJobScreeningQuestionsReader>();
     private readonly IApplicantDataReader _applicantDataReader = Substitute.For<IApplicantDataReader>();
@@ -30,16 +30,17 @@ public sealed class ScreeningServiceTests
 
     public ScreeningServiceTests()
     {
+        _tenantIdProvider.TenantId.Returns(Guid.NewGuid());
+
         QuestionScoringService questionScoringService = new(
-            _aiAnswerScoringClient,
             Substitute.For<ILogger<QuestionScoringService>>());
 
         _service = new ScreeningService(
             _resultRepo,
             _responseRepo,
             _deterministicEngine,
-            _aiScoringClient,
-            _feedbackClient,
+            _eventPublisher,
+            _tenantIdProvider,
             questionScoringService,
             _criteriaReader,
             _questionsReader,

@@ -7,6 +7,7 @@ using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.Modules.Screening.Infrastructure.Persistence;
 using Jobsite.Modules.Screening.Infrastructure.Persistence.Repositories;
+using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -44,9 +45,8 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
     private FakeSettingsReader _settingsReader = null!;
 
     // AI client stubs
-    private IAiScoringClient _aiScoringClient = null!;
-    private IAiAnswerScoringClient _aiAnswerScoringClient = null!;
-    private IAiCandidateFeedbackClient _feedbackClient = null!;
+    private IEventPublisher _eventPublisher = null!;
+    private ITenantIdProvider _tenantIdProvider = null!;
 
     public ScreeningPipelineTests(ScreeningPipelineFixture fixture) => _fixture = fixture;
 
@@ -64,9 +64,9 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
         _statusUpdater = Substitute.For<IApplicationStatusUpdater>();
         _settingsReader = new FakeSettingsReader();
 
-        _aiScoringClient = Substitute.For<IAiScoringClient>();
-        _aiAnswerScoringClient = Substitute.For<IAiAnswerScoringClient>();
-        _feedbackClient = Substitute.For<IAiCandidateFeedbackClient>();
+        _eventPublisher = Substitute.For<IEventPublisher>();
+        _tenantIdProvider = Substitute.For<ITenantIdProvider>();
+        _tenantIdProvider.TenantId.Returns(Guid.NewGuid());
     }
 
     public async Task DisposeAsync()
@@ -77,15 +77,15 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
     private ScreeningService CreateService()
     {
         DeterministicScoringEngine deterministicEngine = new(Substitute.For<ILogger<DeterministicScoringEngine>>());
-        QuestionScoringService questionScoringService = new(_aiAnswerScoringClient,
+        QuestionScoringService questionScoringService = new(
             Substitute.For<ILogger<QuestionScoringService>>());
 
         return new ScreeningService(
             _resultRepo,
             _responseRepo,
             deterministicEngine,
-            _aiScoringClient,
-            _feedbackClient,
+            _eventPublisher,
+            _tenantIdProvider,
             questionScoringService,
             _criteriaReader,
             _questionsReader,
@@ -296,10 +296,10 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
             applicationId, "Screening", null, null, Arg.Any<CancellationToken>());
     }
 
-    // ── Test: AI Scoring Populates AI Fields ──────────────────────────────
+    // ── Test: AI Scoring Publishes Event via Broker ─────────────────────
 
     [Fact]
-    public async Task ProcessScreening_AiScoringEnabled_PopulatesAiFields()
+    public async Task ProcessScreening_AiScoringEnabled_PublishesScreeningEvaluationEvent()
     {
         // Arrange
         Guid applicationId = await SeedScreeningResultAsync();
@@ -330,23 +330,6 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
         _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
             .Returns(applicant);
 
-        // AI scoring returns a different score than deterministic
-        _aiScoringClient.EvaluateAsync(Arg.Any<List<CriteriaSnapshot>>(),
-                Arg.Any<ApplicantDataSnapshot>(), Arg.Any<CancellationToken>())
-            .Returns(new AiScoringResult
-            {
-                OverallScore = 88m,
-                Breakdown =
-                [
-                    new CriterionScoreDto
-                    {
-                        CriterionId = criterionId, CriterionName = "C#",
-                        Category = "Skill", Weight = 100m, Score = 88m,
-                        Result = "MeetsRequirement", Reasoning = "AI analysis: strong C# skills"
-                    }
-                ]
-            });
-
         _questionsReader.GetQuestionsForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
             .Returns(new List<QuestionSnapshot>());
         _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
@@ -357,28 +340,30 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
         // Act
         await service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
 
-        // Assert — both deterministic AND AI scores should be populated
+        // Assert — AI scoring event published, deterministic score present, AI fields null (async)
         ScreeningResult? persisted = await _resultRepo.GetByApplicationIdAsync(applicationId, CancellationToken.None);
         persisted.Should().NotBeNull();
         persisted!.OverallScore.Should().Be(100m); // Deterministic: exact match = 100
-        persisted.AiOverallScore.Should().Be(88m); // AI: independently scored
-        persisted.AiCriteriaScoreBreakdown.Should().NotBeNull();
+        persisted.AiOverallScore.Should().BeNull(); // AI arrives async via consumer
+        persisted.AiCriteriaScoreBreakdown.Should().BeNull();
         persisted.CriteriaScoreBreakdown.Should().NotBeNull();
-
-        // Routing is always based on deterministic score (100 >= 70)
         persisted.Outcome.Should().Be(ScreeningOutcome.AutoAdvanced);
+
+        await _eventPublisher.Received(1).PublishAsync(
+            Arg.Is<ScreeningEvaluationRequested>(e => e.ApplicationId == applicationId),
+            Arg.Any<CancellationToken>());
     }
 
-    // ── Test: AI Scoring Unavailable → Graceful Fallback ──────────────────
+    // ── Test: AI Scoring Disabled → No Event Published ────────────────────
 
     [Fact]
-    public async Task ProcessScreening_AiScoringUnavailable_FallsBackToDeterministic()
+    public async Task ProcessScreening_AiScoringDisabled_DoesNotPublishEvaluationEvent()
     {
         // Arrange
         Guid applicationId = await SeedScreeningResultAsync();
         Guid jobPostingId = Guid.NewGuid();
         Guid applicantUserId = Guid.NewGuid();
-        ConfigureDefaultSettings(autoAdvanceThreshold: 70m, autoRejectThreshold: 30m, aiScoringEnabled: true);
+        ConfigureDefaultSettings(autoAdvanceThreshold: 70m, autoRejectThreshold: 30m, aiScoringEnabled: false);
 
         _criteriaReader.GetCriteriaForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
             .Returns(
@@ -397,11 +382,6 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
                 UserId = applicantUserId, ResumeExtractedSkills = """["C#"]"""
             });
 
-        // AI is enabled but returns null (service unavailable)
-        _aiScoringClient.EvaluateAsync(Arg.Any<List<CriteriaSnapshot>>(),
-                Arg.Any<ApplicantDataSnapshot>(), Arg.Any<CancellationToken>())
-            .Returns((AiScoringResult?)null);
-
         _questionsReader.GetQuestionsForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
             .Returns(new List<QuestionSnapshot>());
         _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
@@ -412,7 +392,7 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
         // Act
         await service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
 
-        // Assert — deterministic score is present, AI fields are null
+        // Assert — deterministic score present, no AI event published
         ScreeningResult? persisted = await _resultRepo.GetByApplicationIdAsync(applicationId, CancellationToken.None);
         persisted.Should().NotBeNull();
         persisted!.OverallScore.Should().Be(100m);
@@ -420,12 +400,15 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
         persisted.AiCriteriaScoreBreakdown.Should().BeNull();
         persisted.Status.Should().Be(ScreeningStatus.Completed);
         persisted.Outcome.Should().Be(ScreeningOutcome.AutoAdvanced);
+
+        await _eventPublisher.DidNotReceive().PublishAsync(
+            Arg.Any<ScreeningEvaluationRequested>(), Arg.Any<CancellationToken>());
     }
 
-    // ── Test: Candidate Transparency → Feedback Populated ─────────────────
+    // ── Test: Candidate Transparency → Feedback Event Published ──────────
 
     [Fact]
-    public async Task ProcessScreening_TransparencyEnabled_PopulatesCandidateFeedback()
+    public async Task ProcessScreening_TransparencyEnabled_PublishesFeedbackEvent()
     {
         // Arrange
         Guid applicationId = await SeedScreeningResultAsync();
@@ -454,10 +437,6 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
                 ResumeParsedText = "Python developer with Django experience"
             });
 
-        _feedbackClient.GenerateFeedbackAsync(
-                Arg.Any<string>(), Arg.Any<decimal>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("Your profile shows strong Python skills with relevant Django experience.");
-
         _questionsReader.GetQuestionsForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
             .Returns(new List<QuestionSnapshot>());
         _questionsReader.HasAfterScreeningQuestionsAsync(jobPostingId, Arg.Any<CancellationToken>())
@@ -468,15 +447,17 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
         // Act
         await service.ProcessScreeningAsync(applicationId, jobPostingId, applicantUserId, null, CancellationToken.None);
 
-        // Assert
+        // Assert — feedback event published, CandidateFeedback is null (async)
         ScreeningResult? persisted = await _resultRepo.GetByApplicationIdAsync(applicationId, CancellationToken.None);
         persisted.Should().NotBeNull();
-        persisted!.CandidateFeedback.Should().NotBeNull();
-        persisted.CandidateFeedback.Should().Contain("strong Python skills");
+        persisted!.CandidateFeedback.Should().BeNull(); // feedback arrives async via consumer
 
-        // Verify the feedback client was called with "Detailed" transparency level
-        await _feedbackClient.Received(1).GenerateFeedbackAsync(
-            Arg.Any<string>(), 100m, "Detailed", Arg.Any<CancellationToken>());
+        await _eventPublisher.Received(1).PublishAsync(
+            Arg.Is<FeedbackGenerationRequested>(e =>
+                e.ApplicationId == applicationId &&
+                e.TransparencyLevel == "Detailed" &&
+                e.OverallScore == 100m),
+            Arg.Any<CancellationToken>());
     }
 
     // ── Test: No Applicant Data → Status Failed ───────────────────────────

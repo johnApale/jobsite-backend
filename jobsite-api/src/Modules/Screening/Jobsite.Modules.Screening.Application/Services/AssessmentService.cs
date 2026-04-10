@@ -25,6 +25,8 @@ public sealed class AssessmentService : IAssessmentService
     private readonly IApplicationStatusUpdater _statusUpdater;
     private readonly ITenantSettingsReader _settingsReader;
     private readonly QuestionScoringService _questionScoringService;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly ITenantIdProvider _tenantIdProvider;
     private readonly IDomainEventDispatcher _dispatcher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AssessmentService> _logger;
@@ -36,6 +38,8 @@ public sealed class AssessmentService : IAssessmentService
         IApplicationStatusUpdater statusUpdater,
         ITenantSettingsReader settingsReader,
         QuestionScoringService questionScoringService,
+        IEventPublisher eventPublisher,
+        ITenantIdProvider tenantIdProvider,
         IDomainEventDispatcher dispatcher,
         [FromKeyedServices("screening")] IUnitOfWork unitOfWork,
         ILogger<AssessmentService> logger)
@@ -46,6 +50,8 @@ public sealed class AssessmentService : IAssessmentService
         _statusUpdater = statusUpdater;
         _settingsReader = settingsReader;
         _questionScoringService = questionScoringService;
+        _eventPublisher = eventPublisher;
+        _tenantIdProvider = tenantIdProvider;
         _dispatcher = dispatcher;
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -93,8 +99,22 @@ public sealed class AssessmentService : IAssessmentService
         await _unitOfWork.SaveChangesAsync(ct);
 
         // Score AfterScreening responses
-        List<AnswerScore> scores = await _questionScoringService.ScoreResponsesAsync(
-            responses, afterScreeningQuestions, ct);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> pendingAiRequests) =
+            _questionScoringService.ScoreResponses(responses, afterScreeningQuestions);
+
+        // Publish free-text answers for async AI scoring via broker
+        if (pendingAiRequests.Count > 0)
+        {
+            await _eventPublisher.PublishAsync(new AnswerScoringRequested
+            {
+                EventId = Guid.NewGuid(),
+                TenantId = _tenantIdProvider.TenantId,
+                ApplicationId = applicationId,
+                AnswersJson = JsonSerializer.Serialize(pendingAiRequests, JsonOptions),
+                CorrelationId = Guid.NewGuid().ToString(),
+                OccurredAt = DateTime.UtcNow
+            }, ct);
+        }
 
         // Calculate assessment score (average of scored answers)
         if (scores.Count > 0)

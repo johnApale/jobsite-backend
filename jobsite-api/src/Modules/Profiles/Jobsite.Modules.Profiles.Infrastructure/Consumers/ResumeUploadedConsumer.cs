@@ -12,7 +12,7 @@ namespace Jobsite.Modules.Profiles.Infrastructure.Consumers;
 
 /// <summary>
 /// MassTransit consumer that parses uploaded resumes asynchronously.
-/// Runs basic text extraction first, then attempts AI-powered structured parsing.
+/// Runs basic text extraction first, then publishes a broker event for AI-powered parsing.
 /// Resolves the tenant database from the event's TenantId.
 /// </summary>
 public sealed class ResumeUploadedConsumer : IConsumer<ResumeUploadedEvent>
@@ -25,20 +25,20 @@ public sealed class ResumeUploadedConsumer : IConsumer<ResumeUploadedEvent>
     private readonly ITenantConnectionResolver _connectionResolver;
     private readonly ITenantDbContextFactory<ProfilesDbContext> _contextFactory;
     private readonly IResumeParser _resumeParser;
-    private readonly IAiResumeParser _aiResumeParser;
+    private readonly IEventPublisher _eventPublisher;
     private readonly ILogger<ResumeUploadedConsumer> _logger;
 
     public ResumeUploadedConsumer(
         ITenantConnectionResolver connectionResolver,
         ITenantDbContextFactory<ProfilesDbContext> contextFactory,
         IResumeParser resumeParser,
-        IAiResumeParser aiResumeParser,
+        IEventPublisher eventPublisher,
         ILogger<ResumeUploadedConsumer> logger)
     {
         _connectionResolver = connectionResolver;
         _contextFactory = contextFactory;
         _resumeParser = resumeParser;
-        _aiResumeParser = aiResumeParser;
+        _eventPublisher = eventPublisher;
         _logger = logger;
     }
 
@@ -78,19 +78,21 @@ public sealed class ResumeUploadedConsumer : IConsumer<ResumeUploadedEvent>
             resume.ParsedAt = DateTime.UtcNow;
             resume.ParseError = null;
 
-            // Attempt AI-powered structured extraction (graceful fallback)
-            AiResumeParseResult? aiResult = await _aiResumeParser.ParseAsync(result.ParsedText, ct);
-            if (aiResult is not null)
-            {
-                resume.AiParsedContent = JsonSerializer.Serialize(aiResult, JsonOptions);
-                _logger.LogInformation(
-                    "AI-parsed structured content stored for resume {ResumeId}", message.ResumeId);
-            }
-
             await db.SaveChangesAsync(ct);
 
+            // Publish event for AI-powered structured extraction (arrives asynchronously)
+            await _eventPublisher.PublishAsync(new ResumeParseRequested
+            {
+                EventId = Guid.NewGuid(),
+                TenantId = message.TenantId,
+                ResumeId = message.ResumeId,
+                ParsedText = result.ParsedText,
+                CorrelationId = Guid.NewGuid().ToString(),
+                OccurredAt = DateTime.UtcNow
+            }, ct);
+
             _logger.LogInformation(
-                "Successfully parsed resume {ResumeId}: {TextLength} chars extracted",
+                "Successfully parsed resume {ResumeId}: {TextLength} chars extracted, AI parse requested via broker",
                 message.ResumeId, result.ParsedText.Length);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

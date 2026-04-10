@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 namespace Jobsite.Modules.Screening.Application.Services;
 
 /// <summary>
-/// Scores screening question answers — MultipleChoice/YesNo deterministically,
-/// FreeText via AI Service (always, independent of AI scoring flag).
+/// Scores screening question answers — MultipleChoice/YesNo deterministically.
+/// FreeText answers are collected and returned as pending AI requests for broker publishing.
 /// </summary>
 public sealed class QuestionScoringService
 {
@@ -20,29 +20,24 @@ public sealed class QuestionScoringService
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly IAiAnswerScoringClient _aiClient;
     private readonly ILogger<QuestionScoringService> _logger;
 
     public QuestionScoringService(
-        IAiAnswerScoringClient aiClient,
         ILogger<QuestionScoringService> logger)
     {
-        _aiClient = aiClient;
         _logger = logger;
     }
 
     /// <summary>
     /// Scores a list of question responses against their expected answers.
-    /// Returns per-question score breakdown and updates the response entities.
+    /// Returns deterministic scores (MC/YN) and pending free-text requests for async AI scoring.
     /// </summary>
-    public async Task<List<AnswerScore>> ScoreResponsesAsync(
+    public (List<AnswerScore> Scores, List<AnswerScoringRequest> PendingAiRequests) ScoreResponses(
         List<ScreeningQuestionResponse> responses,
-        List<QuestionSnapshot> questions,
-        CancellationToken ct = default)
+        List<QuestionSnapshot> questions)
     {
         List<AnswerScore> scores = [];
         List<AnswerScoringRequest> freeTextRequests = [];
-        Dictionary<Guid, ScreeningQuestionResponse> freeTextResponseMap = [];
 
         foreach (ScreeningQuestionResponse response in responses)
         {
@@ -66,32 +61,18 @@ public sealed class QuestionScoringService
 
                 case "FreeText":
                     freeTextRequests.Add(BuildFreeTextRequest(response, question));
-                    freeTextResponseMap[response.QuestionId] = response;
                     break;
             }
         }
 
         if (freeTextRequests.Count > 0)
         {
-            List<AnswerScore>? aiScores = await _aiClient.ScoreAnswersAsync(freeTextRequests, ct);
-
-            if (aiScores is not null)
-            {
-                foreach (AnswerScore aiScore in aiScores)
-                {
-                    scores.Add(aiScore);
-                    if (freeTextResponseMap.TryGetValue(aiScore.QuestionId, out ScreeningQuestionResponse? response))
-                        ApplyScore(response, aiScore);
-                }
-            }
-            else
-            {
-                _logger.LogWarning("AI answer scoring unavailable — {Count} FreeText answers left unscored",
-                    freeTextRequests.Count);
-            }
+            _logger.LogInformation(
+                "{Count} FreeText answers queued for async AI scoring via broker",
+                freeTextRequests.Count);
         }
 
-        return scores;
+        return (scores, freeTextRequests);
     }
 
     private static AnswerScore ScoreMultipleChoice(ScreeningQuestionResponse response, QuestionSnapshot question)

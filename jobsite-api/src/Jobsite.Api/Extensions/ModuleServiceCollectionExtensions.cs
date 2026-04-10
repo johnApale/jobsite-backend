@@ -131,6 +131,9 @@ public static class ModuleServiceCollectionExtensions
         // 9. Integration event publisher (wraps MassTransit IPublishEndpoint)
         services.AddScoped<IEventPublisher, MassTransitEventPublisher>();
 
+        // 9a. Tenant ID provider (for Application services that publish integration events)
+        services.AddScoped<ITenantIdProvider, HttpContextTenantIdProvider>();
+
         // 10. Tenant connection resolver (for consumers and background services)
         services.AddScoped<ITenantConnectionResolver, CatalogTenantConnectionResolver>();
 

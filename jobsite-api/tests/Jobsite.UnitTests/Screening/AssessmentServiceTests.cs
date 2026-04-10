@@ -19,15 +19,17 @@ public sealed class AssessmentServiceTests
     private readonly IJobScreeningQuestionsReader _questionsReader = Substitute.For<IJobScreeningQuestionsReader>();
     private readonly IApplicationStatusUpdater _statusUpdater = Substitute.For<IApplicationStatusUpdater>();
     private readonly ITenantSettingsReader _settingsReader = Substitute.For<ITenantSettingsReader>();
-    private readonly IAiAnswerScoringClient _aiClient = Substitute.For<IAiAnswerScoringClient>();
+    private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
+    private readonly ITenantIdProvider _tenantIdProvider = Substitute.For<ITenantIdProvider>();
     private readonly IDomainEventDispatcher _dispatcher = Substitute.For<IDomainEventDispatcher>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly AssessmentService _service;
 
     public AssessmentServiceTests()
     {
+        _tenantIdProvider.TenantId.Returns(Guid.NewGuid());
+
         QuestionScoringService questionScoringService = new(
-            _aiClient,
             Substitute.For<ILogger<QuestionScoringService>>());
 
         _service = new AssessmentService(
@@ -37,6 +39,8 @@ public sealed class AssessmentServiceTests
             _statusUpdater,
             _settingsReader,
             questionScoringService,
+            _eventPublisher,
+            _tenantIdProvider,
             _dispatcher,
             _unitOfWork,
             Substitute.For<ILogger<AssessmentService>>());

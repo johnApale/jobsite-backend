@@ -20,7 +20,7 @@ public sealed class ResumeUploadedConsumerTests : IDisposable
     private readonly ITenantDbContextFactory<ProfilesDbContext> _contextFactory =
         Substitute.For<ITenantDbContextFactory<ProfilesDbContext>>();
     private readonly IResumeParser _resumeParser = Substitute.For<IResumeParser>();
-    private readonly IAiResumeParser _aiResumeParser = Substitute.For<IAiResumeParser>();
+    private readonly IEventPublisher _eventPublisher = Substitute.For<IEventPublisher>();
     private readonly ILogger<ResumeUploadedConsumer> _logger =
         Substitute.For<ILogger<ResumeUploadedConsumer>>();
     private readonly ResumeUploadedConsumer _sut;
@@ -29,7 +29,7 @@ public sealed class ResumeUploadedConsumerTests : IDisposable
     public ResumeUploadedConsumerTests()
     {
         _sut = new ResumeUploadedConsumer(
-            _connectionResolver, _contextFactory, _resumeParser, _aiResumeParser, _logger);
+            _connectionResolver, _contextFactory, _resumeParser, _eventPublisher, _logger);
     }
 
     public void Dispose()
@@ -122,8 +122,6 @@ public sealed class ResumeUploadedConsumerTests : IDisposable
 
         _resumeParser.ParseAsync(message.FileUrl, message.FileType, Arg.Any<CancellationToken>())
             .Returns(new ResumeParseResult { ParsedText = "Experienced .NET developer", ExtractedSkills = "[\"C#\"]" });
-        _aiResumeParser.ParseAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((AiResumeParseResult?)null);
 
         // Act
         await _sut.Consume(CreateConsumeContext(message));
@@ -137,7 +135,7 @@ public sealed class ResumeUploadedConsumerTests : IDisposable
     }
 
     [Fact]
-    public async Task Consume_AiParserAvailable_StoresAiParsedContent()
+    public async Task Consume_ValidEvent_PublishesResumeParseRequestedEvent()
     {
         // Arrange
         ResumeUploadedEvent message = CreateEvent();
@@ -146,35 +144,29 @@ public sealed class ResumeUploadedConsumerTests : IDisposable
 
         _resumeParser.ParseAsync(message.FileUrl, message.FileType, Arg.Any<CancellationToken>())
             .Returns(new ResumeParseResult { ParsedText = "Developer with C# skills" });
-        AiResumeParseResult aiResult = new()
-        {
-            Skills = [new AiExtractedSkill { Name = "C#", Level = "Advanced", Years = 5 }],
-            Summary = "Experienced developer"
-        };
-        _aiResumeParser.ParseAsync("Developer with C# skills", Arg.Any<CancellationToken>())
-            .Returns(aiResult);
 
         // Act
         await _sut.Consume(CreateConsumeContext(message));
 
-        // Assert
-        Resume? updated = await assertDb.Resumes.FindAsync(message.ResumeId);
-        updated!.AiParsedContent.Should().NotBeNullOrEmpty();
-        updated.AiParsedContent.Should().Contain("C#");
+        // Assert — event published for async AI parsing
+        await _eventPublisher.Received(1).PublishAsync(
+            Arg.Is<ResumeParseRequested>(e =>
+                e.ResumeId == message.ResumeId &&
+                e.TenantId == message.TenantId &&
+                e.ParsedText == "Developer with C# skills"),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Consume_AiParserUnavailable_FallsBackToBasicOnly()
+    public async Task Consume_ValidEvent_DoesNotStoreAiParsedContentSynchronously()
     {
-        // Arrange
+        // Arrange — AI parsing is now async; AiParsedContent is not set during basic parse
         ResumeUploadedEvent message = CreateEvent();
         (ProfilesDbContext seedDb, ProfilesDbContext assertDb) = SetupFactory(message.TenantId);
         await SeedResumeAsync(seedDb, message.ResumeId);
 
         _resumeParser.ParseAsync(message.FileUrl, message.FileType, Arg.Any<CancellationToken>())
             .Returns(new ResumeParseResult { ParsedText = "Some text" });
-        _aiResumeParser.ParseAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((AiResumeParseResult?)null);
 
         // Act
         await _sut.Consume(CreateConsumeContext(message));
@@ -249,8 +241,6 @@ public sealed class ResumeUploadedConsumerTests : IDisposable
 
         _resumeParser.ParseAsync(message.FileUrl, message.FileType, Arg.Any<CancellationToken>())
             .Returns(new ResumeParseResult { ParsedText = "text" });
-        _aiResumeParser.ParseAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((AiResumeParseResult?)null);
 
         // Act
         await _sut.Consume(CreateConsumeContext(message));
@@ -270,8 +260,6 @@ public sealed class ResumeUploadedConsumerTests : IDisposable
         DateTime before = DateTime.UtcNow;
         _resumeParser.ParseAsync(message.FileUrl, message.FileType, Arg.Any<CancellationToken>())
             .Returns(new ResumeParseResult { ParsedText = "text" });
-        _aiResumeParser.ParseAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns((AiResumeParseResult?)null);
 
         // Act
         await _sut.Consume(CreateConsumeContext(message));

@@ -12,13 +12,11 @@ namespace Jobsite.UnitTests.Screening;
 
 public sealed class QuestionScoringServiceTests
 {
-    private readonly IAiAnswerScoringClient _aiClient = Substitute.For<IAiAnswerScoringClient>();
     private readonly QuestionScoringService _service;
 
     public QuestionScoringServiceTests()
     {
         _service = new QuestionScoringService(
-            _aiClient,
             Substitute.For<ILogger<QuestionScoringService>>());
     }
 
@@ -53,7 +51,7 @@ public sealed class QuestionScoringServiceTests
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_YesNo_CorrectAnswer_Returns100()
+    public void ScoreResponses_YesNo_CorrectAnswer_Returns100()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
@@ -67,16 +65,17 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> pendingAi) = _service.ScoreResponses(responses, questions);
 
         // Assert
         scores.Should().HaveCount(1);
         scores[0].Score.Should().Be(100m);
         scores[0].Result.Should().Be(ScoreResult.MeetsRequirement);
+        pendingAi.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_YesNo_WrongAnswer_Returns0()
+    public void ScoreResponses_YesNo_WrongAnswer_Returns0()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
@@ -90,7 +89,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert
         scores.Should().HaveCount(1);
@@ -99,7 +98,7 @@ public sealed class QuestionScoringServiceTests
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_MultipleChoice_AllCorrect_Returns100()
+    public void ScoreResponses_MultipleChoice_AllCorrect_Returns100()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
@@ -115,7 +114,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert
         scores.Should().HaveCount(1);
@@ -123,7 +122,7 @@ public sealed class QuestionScoringServiceTests
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_MultipleChoice_PartialCredit_ReturnsProportional()
+    public void ScoreResponses_MultipleChoice_PartialCredit_ReturnsProportional()
     {
         // Arrange — selected 1 of 2 correct, partial credit enabled
         Guid questionId = Guid.NewGuid();
@@ -139,7 +138,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert
         scores.Should().HaveCount(1);
@@ -147,7 +146,7 @@ public sealed class QuestionScoringServiceTests
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_FreeText_DelegatesToAiClient()
+    public void ScoreResponses_FreeText_ReturnsPendingAiRequest()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
@@ -161,57 +160,43 @@ public sealed class QuestionScoringServiceTests
                 expectedAnswer: """{"scoring_guidance": "Look for relevant experience", "key_topics": ["C#"]}""")
         ];
 
-        List<AnswerScore> aiScores =
-        [
-            new AnswerScore
-            {
-                QuestionId = questionId,
-                Score = 85m,
-                Result = ScoreResult.MeetsRequirement,
-                Reasoning = "Strong experience in C#"
-            }
-        ];
-
-        _aiClient.ScoreAnswersAsync(Arg.Any<List<AnswerScoringRequest>>(), Arg.Any<CancellationToken>())
-            .Returns(aiScores);
-
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> pendingAi) =
+            _service.ScoreResponses(responses, questions);
 
-        // Assert
-        scores.Should().HaveCount(1);
-        scores[0].Score.Should().Be(85m);
-        await _aiClient.Received(1).ScoreAnswersAsync(
-            Arg.Is<List<AnswerScoringRequest>>(r => r.Count == 1 && r[0].QuestionId == questionId),
-            Arg.Any<CancellationToken>());
+        // Assert — FreeText is not scored deterministically, but queued for async AI
+        scores.Should().BeEmpty();
+        pendingAi.Should().HaveCount(1);
+        pendingAi[0].QuestionId.Should().Be(questionId);
+        pendingAi[0].ResponseText.Should().Be("My experience with C# spans 5 years");
+        pendingAi[0].ScoringGuidance.Should().Be("Look for relevant experience");
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_FreeText_AiUnavailable_ReturnsEmpty()
+    public void ScoreResponses_FreeText_NoPendingWhenNoFreeText()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
         List<ScreeningQuestionResponse> responses =
         [
-            CreateResponse(questionId, responseText: "My answer")
+            CreateResponse(questionId, responseData: """{"answer": true}""")
         ];
         List<QuestionSnapshot> questions =
         [
-            CreateQuestion(questionId, "FreeText")
+            CreateQuestion(questionId, "YesNo", expectedAnswer: """{"correct": true}""")
         ];
 
-        _aiClient.ScoreAnswersAsync(Arg.Any<List<AnswerScoringRequest>>(), Arg.Any<CancellationToken>())
-            .Returns((List<AnswerScore>?)null);
-
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> pendingAi) =
+            _service.ScoreResponses(responses, questions);
 
-        // Assert — FreeText with no AI result returns no score entries
-        scores.Should().BeEmpty();
+        // Assert — no FreeText questions = no pending AI requests
+        scores.Should().HaveCount(1);
+        pendingAi.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_UnknownQuestion_IsSkipped()
+    public void ScoreResponses_UnknownQuestion_IsSkipped()
     {
         // Arrange — response references a question not in the list
         Guid unknownQuestionId = Guid.NewGuid();
@@ -222,14 +207,16 @@ public sealed class QuestionScoringServiceTests
         List<QuestionSnapshot> questions = []; // empty — no matching question
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> pendingAi) =
+            _service.ScoreResponses(responses, questions);
 
         // Assert
         scores.Should().BeEmpty();
+        pendingAi.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_YesNo_MissingExpectedAnswer_ReturnsMissingScore()
+    public void ScoreResponses_YesNo_MissingExpectedAnswer_ReturnsMissingScore()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
@@ -243,7 +230,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert
         scores.Should().HaveCount(1);
@@ -253,7 +240,7 @@ public sealed class QuestionScoringServiceTests
     // ─── MultipleChoice: partial credit with incorrect selections ────────
 
     [Fact]
-    public async Task ScoreResponsesAsync_MultipleChoice_PartialCreditWithIncorrect_PenalizesScore()
+    public void ScoreResponses_MultipleChoice_PartialCreditWithIncorrect_PenalizesScore()
     {
         // Arrange — selected 2 correct + 1 incorrect out of 3 correct, with partial credit
         // Formula: max(0, (correctCount - incorrectCount) / totalCorrect * 100) = max(0, (2-1)/3*100) = 33.33
@@ -270,7 +257,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert — 2 correct, 1 incorrect → (2-1)/3 * 100 = 33.33
         scores.Should().HaveCount(1);
@@ -278,7 +265,7 @@ public sealed class QuestionScoringServiceTests
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_MultipleChoice_AllOrNothing_WrongAnswer_ReturnsZero()
+    public void ScoreResponses_MultipleChoice_AllOrNothing_WrongAnswer_ReturnsZero()
     {
         // Arrange — partial_credit=false, one option missing → 0
         Guid questionId = Guid.NewGuid();
@@ -294,7 +281,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert — partial_credit=false, not exact match → 0
         scores.Should().HaveCount(1);
@@ -302,7 +289,7 @@ public sealed class QuestionScoringServiceTests
     }
 
     [Fact]
-    public async Task ScoreResponsesAsync_MultipleChoice_NoneSelected_ReturnsZero()
+    public void ScoreResponses_MultipleChoice_NoneSelected_ReturnsZero()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
@@ -318,7 +305,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert
         scores.Should().HaveCount(1);
@@ -328,9 +315,9 @@ public sealed class QuestionScoringServiceTests
     // ─── FreeText: AI applies scores to response entities ───────────────
 
     [Fact]
-    public async Task ScoreResponsesAsync_FreeText_AiScoresAppliedToResponseEntity()
+    public void ScoreResponses_FreeText_BuildsRequestWithGuidanceAndTopics()
     {
-        // Arrange — verify that ApplyScore sets Score, ScoreResult, ScoreReasoning, and ScoredAt
+        // Arrange — verify that FreeText builds a pending AI request with scoring guidance
         Guid questionId = Guid.NewGuid();
         ScreeningQuestionResponse response = CreateResponse(questionId,
             responseText: "I have 5 years of C# experience");
@@ -341,34 +328,22 @@ public sealed class QuestionScoringServiceTests
                 expectedAnswer: """{"scoring_guidance": "Look for years", "key_topics": ["C#"]}""")
         ];
 
-        List<AnswerScore> aiScores =
-        [
-            new AnswerScore
-            {
-                QuestionId = questionId,
-                Score = 75m,
-                Result = ScoreResult.PartialMatch,
-                Reasoning = "Good experience but limited specifics"
-            }
-        ];
-
-        _aiClient.ScoreAnswersAsync(Arg.Any<List<AnswerScoringRequest>>(), Arg.Any<CancellationToken>())
-            .Returns(aiScores);
-
         // Act
-        await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> pendingAi) =
+            _service.ScoreResponses(responses, questions);
 
-        // Assert — response entity was mutated with score data
-        response.Score.Should().Be(75m);
-        response.ScoreResult.Should().Be(ScoreResult.PartialMatch);
-        response.ScoreReasoning.Should().Be("Good experience but limited specifics");
-        response.ScoredAt.Should().NotBeNull();
+        // Assert — FreeText queued for async AI scoring
+        scores.Should().BeEmpty();
+        pendingAi.Should().HaveCount(1);
+        pendingAi[0].QuestionId.Should().Be(questionId);
+        pendingAi[0].ScoringGuidance.Should().Be("Look for years");
+        pendingAi[0].KeyTopics.Should().Contain("C#");
     }
 
     // ─── Deterministic scoring also applies to response entities ────────
 
     [Fact]
-    public async Task ScoreResponsesAsync_YesNo_AppliesScoreToResponseEntity()
+    public void ScoreResponses_YesNo_AppliesScoreToResponseEntity()
     {
         // Arrange — verify that deterministic scoring also calls ApplyScore
         Guid questionId = Guid.NewGuid();
@@ -381,7 +356,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        _service.ScoreResponses(responses, questions);
 
         // Assert — response entity has score fields set
         response.Score.Should().Be(100m);
@@ -393,7 +368,7 @@ public sealed class QuestionScoringServiceTests
     // ─── Mixed question types in single batch ───────────────────────────
 
     [Fact]
-    public async Task ScoreResponsesAsync_MixedTypes_ScoresAllDeterministicallyAndDelegatesFreeText()
+    public void ScoreResponses_MixedTypes_ScoresDeterministicAndQueuesFreeText()
     {
         // Arrange — YesNo + MC + FreeText in a single batch
         Guid yesNoId = Guid.NewGuid();
@@ -416,34 +391,22 @@ public sealed class QuestionScoringServiceTests
                 expectedAnswer: """{"scoring_guidance": "Look for experience"}""")
         ];
 
-        List<AnswerScore> aiScores =
-        [
-            new AnswerScore
-            {
-                QuestionId = freeTextId, Score = 60m,
-                Result = ScoreResult.PartialMatch, Reasoning = "Decent experience"
-            }
-        ];
-
-        _aiClient.ScoreAnswersAsync(
-            Arg.Is<List<AnswerScoringRequest>>(r => r.Count == 1 && r[0].QuestionId == freeTextId),
-            Arg.Any<CancellationToken>())
-            .Returns(aiScores);
-
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> pendingAi) =
+            _service.ScoreResponses(responses, questions);
 
-        // Assert — 3 scores total: YesNo=100, MC=100, FreeText=60
-        scores.Should().HaveCount(3);
+        // Assert — 2 deterministic scores (YesNo=100, MC=100), 1 pending AI request
+        scores.Should().HaveCount(2);
         scores.Should().Contain(s => s.QuestionId == yesNoId && s.Score == 100m);
         scores.Should().Contain(s => s.QuestionId == mcId && s.Score == 100m);
-        scores.Should().Contain(s => s.QuestionId == freeTextId && s.Score == 60m);
+        pendingAi.Should().HaveCount(1);
+        pendingAi[0].QuestionId.Should().Be(freeTextId);
     }
 
     // ─── Malformed JSON ─────────────────────────────────────────────────
 
     [Fact]
-    public async Task ScoreResponsesAsync_MultipleChoice_MalformedJson_ReturnsMissingScore()
+    public void ScoreResponses_MultipleChoice_MalformedJson_ReturnsMissingScore()
     {
         // Arrange
         Guid questionId = Guid.NewGuid();
@@ -458,7 +421,7 @@ public sealed class QuestionScoringServiceTests
         ];
 
         // Act
-        List<AnswerScore> scores = await _service.ScoreResponsesAsync(responses, questions, CancellationToken.None);
+        (List<AnswerScore> scores, List<AnswerScoringRequest> _) = _service.ScoreResponses(responses, questions);
 
         // Assert — fails gracefully with 0 score
         scores.Should().HaveCount(1);

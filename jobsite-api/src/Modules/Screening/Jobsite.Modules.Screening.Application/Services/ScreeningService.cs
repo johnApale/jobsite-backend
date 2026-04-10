@@ -4,6 +4,7 @@ using Jobsite.Modules.Screening.Application.Interfaces;
 using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.SharedKernel.Errors;
+using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,7 +13,7 @@ namespace Jobsite.Modules.Screening.Application.Services;
 
 /// <summary>
 /// Orchestrates the full screening scoring pipeline: deterministic scoring,
-/// optional AI scoring, question scoring, three-tier routing, and candidate transparency.
+/// async AI scoring via broker, question scoring, three-tier routing, and candidate transparency.
 /// </summary>
 public sealed class ScreeningService : IScreeningService
 {
@@ -25,8 +26,8 @@ public sealed class ScreeningService : IScreeningService
     private readonly IScreeningResultRepository _resultRepository;
     private readonly IScreeningQuestionResponseRepository _responseRepository;
     private readonly IDeterministicScoringEngine _deterministicEngine;
-    private readonly IAiScoringClient _aiScoringClient;
-    private readonly IAiCandidateFeedbackClient _feedbackClient;
+    private readonly IEventPublisher _eventPublisher;
+    private readonly ITenantIdProvider _tenantIdProvider;
     private readonly QuestionScoringService _questionScoringService;
     private readonly IJobCriteriaReader _criteriaReader;
     private readonly IJobScreeningQuestionsReader _questionsReader;
@@ -40,8 +41,8 @@ public sealed class ScreeningService : IScreeningService
         IScreeningResultRepository resultRepository,
         IScreeningQuestionResponseRepository responseRepository,
         IDeterministicScoringEngine deterministicEngine,
-        IAiScoringClient aiScoringClient,
-        IAiCandidateFeedbackClient feedbackClient,
+        IEventPublisher eventPublisher,
+        ITenantIdProvider tenantIdProvider,
         QuestionScoringService questionScoringService,
         IJobCriteriaReader criteriaReader,
         IJobScreeningQuestionsReader questionsReader,
@@ -54,8 +55,8 @@ public sealed class ScreeningService : IScreeningService
         _resultRepository = resultRepository;
         _responseRepository = responseRepository;
         _deterministicEngine = deterministicEngine;
-        _aiScoringClient = aiScoringClient;
-        _feedbackClient = feedbackClient;
+        _eventPublisher = eventPublisher;
+        _tenantIdProvider = tenantIdProvider;
         _questionScoringService = questionScoringService;
         _criteriaReader = criteriaReader;
         _questionsReader = questionsReader;
@@ -103,15 +104,19 @@ public sealed class ScreeningService : IScreeningService
             result.OverallScore = deterministicResult.OverallScore;
             result.CriteriaScoreBreakdown = JsonSerializer.Serialize(deterministicResult.Breakdown, JsonOptions);
 
-            // 4. AI scoring (conditional)
+            // 4. AI scoring (async via broker — results arrive via ScreeningEvaluatedConsumer)
             if (config.AiScoringEnabled)
             {
-                AiScoringResult? aiResult = await _aiScoringClient.EvaluateAsync(criteria, applicantData, ct);
-                if (aiResult is not null)
+                await _eventPublisher.PublishAsync(new ScreeningEvaluationRequested
                 {
-                    result.AiOverallScore = aiResult.OverallScore;
-                    result.AiCriteriaScoreBreakdown = JsonSerializer.Serialize(aiResult.Breakdown, JsonOptions);
-                }
+                    EventId = Guid.NewGuid(),
+                    TenantId = _tenantIdProvider.TenantId,
+                    ApplicationId = applicationId,
+                    CriteriaJson = JsonSerializer.Serialize(criteria, JsonOptions),
+                    ApplicantDataJson = JsonSerializer.Serialize(applicantData, JsonOptions),
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    OccurredAt = DateTime.UtcNow
+                }, ct);
             }
 
             // 5. Score AtApplication question answers
@@ -123,25 +128,44 @@ public sealed class ScreeningService : IScreeningService
                 List<QuestionSnapshot> questions = await _questionsReader.GetQuestionsForJobAsync(jobPostingId, ct);
                 List<QuestionSnapshot> atAppQuestions = questions.Where(q => q.Timing == "AtApplication").ToList();
 
-                List<AnswerScore> questionScores = await _questionScoringService.ScoreResponsesAsync(
-                    atApplicationResponses, atAppQuestions, ct);
+                (List<AnswerScore> questionScores, List<AnswerScoringRequest> pendingAiRequests) =
+                    _questionScoringService.ScoreResponses(atApplicationResponses, atAppQuestions);
                 result.QuestionScoreBreakdown = JsonSerializer.Serialize(questionScores, JsonOptions);
+
+                // Publish free-text answers for async AI scoring via broker
+                if (pendingAiRequests.Count > 0)
+                {
+                    await _eventPublisher.PublishAsync(new AnswerScoringRequested
+                    {
+                        EventId = Guid.NewGuid(),
+                        TenantId = _tenantIdProvider.TenantId,
+                        ApplicationId = applicationId,
+                        AnswersJson = JsonSerializer.Serialize(pendingAiRequests, JsonOptions),
+                        CorrelationId = Guid.NewGuid().ToString(),
+                        OccurredAt = DateTime.UtcNow
+                    }, ct);
+                }
             }
 
             // 6. Derive match strength
             result.MatchStrength = MatchStrength.FromScore(result.OverallScore.Value);
 
-            // 7. Candidate transparency
+            // 7. Candidate transparency (async via broker — results arrive via FeedbackGeneratedConsumer)
             if (config.CandidateTransparencyEnabled &&
                 config.CandidateTransparencyLevel != TransparencyLevel.None &&
                 result.CriteriaScoreBreakdown is not null)
             {
-                string? feedback = await _feedbackClient.GenerateFeedbackAsync(
-                    result.CriteriaScoreBreakdown,
-                    result.OverallScore.Value,
-                    config.CandidateTransparencyLevel,
-                    ct);
-                result.CandidateFeedback = feedback;
+                await _eventPublisher.PublishAsync(new FeedbackGenerationRequested
+                {
+                    EventId = Guid.NewGuid(),
+                    TenantId = _tenantIdProvider.TenantId,
+                    ApplicationId = applicationId,
+                    CriteriaBreakdown = result.CriteriaScoreBreakdown,
+                    OverallScore = result.OverallScore!.Value,
+                    TransparencyLevel = config.CandidateTransparencyLevel,
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    OccurredAt = DateTime.UtcNow
+                }, ct);
             }
 
             // 8. Complete screening
