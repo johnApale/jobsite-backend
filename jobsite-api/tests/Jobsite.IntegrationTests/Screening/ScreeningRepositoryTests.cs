@@ -2,7 +2,6 @@ using FluentAssertions;
 using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.Modules.Screening.Infrastructure.Persistence.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Jobsite.IntegrationTests.Screening;
 

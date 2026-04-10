@@ -2,7 +2,6 @@ using FluentAssertions;
 using Jobsite.Modules.Matching.Domain.Constants;
 using Jobsite.Modules.Matching.Domain.Entities;
 using Jobsite.Modules.Matching.Infrastructure.Persistence.Repositories;
-using Microsoft.EntityFrameworkCore;
 
 namespace Jobsite.IntegrationTests.Matching;
 
