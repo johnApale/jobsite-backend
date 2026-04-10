@@ -4,9 +4,14 @@ Standalone Python/FastAPI microservice providing AI-powered capabilities for D'J
 
 ## Capabilities
 
-- **Resume Parsing** — Extract structured skills, experience, education from resume text (with SHA-256 cache)
+### HTTP (synchronous)
+
 - **Criteria Suggestion** — AI-generated evaluation criteria for job postings
 - **Assessment Questions** — AI-suggested screening questions based on job criteria
+
+### Message Broker (asynchronous via RabbitMQ)
+
+- **Resume Parsing** — Extract structured skills, experience, education from resume text (with SHA-256 cache)
 - **Screening Evaluation** — Per-criterion scoring of applicants with weighted overall score
 - **Answer Scoring** — AI evaluation of free-text candidate answers
 - **Candidate Feedback** — Transparency-level-aware feedback generation
@@ -41,6 +46,7 @@ Environment variables (or `.env` file):
 | `ENABLE_DOCS`    | `false`                                                            | Enable Swagger/ReDoc UI |
 | `LOG_LEVEL`      | `INFO`                                                             | Logging level           |
 | `CORS_ORIGINS`   | `["http://localhost:3000"]`                                        | Allowed CORS origins    |
+| `RABBITMQ_URL`   | `amqp://guest:guest@localhost:5672/`                               | RabbitMQ connection URL |
 
 ## Run
 
@@ -66,16 +72,21 @@ pytest tests/ -v          # verbose output
 pytest tests/test_api.py  # endpoint tests only
 ```
 
-## API Endpoints
+## API Endpoints (HTTP)
 
-| Method | Path                                 | Description            |
-| ------ | ------------------------------------ | ---------------------- |
-| GET    | `/health`                            | Health check (no auth) |
-| POST   | `/api/v1/ai/resumes/parse`           | Parse resume text      |
-| POST   | `/api/v1/ai/criteria/suggest`        | Suggest criteria       |
-| POST   | `/api/v1/ai/assessment/suggest`      | Suggest questions      |
-| POST   | `/api/v1/ai/screening/evaluate`      | Evaluate applicant     |
-| POST   | `/api/v1/ai/screening/score-answers` | Score answers          |
-| POST   | `/api/v1/ai/screening/feedback`      | Generate feedback      |
+| Method | Path                            | Description            |
+| ------ | ------------------------------- | ---------------------- |
+| GET    | `/health`                       | Health check (no auth) |
+| POST   | `/api/v1/ai/criteria/suggest`   | Suggest criteria       |
+| POST   | `/api/v1/ai/assessment/suggest` | Suggest questions      |
+
+## Message Broker Consumers (RabbitMQ)
+
+| Inbound Event                  | Outbound Event       | Description            |
+| ------------------------------ | -------------------- | ---------------------- |
+| `ResumeParseRequested`         | `ResumeParsed`       | Parse resume text      |
+| `ScreeningEvaluationRequested` | `ScreeningEvaluated` | Evaluate applicant     |
+| `AnswerScoringRequested`       | `AnswersScored`      | Score answers          |
+| `FeedbackGenerationRequested`  | `FeedbackGenerated`  | Generate feedback      |
 
 See [docs/api-reference/ai-service.md](../docs/api-reference/ai-service.md) for full API reference.

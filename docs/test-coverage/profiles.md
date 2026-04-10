@@ -115,38 +115,36 @@ Tests `UpdateProfileRequestValidator` — FluentValidation rules for the merge-p
 
 ---
 
-## `AiResumeParserClientTests` (5 tests)
-
-Tests `AiResumeParserClient` — the HTTP client for the AI Service's resume parsing endpoint. Uses a fake `HttpMessageHandler` to simulate various failure modes.
-
-| Test                                          | What It Verifies                                                  | Expected Outcome |
-| --------------------------------------------- | ----------------------------------------------------------------- | ---------------- |
-| `ParseAsync_SuccessResponse_ReturnsResult`    | 200 OK with valid JSON returns deserialized `AiResumeParseResult` | Non-null result  |
-| `ParseAsync_ErrorResponse_ReturnsNull`        | 500 response returns null (graceful fallback)                     | Returns `null`   |
-| `ParseAsync_HttpRequestException_ReturnsNull` | Connection refused returns null (AI Service down)                 | Returns `null`   |
-| `ParseAsync_TaskCanceled_ReturnsNull`         | Request timeout returns null (resilience policy triggered)        | Returns `null`   |
-| `ParseAsync_InvalidJson_ReturnsNull`          | Malformed JSON response returns null                              | Returns `null`   |
-
-**Why:** The AI parser client must never throw exceptions to the consumer. All failure modes must be handled gracefully with null return, allowing the basic parser output to be used as the sole result. This ensures resume processing is never blocked by AI Service availability.
-
----
-
 ## `ResumeUploadedConsumerTests` (8 tests)
 
-Tests `ResumeUploadedConsumer` — the MassTransit consumer that runs basic + AI resume parsing asynchronously. Uses InMemory EF Core for `ProfilesDbContext` and NSubstitute for `IResumeParser`, `IAiResumeParser`, `ITenantConnectionResolver`, and `ITenantDbContextFactory`.
+Tests `ResumeUploadedConsumer` — the MassTransit consumer that runs basic resume parsing asynchronously and publishes `ResumeParseRequested` to the message broker for AI parsing. Uses InMemory EF Core for `ProfilesDbContext` and NSubstitute for `IResumeParser`, `IEventPublisher`, `ITenantConnectionResolver`, and `ITenantDbContextFactory`.
 
 | Test                                                 | What It Verifies                                                       | Expected Outcome                                |
 | ---------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
 | `Consume_ValidEvent_RunsBasicParserAndPersists`      | Happy path: basic parser text + skills stored on resume                | ParsedText, ExtractedSkills set, IsParsed true  |
-| `Consume_AiParserAvailable_StoresAiParsedContent`    | AI parser returns structured data, serialized as JSON                  | AiParsedContent contains skill data             |
-| `Consume_AiParserUnavailable_FallsBackToBasicOnly`   | AI parser returns null, resume still saved with basic parse            | IsParsed true, AiParsedContent null             |
+| `Consume_ValidEvent_PublishesResumeParseRequestedEvent` | Publishes `ResumeParseRequested` event for async AI parsing         | Event published with correct data               |
+| `Consume_ValidEvent_DoesNotStoreAiParsedContentSynchronously` | AI parsed content not set synchronously — arrives via broker    | AiParsedContent null after consumer completes   |
 | `Consume_BasicParserFails_SetsParseErrorAndRethrows` | Parser exception stored on resume, then rethrown for MassTransit retry | ParseError set, exception propagated            |
 | `Consume_ResumeNotFound_LogsWarningAndReturns`       | Resume ID not in DB, parser never called                               | Parser not invoked                              |
 | `Consume_AlreadyParsed_SkipsProcessing`              | Resume with IsParsed=true is skipped                                   | Parser not invoked                              |
 | `Consume_ValidEvent_ResolvesCorrectTenantConnection` | Tenant connection resolved from event's TenantId                       | GetConnectionStringAsync called with correct ID |
 | `Consume_SuccessfulParse_SetsParsedAtTimestamp`      | ParsedAt timestamp set on successful parse                             | ParsedAt is not null, >= test start time        |
 
-**Why:** The consumer is the core of the async resume parsing pipeline. It must handle AI parser unavailability gracefully, persist errors for retry, and correctly resolve tenant databases for multi-tenant isolation.
+**Why:** The consumer is the core of the async resume parsing pipeline. It runs basic parsing synchronously and publishes `ResumeParseRequested` to the broker for AI parsing. The AI result arrives asynchronously via `ResumeParsedConsumer`. The consumer must correctly resolve tenant databases for multi-tenant isolation.
+
+---
+
+## `ResumeParsedConsumerTests` (3 tests)
+
+Tests `ResumeParsedConsumer` — the MassTransit consumer that processes `ResumeParsed` events from the AI Service, applying AI-extracted structured data to resume records.
+
+| Test                                                    | What It Verifies                                                | Expected Outcome                        |
+| ------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `Consume_ValidEvent_UpdatesAiParsedContent`             | AI parsed content stored on resume record                       | AiParsedContent populated               |
+| `Consume_ResumeNotFound_DoesNotThrow`                   | Missing resume handled gracefully                               | No exception, logs warning              |
+| `Consume_ValidEvent_PreservesExistingFields`            | AI update does not overwrite basic parsing fields               | ParsedText and ExtractedSkills unchanged |
+
+**Why:** This consumer is the receiving side of the async AI resume parsing pipeline. It must correctly store AI results without overwriting basic parser output, and handle edge cases gracefully.
 
 ---
 
@@ -258,7 +256,6 @@ Tests `ApplicantProfileRepository` and `ResumeRepository` against a real Postgre
 
 ### Blocked by AI Service (Phase 6)
 
-| Area                               | Gap                                                                                                     |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| **AI Resume Parser Contract Test** | `AiResumeParserClient` tested with mock HTTP handler only — no real AI Service resume parsing endpoint. |
-| **Full Resume Parse Pipeline E2E** | End-to-end resume upload → basic parse → AI parse → persist requires operational AI Service.            |
+| Area                               | Gap                                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Full Resume Parse Pipeline E2E** | End-to-end resume upload → basic parse → broker publish → AI parse → broker consume → persist requires operational AI Service + RabbitMQ. |

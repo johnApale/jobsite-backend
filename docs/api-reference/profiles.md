@@ -240,8 +240,8 @@ POST /api/v1/profiles/me/resumes
 After upload, a `ResumeUploadedEvent` is published to the message broker. The `ResumeUploadedConsumer` processes the event asynchronously:
 
 1. **Basic parsing** — Extracts plain text and keyword-based skills from the file (PdfPig for PDF, OpenXml for DOCX).
-2. **AI parsing** (optional) — Sends extracted text to the AI Service (`POST /api/v1/ai/resumes/parse`) for structured extraction (skills with levels/years, experience, education, certifications). Falls back gracefully if the AI Service is unavailable.
-3. Updates `is_parsed`, `parsed_text`, `extracted_skills`, `ai_parsed_content`, and `parsed_at` on the resume record.
+2. **AI parsing** (async via broker) — Publishes `ResumeParseRequested` to the message broker. The AI Service consumes the event, performs structured extraction (skills with levels/years, experience, education, certifications), and publishes `ResumeParsed` back. The `ResumeParsedConsumer` receives this and stores the result as `ai_parsed_content`.
+3. Updates `is_parsed`, `parsed_text`, `extracted_skills`, and `parsed_at` on the resume record. `ai_parsed_content` arrives asynchronously via the broker.
 
 **Errors:**
 

@@ -92,27 +92,27 @@ Tests `ScreeningService` — the orchestration service for the screening pipelin
 
 ## `QuestionScoringServiceTests` (15 tests)
 
-Tests the scoring logic for screening question answers — YesNo (binary), MultipleChoice (partial credit or all-or-nothing), and FreeText (AI-delegated).
+Tests the scoring logic for screening question answers — YesNo (binary), MultipleChoice (partial credit or all-or-nothing), and FreeText (queued for async AI scoring via message broker).
 
-| Test                                                                            | What It Verifies                                                                                      | Expected Outcome                           |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `ScoreResponsesAsync_YesNo_CorrectAnswer_Returns100`                            | Correct yes/no answer scores 100                                                                      | Score is 100                               |
-| `ScoreResponsesAsync_YesNo_WrongAnswer_Returns0`                                | Wrong yes/no answer scores 0                                                                          | Score is 0                                 |
-| `ScoreResponsesAsync_YesNo_MissingExpectedAnswer_ReturnsMissingScore`           | Missing expected answer config → score result is Missing                                              | ScoreResult = Missing                      |
-| `ScoreResponsesAsync_YesNo_AppliesScoreToResponseEntity`                        | Score is mutated onto the `ScreeningQuestionResponse` entity (Score, ScoreResult, ScoredAt)           | Entity fields populated                    |
-| `ScoreResponsesAsync_MultipleChoice_AllCorrect_Returns100`                      | All correct options selected → 100                                                                    | Score is 100                               |
-| `ScoreResponsesAsync_MultipleChoice_PartialCredit_ReturnsProportional`          | 2/3 correct → proportional score                                                                      | Score is ~66.67                            |
-| `ScoreResponsesAsync_MultipleChoice_PartialCreditWithIncorrect_PenalizesScore`  | 2 correct - 1 incorrect out of 3 → `(2-1)/3*100 = 33.33`                                              | Score is ~33.33                            |
-| `ScoreResponsesAsync_MultipleChoice_AllOrNothing_WrongAnswer_ReturnsZero`       | All-or-nothing grading: any wrong → 0                                                                 | Score is 0                                 |
-| `ScoreResponsesAsync_MultipleChoice_NoneSelected_ReturnsZero`                   | No options selected → 0                                                                               | Score is 0                                 |
-| `ScoreResponsesAsync_MultipleChoice_MalformedJson_ReturnsMissingScore`          | Invalid JSON in response data → graceful Missing result, not exception                                | ScoreResult = Missing                      |
-| `ScoreResponsesAsync_FreeText_DelegatesToAiClient`                              | Free text answers delegate scoring to AI answer scoring client                                        | AI client called                           |
-| `ScoreResponsesAsync_FreeText_AiUnavailable_ReturnsEmpty`                       | AI unavailable → returns empty scores for free text                                                   | Returns empty list                         |
-| `ScoreResponsesAsync_FreeText_AiScoresAppliedToResponseEntity`                  | AI-returned scores are applied back to response entity (Score, ScoreResult, ScoreReasoning, ScoredAt) | All entity fields populated from AI result |
-| `ScoreResponsesAsync_MixedTypes_ScoresAllDeterministicallyAndDelegatesFreeText` | Batch with YesNo + MC + FreeText: deterministic types scored locally, FreeText delegated              | All types scored, AI called for FreeText   |
-| `ScoreResponsesAsync_UnknownQuestion_IsSkipped`                                 | Response for unknown question ID is silently skipped                                                  | No exception, other responses scored       |
+| Test                                                                          | What It Verifies                                                                            | Expected Outcome                                     |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `ScoreResponses_YesNo_CorrectAnswer_Returns100`                               | Correct yes/no answer scores 100                                                            | Score is 100                                         |
+| `ScoreResponses_YesNo_WrongAnswer_Returns0`                                   | Wrong yes/no answer scores 0                                                                | Score is 0                                           |
+| `ScoreResponses_YesNo_MissingExpectedAnswer_ReturnsMissingScore`              | Missing expected answer config → score result is Missing                                    | ScoreResult = Missing                                |
+| `ScoreResponses_YesNo_AppliesScoreToResponseEntity`                           | Score is mutated onto the `ScreeningQuestionResponse` entity (Score, ScoreResult, ScoredAt) | Entity fields populated                              |
+| `ScoreResponses_MultipleChoice_AllCorrect_Returns100`                         | All correct options selected → 100                                                          | Score is 100                                         |
+| `ScoreResponses_MultipleChoice_PartialCredit_ReturnsProportional`             | 2/3 correct → proportional score                                                            | Score is ~66.67                                      |
+| `ScoreResponses_MultipleChoice_PartialCreditWithIncorrect_PenalizesScore`     | 2 correct - 1 incorrect out of 3 → `(2-1)/3*100 = 33.33`                                    | Score is ~33.33                                      |
+| `ScoreResponses_MultipleChoice_AllOrNothing_WrongAnswer_ReturnsZero`          | All-or-nothing grading: any wrong → 0                                                       | Score is 0                                           |
+| `ScoreResponses_MultipleChoice_NoneSelected_ReturnsZero`                      | No options selected → 0                                                                     | Score is 0                                           |
+| `ScoreResponses_MultipleChoice_MalformedJson_ReturnsMissingScore`             | Invalid JSON in response data → graceful Missing result, not exception                      | ScoreResult = Missing                                |
+| `ScoreResponses_FreeText_ReturnsPendingAiRequest`                             | Free text answers return `AnswerScoringRequest` for async AI scoring via broker             | Returns pending request, not scored locally          |
+| `ScoreResponses_FreeText_NoPendingWhenNoFreeText`                             | Batch with no FreeText produces no pending AI requests                                      | Empty pending list                                   |
+| `ScoreResponses_FreeText_BuildsRequestWithGuidanceAndTopics`                  | FreeText request includes scoring guidance and topic context                                | Request has guidance and topics populated             |
+| `ScoreResponses_MixedTypes_ScoresDeterministicAndQueuesFreeText`              | Batch with YesNo + MC + FreeText: deterministic scored locally, FreeText queued for broker   | Deterministic scored, FreeText in pending list       |
+| `ScoreResponses_UnknownQuestion_IsSkipped`                                    | Response for unknown question ID is silently skipped                                        | No exception, other responses scored                 |
 
-**Why:** Question scoring directly impacts assessment outcomes and candidate routing. The partial credit math (with penalty for incorrect selections), all-or-nothing grading, and graceful AI fallback are all critical scoring paths that affect candidate outcomes.
+**Why:** Question scoring directly impacts assessment outcomes and candidate routing. The partial credit math (with penalty for incorrect selections), all-or-nothing grading, and async AI delegation via broker are all critical scoring paths that affect candidate outcomes. FreeText answers are queued as `AnswerScoringRequest` objects and published to the message broker for async AI scoring — the `AnswersScoredConsumer` applies the results when the AI Service responds.
 
 ---
 
@@ -154,59 +154,6 @@ Tests the `AssessmentService` for AfterScreening question submission, scoring, a
 
 ---
 
-## `AiScoringClientTests` (3 tests)
-
-Tests the `AiScoringClient` HTTP client that calls the AI Service for criteria-based scoring. Uses a mock `HttpMessageHandler`.
-
-| Test                                               | What It Verifies                                  | Expected Outcome |
-| -------------------------------------------------- | ------------------------------------------------- | ---------------- |
-| `EvaluateAsync_SuccessResponse_DeserializesResult` | 200 OK → correctly deserialized `AiScoringResult` | Non-null result  |
-| `EvaluateAsync_ServerError_ReturnsNull`            | 500 → returns null (graceful degradation)         | Returns null     |
-| `EvaluateAsync_NetworkError_ReturnsNull`           | Connection refused → returns null                 | Returns null     |
-
----
-
-## `AiAnswerScoringClientTests` (3 tests)
-
-Tests the `AiAnswerScoringClient` HTTP client for AI-powered free-text answer scoring.
-
-| Test                                                   | What It Verifies                              | Expected Outcome |
-| ------------------------------------------------------ | --------------------------------------------- | ---------------- |
-| `ScoreAnswersAsync_SuccessResponse_DeserializesScores` | 200 OK → correctly deserialized answer scores | Non-null result  |
-| `ScoreAnswersAsync_ServerError_ReturnsNull`            | 500 → returns null                            | Returns null     |
-| `ScoreAnswersAsync_NetworkError_ReturnsNull`           | Connection refused → returns null             | Returns null     |
-
----
-
-## `AiCandidateFeedbackClientTests` (3 tests)
-
-Tests the `AiCandidateFeedbackClient` HTTP client for generating candidate transparency feedback.
-
-| Test                                                          | What It Verifies                  | Expected Outcome |
-| ------------------------------------------------------------- | --------------------------------- | ---------------- |
-| `GenerateFeedbackAsync_SuccessResponse_ReturnsFeedbackString` | 200 OK → returns feedback string  | Non-null string  |
-| `GenerateFeedbackAsync_ServerError_ReturnsNull`               | 500 → returns null                | Returns null     |
-| `GenerateFeedbackAsync_NetworkError_ReturnsNull`              | Connection refused → returns null | Returns null     |
-
-**Why (all 3 AI clients):** All AI HTTP clients follow the same resilience pattern — success returns deserialized data, any failure returns null. This ensures the screening pipeline never crashes due to AI Service unavailability. The null returns trigger graceful fallback paths in the calling services.
-
----
-
-## `CandidateFeedbackServiceTests` (4 tests)
-
-Tests the `CandidateFeedbackService` wrapper that delegates to the AI client for candidate transparency feedback generation.
-
-| Test                                                              | What It Verifies                                             | Expected Outcome         |
-| ----------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------ |
-| `GenerateFeedbackAsync_AiReturnsFeedback_ReturnsString`           | AI returns feedback → returns string to caller               | Non-null feedback string |
-| `GenerateFeedbackAsync_AiUnavailable_ReturnsNullWithoutException` | AI unavailable → returns null gracefully                     | Returns null, no throw   |
-| `GenerateFeedbackAsync_ForwardsCorrectTransparencyLevel`          | Transparency level from tenant config forwarded to AI client | Client called with level |
-| `GenerateFeedbackAsync_ForwardsBreakdownAndScore`                 | Criteria breakdown and overall score forwarded correctly     | Client called with data  |
-
-**Why:** Candidate feedback is a tenant-configurable transparency feature. The service must forward the correct transparency level (Summary vs Detailed) and handle AI unavailability gracefully.
-
----
-
 ## `ScreeningValidatorTests` (10 tests)
 
 Tests FluentValidation rules for `SubmitAssessmentRequest` and `ManualReviewRequest` DTOs.
@@ -230,43 +177,7 @@ Tests FluentValidation rules for `SubmitAssessmentRequest` and `ManualReviewRequ
 
 ## AI Service Contract Tests (WireMock)
 
-Contract tests verify that the .NET HTTP clients send the correct request bodies (snake_case field names, correct endpoint paths, POST method) and correctly deserialize AI Service responses. Tests run against a real HTTP server via WireMock — unlike unit tests that mock the `HttpMessageHandler`, these exercise the full HTTP stack.
-
-### `AiScoringContractTests` (4 tests)
-
-| Test                                                        | What It Verifies                                            | Expected Outcome  |
-| ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------- |
-| `EvaluateAsync_SendsCorrectRequestBody_WithSnakeCaseFields` | Request has `criteria` + `applicant` with snake_case fields | Correct JSON body |
-| `EvaluateAsync_EmptyBreakdown_DeserializesCorrectly`        | Empty breakdown array + zero score deserializes             | Empty list, 0     |
-| `EvaluateAsync_ServerReturns500_ReturnsNull`                | 500 → returns null over real HTTP                           | Returns null      |
-| `EvaluateAsync_MalformedJson_ReturnsNull`                   | Invalid JSON body → returns null (catches JsonException)    | Returns null      |
-
-### `AiAnswerScoringContractTests` (4 tests)
-
-| Test                                                            | What It Verifies                    | Expected Outcome  |
-| --------------------------------------------------------------- | ----------------------------------- | ----------------- |
-| `ScoreAnswersAsync_SendsCorrectRequestBody_WithSnakeCaseFields` | Request has `answers` snake_case    | Correct JSON body |
-| `ScoreAnswersAsync_MultipleAnswers_DeserializesAll`             | Multiple answer scores deserialized | 2 scores returned |
-| `ScoreAnswersAsync_ServerReturns500_ReturnsNull`                | 500 → returns null                  | Returns null      |
-| `ScoreAnswersAsync_MalformedJson_ReturnsNull`                   | Invalid JSON → returns null         | Returns null      |
-
-### `AiCandidateFeedbackContractTests` (4 tests)
-
-| Test                                                                | What It Verifies                                                        | Expected Outcome |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------- |
-| `GenerateFeedbackAsync_SendsCorrectRequestBody_WithSnakeCaseFields` | Request has `criteria_breakdown`, `overall_score`, `transparency_level` | Correct body     |
-| `GenerateFeedbackAsync_SummaryLevel_SendsCorrectLevel`              | "Summary" transparency level sent correctly                             | Level verified   |
-| `GenerateFeedbackAsync_NullFeedbackField_ReturnsNull`               | `{"feedback": null}` → returns null                                     | Returns null     |
-| `GenerateFeedbackAsync_ServerReturns500_ReturnsNull`                | 500 → returns null                                                      | Returns null     |
-
-### `AiResumeParserContractTests` (4 tests)
-
-| Test                                                     | What It Verifies                                               | Expected Outcome |
-| -------------------------------------------------------- | -------------------------------------------------------------- | ---------------- |
-| `ParseAsync_SendsCorrectRequestBody_WithSnakeCaseFields` | Request has `parsed_text`, response has skills/experience/etc. | Full shape       |
-| `ParseAsync_MinimalResponse_DeserializesNullableFields`  | All-null response fields deserialize correctly                 | All null         |
-| `ParseAsync_ServerReturns500_ReturnsNull`                | 500 → returns null                                             | Returns null     |
-| `ParseAsync_MalformedJson_ReturnsNull`                   | Invalid JSON → returns null                                    | Returns null     |
+Contract tests verify that the .NET HTTP clients send the correct request bodies (snake_case field names, correct endpoint paths, POST method) and correctly deserialize AI Service responses. Tests run against a real HTTP server via WireMock — unlike unit tests that mock the `HttpMessageHandler`, these exercise the full HTTP stack. Only the 2 synchronous HTTP clients remain; the 4 async operations (resume parsing, screening evaluation, answer scoring, candidate feedback) now use the message broker.
 
 ### `AiCriteriaSuggesterContractTests` (4 tests)
 
@@ -286,7 +197,7 @@ Contract tests verify that the .NET HTTP clients send the correct request bodies
 | `SuggestAsync_ServerReturns500_ReturnsNull`                | 500 → returns null                               | Returns null     |
 | `SuggestAsync_MalformedJson_ReturnsNull`                   | Invalid JSON → returns null                      | Returns null     |
 
-**Why:** Unit tests with `MockHttpMessageHandler` only test deserialization and error handling — they don't verify what the client actually sends over the wire. Contract tests with WireMock capture and assert the exact request body (proving snake_case serialization works end-to-end), verify the correct endpoint path is called, and exercise the full HTTP pipeline including content-type negotiation.
+**Why:** Unit tests with `MockHttpMessageHandler` only test deserialization and error handling — they don't verify what the client actually sends over the wire. Contract tests with WireMock capture and assert the exact request body (proving snake_case serialization works end-to-end), verify the correct endpoint path is called, and exercise the full HTTP pipeline including content-type negotiation. Only the 2 synchronous HTTP clients (`AiCriteriaSuggesterClient`, `AiQuestionSuggesterClient`) require contract tests — the 4 async operations now use RabbitMQ and are tested via consumer unit tests.
 
 ---
 
@@ -294,19 +205,55 @@ Contract tests verify that the .NET HTTP clients send the correct request bodies
 
 ### `ScreeningPipelineTests` (10 tests)
 
-End-to-end tests exercising the full screening pipeline with real PostgreSQL persistence and real `DeterministicScoringEngine`. Cross-module readers and AI clients are stubbed. Tests verify the complete flow from score calculation through three-tier routing to persisted results.
+End-to-end tests exercising the full screening pipeline with real PostgreSQL persistence and real `DeterministicScoringEngine`. Cross-module readers are stubbed. AI operations use `IEventPublisher` to publish events to the message broker — consumer response handling is tested separately. Tests verify the complete flow from score calculation through three-tier routing to persisted results.
 
-| Test                                                              | What It Verifies                                         | Expected Outcome                    |
-| ----------------------------------------------------------------- | -------------------------------------------------------- | ----------------------------------- |
-| `ProcessScreening_HighScore_AutoAdvancesApplication`              | Score ≥ threshold → AutoAdvanced, status "Shortlisted"   | Outcome=AutoAdvanced, score=100     |
-| `ProcessScreening_LowScore_AutoRejectsApplication`                | Score ≤ threshold → AutoRejected, status "Rejected"      | Outcome=AutoRejected, score=0       |
-| `ProcessScreening_MiddleScore_RoutesToManualReview`               | Score between thresholds + QueueForReview → ManualReview | Outcome=ManualReview, score=50      |
-| `ProcessScreening_AiScoringEnabled_PopulatesAiFields`             | AI enabled + successful → AiOverallScore and breakdown   | Both deterministic and AI populated |
-| `ProcessScreening_AiScoringUnavailable_FallsBackToDeterministic`  | AI enabled but returns null → deterministic score only   | AI fields null, deterministic works |
-| `ProcessScreening_TransparencyEnabled_PopulatesCandidateFeedback` | Transparency enabled → CandidateFeedback populated       | Feedback text persisted             |
-| `ProcessScreening_NoApplicantData_SetsStatusFailed`               | Null applicant data → Status=Failed + FailureReason      | Status=Failed, no score             |
-| `ProcessScreening_HasAfterScreeningQuestions_RoutesToAssessment`  | High score + AfterScreening questions → "Assessment"     | Routed to Assessment                |
-| `ProcessScreening_AutoAdvanceAllPolicy_MiddleScoreAutoAdvances`   | Middle score + AutoAdvanceAll policy → AutoAdvanced      | AutoAdvanced despite 50 score       |
-| `ProcessScreening_ScoringBreakdown_IsValidSerializedJson`         | CriteriaScoreBreakdown is valid deserializable JSON      | 2 criteria in breakdown, valid JSON |
+| Test                                                                    | What It Verifies                                                            | Expected Outcome                                     |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `ProcessScreening_HighScore_AutoAdvancesApplication`                    | Score ≥ threshold → AutoAdvanced, status "Shortlisted"                      | Outcome=AutoAdvanced, score=100                      |
+| `ProcessScreening_LowScore_AutoRejectsApplication`                      | Score ≤ threshold → AutoRejected, status "Rejected"                         | Outcome=AutoRejected, score=0                        |
+| `ProcessScreening_MiddleScore_RoutesToManualReview`                     | Score between thresholds + QueueForReview → ManualReview                    | Outcome=ManualReview, score=50                       |
+| `ProcessScreening_AiScoringEnabled_PublishesScreeningEvaluationEvent`   | AI enabled → publishes `ScreeningEvaluationRequested` event to broker       | Event published with correct data                    |
+| `ProcessScreening_AiScoringDisabled_DoesNotPublishEvaluationEvent`      | AI disabled → no evaluation event published                                 | No event published                                   |
+| `ProcessScreening_TransparencyEnabled_PublishesFeedbackEvent`           | Transparency enabled → publishes `FeedbackGenerationRequested` event        | Feedback event published                             |
+| `ProcessScreening_NoApplicantData_SetsStatusFailed`                     | Null applicant data → Status=Failed + FailureReason                         | Status=Failed, no score                              |
+| `ProcessScreening_HasAfterScreeningQuestions_RoutesToAssessment`        | High score + AfterScreening questions → "Assessment"                        | Routed to Assessment                                 |
+| `ProcessScreening_AutoAdvanceAllPolicy_MiddleScoreAutoAdvances`         | Middle score + AutoAdvanceAll policy → AutoAdvanced                         | AutoAdvanced despite 50 score                        |
+| `ProcessScreening_ScoringBreakdown_IsValidSerializedJson`               | CriteriaScoreBreakdown is valid deserializable JSON                         | 2 criteria in breakdown, valid JSON                  |
 
-**Why:** Unit tests for `ScreeningService` mock every dependency, so they can't catch persistence issues, EF Core transaction behavior, or real scoring math integration. These E2E tests wire the real `DeterministicScoringEngine` + real PostgreSQL repositories + real `ScreeningService` together, proving the full pipeline produces correct persisted results. The transparency feedback test uncovered a real column type bug (`jsonb` → `text`) where the AI Service returns plain text, not structured JSON.
+**Why:** Unit tests for `ScreeningService` mock every dependency, so they can't catch persistence issues, EF Core transaction behavior, or real scoring math integration. These E2E tests wire the real `DeterministicScoringEngine` + real PostgreSQL repositories + real `ScreeningService` together, proving the full pipeline produces correct persisted results. AI operations are now asynchronous — the pipeline publishes events to the broker and the results arrive later via consumers.
+
+---
+
+## Message Broker Consumer Tests
+
+### `ScreeningEvaluatedConsumerTests` (3 tests)
+
+Tests the `ScreeningEvaluatedConsumer` that processes `ScreeningEvaluated` events from the AI Service, applying AI scoring results to screening records.
+
+| Test                                                    | What It Verifies                                                | Expected Outcome                        |
+| ------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `Consume_ValidEvent_UpdatesAiFields`                    | AI overall score and breakdown stored on screening result       | AiOverallScore and breakdown populated  |
+| `Consume_ValidEvent_PreservesDeterministicScore`        | AI update does not overwrite deterministic scoring fields       | Deterministic score unchanged           |
+| `Consume_ResultNotFound_DoesNotThrow`                   | Missing screening result handled gracefully                     | No exception, logs warning              |
+
+### `AnswersScoredConsumerTests` (3 tests)
+
+Tests the `AnswersScoredConsumer` that processes `AnswersScored` events from the AI Service, applying AI scoring to free-text question responses.
+
+| Test                                                    | What It Verifies                                                | Expected Outcome                        |
+| ------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `Consume_ValidScores_UpdatesResponseRecords`            | AI scores applied to matching question response records         | Score, ScoreResult, ScoreReasoning set  |
+| `Consume_EmptyScoresJson_DoesNotThrow`                  | Empty scores array handled gracefully                           | No exception                            |
+| `Consume_UnmatchedQuestionId_SkipsGracefully`           | Score for non-existent question ID skipped                      | No exception, other scores applied      |
+
+### `FeedbackGeneratedConsumerTests` (3 tests)
+
+Tests the `FeedbackGeneratedConsumer` that processes `FeedbackGenerated` events from the AI Service, storing candidate transparency feedback.
+
+| Test                                                    | What It Verifies                                                | Expected Outcome                        |
+| ------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
+| `Consume_ValidEvent_SetsCandidateFeedback`              | Feedback text stored on screening result                        | CandidateFeedback populated             |
+| `Consume_ValidEvent_PreservesExistingFields`            | Feedback update does not overwrite other screening fields       | Other fields unchanged                  |
+| `Consume_ResultNotFound_DoesNotThrow`                   | Missing screening result handled gracefully                     | No exception, logs warning              |
+
+**Why:** These consumers are the receiving side of the async AI pipeline. Each consumer must correctly parse broker messages, apply results to the right database records, and handle edge cases (missing records, empty payloads) without crashing. The "preserves existing fields" tests ensure consumers only update their specific fields.

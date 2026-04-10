@@ -422,9 +422,9 @@ Factory methods generating unique names/subdomains per test to avoid collisions 
 
 ## AI Service Contract Tests (WireMock)
 
-Contract tests verify that the .NET HTTP clients send the correct request bodies (snake_case field names, correct endpoint paths) and correctly deserialize AI Service responses. Tests run against a real WireMock HTTP server — not mocked `HttpMessageHandler` — so they exercise the full HTTP stack including `System.Text.Json` serialization policy.
+Contract tests verify that the .NET HTTP clients send the correct request bodies (snake_case field names, correct endpoint paths) and correctly deserialize AI Service responses. Tests run against a real WireMock HTTP server — not mocked `HttpMessageHandler` — so they exercise the full HTTP stack including `System.Text.Json` serialization policy. Only the 2 synchronous HTTP clients remain; the 4 async operations (resume parsing, screening evaluation, answer scoring, candidate feedback) now use the RabbitMQ message broker.
 
-See [screening.md](screening.md#ai-service-contract-tests-wiremock) for the full test table (24 tests across 6 clients: `AiScoringClient`, `AiAnswerScoringClient`, `AiCandidateFeedbackClient`, `AiResumeParserClient`, `AiCriteriaSuggesterClient`, `AiQuestionSuggesterClient`).
+See [screening.md](screening.md#ai-service-contract-tests-wiremock) for the full test table (8 tests across 2 clients: `AiCriteriaSuggesterClient`, `AiQuestionSuggesterClient`).
 
 Each client has 4 tests: request body verification, success deserialization, 500 → null, malformed JSON → null.
 
@@ -432,11 +432,11 @@ Each client has 4 tests: request body verification, success deserialization, 500
 
 ## E2E Screening Pipeline Tests (Testcontainers)
 
-End-to-end tests exercising the full screening pipeline: real `DeterministicScoringEngine` + real PostgreSQL repositories + real `ScreeningService`. Cross-module readers (`IJobCriteriaReader`, `IJobScreeningQuestionsReader`, `IApplicationStatusUpdater`) and AI clients are stubbed via NSubstitute. Tests verify score calculation, three-tier routing, persistence, AI fallback, and transparency feedback.
+End-to-end tests exercising the full screening pipeline: real `DeterministicScoringEngine` + real PostgreSQL repositories + real `ScreeningService`. Cross-module readers (`IJobCriteriaReader`, `IJobScreeningQuestionsReader`, `IApplicationStatusUpdater`) are stubbed via NSubstitute. AI operations publish events to the message broker via `IEventPublisher` — consumer response handling is tested separately in unit tests. Tests verify score calculation, three-tier routing, persistence, event publishing for async AI operations, and assessment routing.
 
 See [screening.md](screening.md#e2e-screening-pipeline-tests) for the full test table (10 tests).
 
-Key scenarios: high/low/middle score routing, AI scoring enabled/unavailable, transparency feedback, assessment routing, AutoAdvanceAll policy, serialized breakdown validation.
+Key scenarios: high/low/middle score routing, AI evaluation event publishing (enabled/disabled), transparency feedback event publishing, assessment routing, AutoAdvanceAll policy, serialized breakdown validation.
 
 ---
 

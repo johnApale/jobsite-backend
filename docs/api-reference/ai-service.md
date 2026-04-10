@@ -61,47 +61,51 @@ No authentication required.
 
 ---
 
+## Message Broker Operations (RabbitMQ)
+
+The following operations are handled asynchronously via RabbitMQ. The AI Service consumes request events, processes them, and publishes response events back to the monolith.
+
 ### Resume Parsing
 
-```
-POST /api/v1/ai/resumes/parse
-```
+| Direction | Event                  | Key Fields                                        |
+| --------- | ---------------------- | ------------------------------------------------- |
+| Inbound   | `ResumeParseRequested` | `resume_id`, `tenant_id`, `parsed_text`           |
+| Outbound  | `ResumeParsed`         | `resume_id`, `tenant_id`, `ai_parsed_content`     |
 
 Extracts structured data (skills, experience, education, certifications) from resume text using AI. Results are cached by content hash for 30 days.
 
-**Request Body**
+### Screening Evaluation
 
-| Field         | Type   | Required | Description               |
-| ------------- | ------ | -------- | ------------------------- |
-| `parsed_text` | string | Yes      | Plain-text resume content |
+| Direction | Event                          | Key Fields                                                         |
+| --------- | ------------------------------ | ------------------------------------------------------------------ |
+| Inbound   | `ScreeningEvaluationRequested` | `application_id`, `tenant_id`, `criteria_json`, `applicant_data_json` |
+| Outbound  | `ScreeningEvaluated`           | `application_id`, `tenant_id`, `breakdown_json`, `overall_score`   |
 
-**Response** `200 OK`
+Evaluates an applicant against job criteria and returns per-criterion scores with an overall weighted score.
 
-```json
-{
-  "skills": [{ "name": "Python", "level": "Advanced", "years": 5 }],
-  "experience": [
-    {
-      "title": "Developer",
-      "company": "Acme",
-      "start_date": "2019-01",
-      "end_date": "2024-01",
-      "description": "..."
-    }
-  ],
-  "education": [
-    { "degree": "BSc Computer Science", "institution": "MIT", "field": "CS" }
-  ],
-  "certifications": ["AWS Solutions Architect"],
-  "summary": "Experienced full-stack developer..."
-}
-```
+### Answer Scoring
 
-All response fields are optional — absent sections are omitted from the response (not `null`).
+| Direction | Event                    | Key Fields                                           |
+| --------- | ------------------------ | ---------------------------------------------------- |
+| Inbound   | `AnswerScoringRequested` | `application_id`, `tenant_id`, `answers_json`        |
+| Outbound  | `AnswersScored`          | `application_id`, `tenant_id`, `scores_json`         |
 
----
+Scores candidate free-text answers to screening questions.
 
-### Criteria Suggestion
+### Candidate Feedback
+
+| Direction | Event                         | Key Fields                                                                   |
+| --------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| Inbound   | `FeedbackGenerationRequested` | `application_id`, `tenant_id`, `criteria_breakdown`, `overall_score`, `transparency_level` |
+| Outbound  | `FeedbackGenerated`           | `application_id`, `tenant_id`, `feedback`                                    |
+
+Generates candidate-facing feedback based on screening results, respecting the configured transparency level.
+
+Transparency levels:
+
+- **Detailed** — Detailed feedback with per-criterion analysis and improvement suggestions.
+- **Summary** — High-level strengths and areas for improvement without specific scores.
+- **None** — Brief, generic acknowledgment.
 
 ```
 POST /api/v1/ai/criteria/suggest
@@ -181,126 +185,6 @@ Suggests screening questions based on job description and evaluation criteria.
 
 Valid question types: `FreeText`, `MultipleChoice`, `Rating`.
 Valid timing: `BeforeScreening`, `AfterScreening`.
-
----
-
-### Screening Evaluation
-
-```
-POST /api/v1/ai/screening/evaluate
-```
-
-Evaluates an applicant against job criteria and returns per-criterion scores with an overall weighted score.
-
-**Request Body**
-
-| Field       | Type               | Required | Description            |
-| ----------- | ------------------ | -------- | ---------------------- |
-| `criteria`  | `CriterionInput[]` | Yes      | Evaluation criteria    |
-| `applicant` | `ApplicantInput`   | Yes      | Applicant profile data |
-
-`ApplicantInput`:
-
-| Field                     | Type   | Required | Description                     |
-| ------------------------- | ------ | -------- | ------------------------------- |
-| `profile_skills`          | string | No       | JSON string of profile skills   |
-| `resume_parsed_text`      | string | No       | Plain-text resume content       |
-| `resume_extracted_skills` | string | No       | JSON string of extracted skills |
-| `ai_parsed_content`       | string | No       | Previously AI-parsed content    |
-
-**Response** `200 OK`
-
-```json
-{
-  "breakdown": [
-    {
-      "criterion_id": "3fa85f64-...",
-      "criterion_name": "Python",
-      "category": "Skill",
-      "weight": 50.0,
-      "score": 85.0,
-      "result": "Pass",
-      "reasoning": "Strong match based on 5 years of experience..."
-    }
-  ],
-  "overall_score": 85.0
-}
-```
-
-Result values: `Pass`, `Fail`, `Required`.
-
----
-
-### Answer Scoring
-
-```
-POST /api/v1/ai/screening/score-answers
-```
-
-Scores candidate free-text answers to screening questions.
-
-**Request Body**
-
-| Field     | Type            | Required | Description       |
-| --------- | --------------- | -------- | ----------------- |
-| `answers` | `AnswerInput[]` | Yes      | Candidate answers |
-
-`AnswerInput`:
-
-| Field              | Type     | Required | Description                     |
-| ------------------ | -------- | -------- | ------------------------------- |
-| `question_id`      | UUID     | Yes      | Question ID                     |
-| `question_text`    | string   | Yes      | The question asked              |
-| `response_text`    | string   | Yes      | Candidate's response            |
-| `scoring_guidance` | string   | No       | Additional scoring instructions |
-| `key_topics`       | string[] | No       | Expected topics to cover        |
-
-**Response** `200 OK`
-
-```json
-{
-  "scores": [
-    {
-      "question_id": "3fa85f64-...",
-      "score": 75.0,
-      "result": "Pass",
-      "reasoning": "Good coverage of key topics..."
-    }
-  ]
-}
-```
-
----
-
-### Candidate Feedback
-
-```
-POST /api/v1/ai/screening/feedback
-```
-
-Generates candidate-facing feedback based on screening results, respecting the configured transparency level.
-
-**Request Body**
-
-| Field                | Type    | Required | Description                    |
-| -------------------- | ------- | -------- | ------------------------------ |
-| `criteria_breakdown` | string  | Yes      | JSON string of criteria scores |
-| `overall_score`      | decimal | Yes      | Overall screening score        |
-| `transparency_level` | string  | Yes      | `Full`, `Summary`, or `None`   |
-
-**Response** `200 OK`
-
-```json
-{
-  "feedback": "Based on your application, you demonstrated strong technical skills..."
-}
-```
-
-Transparency levels:
-
-- **Full** — Detailed feedback with per-criterion analysis and improvement suggestions.
-- **Summary** — High-level strengths and areas for improvement without specific scores.
-- **None** — Brief, generic acknowledgment.
 
 ---
 
