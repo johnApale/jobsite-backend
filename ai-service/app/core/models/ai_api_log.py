@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, Numeric, String, Text, text
+from sqlalchemy import Boolean, DateTime, Index, Integer, Numeric, String, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -31,9 +31,7 @@ class AiApiLog(Base):
     request_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     response_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     called_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("NOW()"))
 
     __table_args__ = (
         Index("ix_api_logs_tenant_id", "tenant_id"),

@@ -5,9 +5,9 @@ calls the existing service logic, and publishes a response message.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import structlog
 
@@ -74,7 +74,7 @@ async def handle_resume_parse(payload: dict[str, Any]) -> None:
             resume_id=event.resume_id,
             ai_parsed_content=result.model_dump_json(exclude_none=True),
             correlation_id=event.correlation_id,
-            occurred_at=datetime.now(timezone.utc),
+            occurred_at=datetime.now(UTC),
         )
 
     channel = await get_channel()
@@ -120,7 +120,7 @@ async def handle_screening_evaluation(payload: dict[str, Any]) -> None:
             breakdown_json=result.model_dump_json(include={"breakdown"}),
             overall_score=result.overall_score,
             correlation_id=event.correlation_id,
-            occurred_at=datetime.now(timezone.utc),
+            occurred_at=datetime.now(UTC),
         )
 
     channel = await get_channel()
@@ -163,7 +163,7 @@ async def handle_answer_scoring(payload: dict[str, Any]) -> None:
             application_id=event.application_id,
             scores_json=result.model_dump_json(),
             correlation_id=event.correlation_id,
-            occurred_at=datetime.now(timezone.utc),
+            occurred_at=datetime.now(UTC),
         )
 
     channel = await get_channel()
@@ -207,7 +207,7 @@ async def handle_feedback_generation(payload: dict[str, Any]) -> None:
             application_id=event.application_id,
             feedback=result.feedback,
             correlation_id=event.correlation_id,
-            occurred_at=datetime.now(timezone.utc),
+            occurred_at=datetime.now(UTC),
         )
 
     channel = await get_channel()

@@ -1,7 +1,6 @@
 import uuid
-from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -16,8 +15,7 @@ from app.core.services.assessment_service import AssessmentService
 from app.core.services.criteria_service import CriteriaService
 from app.core.services.resume_service import ResumeService
 from app.core.services.screening_service import ScreeningService
-from app.infrastructure.ai_providers.base import AiCompletionResult, AiProvider
-
+from app.infrastructure.ai_providers.base import AiCompletionResult
 
 # --- AI Logging Service ---
 
@@ -75,7 +73,11 @@ async def test_log_call_failure_records_error_message(mock_db_session, mock_ai_p
 
 async def test_parse_resume_valid_text_returns_structured_data(mock_db_session, mock_ai_provider):
     mock_ai_provider.complete.return_value = AiCompletionResult(
-        content='{"skills": [{"name": "Python", "level": "Advanced", "years": 5}], "experience": [], "education": [], "certifications": [], "summary": "Experienced developer"}',
+        content=(
+            '{"skills": [{"name": "Python", "level": "Advanced", "years": 5}],'
+            ' "experience": [], "education": [], "certifications": [],'
+            ' "summary": "Experienced developer"}'
+        ),
         input_tokens=100,
         output_tokens=50,
         total_tokens=150,
@@ -134,9 +136,7 @@ async def test_parse_resume_stores_result_in_cache(mock_db_session, mock_ai_prov
 async def test_parse_resume_ai_failure_raises(mock_db_session, mock_ai_provider):
     from app.core.errors import AppError
 
-    mock_ai_provider.complete.side_effect = AppError(
-        code="AI_PROVIDER_ERROR", status_code=502, message="Provider down"
-    )
+    mock_ai_provider.complete.side_effect = AppError(code="AI_PROVIDER_ERROR", status_code=502, message="Provider down")
     mock_db_session.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=None))
 
     logging_service = AiLoggingService(mock_db_session)
@@ -151,7 +151,13 @@ async def test_parse_resume_ai_failure_raises(mock_db_session, mock_ai_provider)
 
 async def test_suggest_criteria_valid_job_returns_suggestions(mock_db_session, mock_ai_provider):
     mock_ai_provider.complete.return_value = AiCompletionResult(
-        content='{"suggestions": [{"name": "C# Proficiency", "category": "Skill", "evaluation_method": "SemanticSimilarity", "is_required": true, "weight": 25.0, "configuration": "{}"}]}',
+        content=(
+            '{"suggestions": [{"name": "C# Proficiency",'
+            ' "category": "Skill",'
+            ' "evaluation_method": "SemanticSimilarity",'
+            ' "is_required": true, "weight": 25.0,'
+            ' "configuration": "{}"}]}'
+        ),
         input_tokens=200,
         output_tokens=100,
         total_tokens=300,
@@ -173,9 +179,7 @@ async def test_suggest_criteria_valid_job_returns_suggestions(mock_db_session, m
 async def test_suggest_criteria_ai_failure_raises(mock_db_session, mock_ai_provider):
     from app.core.errors import AppError
 
-    mock_ai_provider.complete.side_effect = AppError(
-        code="AI_PROVIDER_ERROR", status_code=502, message="Timeout"
-    )
+    mock_ai_provider.complete.side_effect = AppError(code="AI_PROVIDER_ERROR", status_code=502, message="Timeout")
 
     logging_service = AiLoggingService(mock_db_session)
     service = CriteriaService(mock_db_session, mock_ai_provider, logging_service)
@@ -192,7 +196,13 @@ async def test_suggest_criteria_ai_failure_raises(mock_db_session, mock_ai_provi
 
 async def test_suggest_questions_valid_input_returns_questions(mock_db_session, mock_ai_provider):
     mock_ai_provider.complete.return_value = AiCompletionResult(
-        content='{"suggestions": [{"question_text": "Describe your C# experience", "question_type": "FreeText", "timing": "AfterScreening", "is_required": true, "weight": 50.0, "expected_answer": "{\\"key_topics\\": [\\"async\\"]}", "options": null}]}',
+        content=(
+            '{"suggestions": [{"question_text": "Describe your C# experience",'
+            ' "question_type": "FreeText", "timing": "AfterScreening",'
+            ' "is_required": true, "weight": 50.0,'
+            ' "expected_answer": "{\\"key_topics\\": [\\"async\\"]}",'
+            ' "options": null}]}'
+        ),
         input_tokens=200,
         output_tokens=100,
         total_tokens=300,
@@ -224,7 +234,14 @@ async def test_suggest_questions_valid_input_returns_questions(mock_db_session, 
 
 async def test_suggest_questions_multichoice_includes_options(mock_db_session, mock_ai_provider):
     mock_ai_provider.complete.return_value = AiCompletionResult(
-        content='{"suggestions": [{"question_text": "Which framework?", "question_type": "MultipleChoice", "timing": "AfterScreening", "is_required": true, "weight": 30.0, "expected_answer": "{\\"correct_index\\": 0}", "options": "[{\\"text\\": \\"ASP.NET\\"}, {\\"text\\": \\"Django\\"}]"}]}',
+        content=(
+            '{"suggestions": [{"question_text": "Which framework?",'
+            ' "question_type": "MultipleChoice",'
+            ' "timing": "AfterScreening", "is_required": true,'
+            ' "weight": 30.0,'
+            ' "expected_answer": "{\\"correct_index\\": 0}",'
+            ' "options": "[{\\"text\\": \\"ASP.NET\\"}, {\\"text\\": \\"Django\\"}]"}]}'
+        ),
         input_tokens=200,
         output_tokens=100,
         total_tokens=300,
@@ -235,8 +252,13 @@ async def test_suggest_questions_multichoice_includes_options(mock_db_session, m
 
     criteria = [
         CriterionInput(
-            id=uuid.uuid4(), name="Framework", category="Skill",
-            evaluation_method="ExactMatch", is_required=True, weight=Decimal("50"), configuration="{}",
+            id=uuid.uuid4(),
+            name="Framework",
+            category="Skill",
+            evaluation_method="ExactMatch",
+            is_required=True,
+            weight=Decimal("50"),
+            configuration="{}",
         )
     ]
     result = await service.suggest(
@@ -254,7 +276,13 @@ async def test_suggest_questions_multichoice_includes_options(mock_db_session, m
 async def test_evaluate_valid_input_returns_per_criterion_scores(mock_db_session, mock_ai_provider):
     criterion_id = str(uuid.uuid4())
     mock_ai_provider.complete.return_value = AiCompletionResult(
-        content=f'{{"breakdown": [{{"criterion_id": "{criterion_id}", "criterion_name": "Python", "category": "Skill", "weight": 50.0, "score": 85.0, "result": "Pass", "reasoning": "Strong match"}}], "overall_score": 85.0}}',
+        content=(
+            f'{{"breakdown": [{{"criterion_id": "{criterion_id}",'
+            f' "criterion_name": "Python", "category": "Skill",'
+            f' "weight": 50.0, "score": 85.0, "result": "Pass",'
+            f' "reasoning": "Strong match"}}],'
+            f' "overall_score": 85.0}}'
+        ),
         input_tokens=300,
         output_tokens=150,
         total_tokens=450,
@@ -265,8 +293,13 @@ async def test_evaluate_valid_input_returns_per_criterion_scores(mock_db_session
 
     criteria = [
         CriterionInput(
-            id=uuid.UUID(criterion_id), name="Python", category="Skill",
-            evaluation_method="SemanticSimilarity", is_required=True, weight=Decimal("50"), configuration="{}",
+            id=uuid.UUID(criterion_id),
+            name="Python",
+            category="Skill",
+            evaluation_method="SemanticSimilarity",
+            is_required=True,
+            weight=Decimal("50"),
+            configuration="{}",
         )
     ]
     result = await service.evaluate(
@@ -285,7 +318,11 @@ async def test_evaluate_valid_input_returns_per_criterion_scores(mock_db_session
 async def test_score_answers_valid_input_returns_answer_scores(mock_db_session, mock_ai_provider):
     question_id = str(uuid.uuid4())
     mock_ai_provider.complete.return_value = AiCompletionResult(
-        content=f'{{"scores": [{{"question_id": "{question_id}", "score": 72.0, "result": "Pass", "reasoning": "Good coverage"}}]}}',
+        content=(
+            f'{{"scores": [{{"question_id": "{question_id}",'
+            f' "score": 72.0, "result": "Pass",'
+            f' "reasoning": "Good coverage"}}]}}'
+        ),
         input_tokens=200,
         output_tokens=80,
         total_tokens=280,
@@ -313,7 +350,12 @@ async def test_score_answers_valid_input_returns_answer_scores(mock_db_session, 
 
 async def test_generate_feedback_full_transparency_returns_detailed(mock_db_session, mock_ai_provider):
     mock_ai_provider.complete.return_value = AiCompletionResult(
-        content='{"feedback": "Based on your application, you demonstrated strong skills in Python and Django. Your experience with REST APIs was particularly noteworthy. Area for improvement: cloud deployment experience."}',
+        content=(
+            '{"feedback": "Based on your application, you demonstrated strong'
+            " skills in Python and Django. Your experience with REST APIs was"
+            " particularly noteworthy. Area for improvement: cloud deployment"
+            ' experience."}'
+        ),
         input_tokens=200,
         output_tokens=100,
         total_tokens=300,

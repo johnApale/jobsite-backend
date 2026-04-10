@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from jose import jwt
@@ -25,13 +25,15 @@ def _make_token(payload: dict) -> str:
 
 
 def test_decode_jwt_valid_token_returns_claims(settings):
-    token = _make_token({
-        "sub": str(uuid.uuid4()),
-        "tenant_id": str(uuid.uuid4()),
-        "role": "Recruiter",
-        "email": "user@test.com",
-        "exp": int(datetime(2030, 1, 1, tzinfo=timezone.utc).timestamp()),
-    })
+    token = _make_token(
+        {
+            "sub": str(uuid.uuid4()),
+            "tenant_id": str(uuid.uuid4()),
+            "role": "Recruiter",
+            "email": "user@test.com",
+            "exp": int(datetime(2030, 1, 1, tzinfo=UTC).timestamp()),
+        }
+    )
 
     claims = decode_jwt(token, settings)
 
@@ -41,13 +43,15 @@ def test_decode_jwt_valid_token_returns_claims(settings):
 
 
 def test_decode_jwt_expired_token_raises_unauthorized(settings):
-    token = _make_token({
-        "sub": str(uuid.uuid4()),
-        "tenant_id": str(uuid.uuid4()),
-        "role": "Recruiter",
-        "email": "user@test.com",
-        "exp": int(datetime(2020, 1, 1, tzinfo=timezone.utc).timestamp()),
-    })
+    token = _make_token(
+        {
+            "sub": str(uuid.uuid4()),
+            "tenant_id": str(uuid.uuid4()),
+            "role": "Recruiter",
+            "email": "user@test.com",
+            "exp": int(datetime(2020, 1, 1, tzinfo=UTC).timestamp()),
+        }
+    )
 
     with pytest.raises(AppError) as exc_info:
         decode_jwt(token, settings)
@@ -56,7 +60,13 @@ def test_decode_jwt_expired_token_raises_unauthorized(settings):
 
 def test_decode_jwt_invalid_signature_raises_unauthorized(settings):
     token = jwt.encode(
-        {"sub": str(uuid.uuid4()), "tenant_id": str(uuid.uuid4()), "role": "Recruiter", "email": "u@t.com", "exp": 9999999999},
+        {
+            "sub": str(uuid.uuid4()),
+            "tenant_id": str(uuid.uuid4()),
+            "role": "Recruiter",
+            "email": "u@t.com",
+            "exp": 9999999999,
+        },
         "wrong-secret",
         algorithm="HS256",
     )
@@ -67,12 +77,14 @@ def test_decode_jwt_invalid_signature_raises_unauthorized(settings):
 
 
 def test_decode_jwt_missing_tenant_id_raises_unauthorized(settings):
-    token = _make_token({
-        "sub": str(uuid.uuid4()),
-        "role": "Recruiter",
-        "email": "user@test.com",
-        "exp": int(datetime(2030, 1, 1, tzinfo=timezone.utc).timestamp()),
-    })
+    token = _make_token(
+        {
+            "sub": str(uuid.uuid4()),
+            "role": "Recruiter",
+            "email": "user@test.com",
+            "exp": int(datetime(2030, 1, 1, tzinfo=UTC).timestamp()),
+        }
+    )
 
     with pytest.raises(AppError) as exc_info:
         decode_jwt(token, settings)
@@ -80,12 +92,14 @@ def test_decode_jwt_missing_tenant_id_raises_unauthorized(settings):
 
 
 def test_decode_jwt_missing_role_raises_unauthorized(settings):
-    token = _make_token({
-        "sub": str(uuid.uuid4()),
-        "tenant_id": str(uuid.uuid4()),
-        "email": "user@test.com",
-        "exp": int(datetime(2030, 1, 1, tzinfo=timezone.utc).timestamp()),
-    })
+    token = _make_token(
+        {
+            "sub": str(uuid.uuid4()),
+            "tenant_id": str(uuid.uuid4()),
+            "email": "user@test.com",
+            "exp": int(datetime(2030, 1, 1, tzinfo=UTC).timestamp()),
+        }
+    )
 
     with pytest.raises(AppError) as exc_info:
         decode_jwt(token, settings)

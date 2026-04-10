@@ -1,7 +1,6 @@
 import uuid
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
+from datetime import UTC
+from unittest.mock import MagicMock
 
 from app.api.schemas.resume import ResumeParseRequest
 from app.core.services.ai_logging_service import AiLoggingService
@@ -28,7 +27,9 @@ async def test_resume_cache_miss_triggers_ai_call(mock_db_session, mock_ai_provi
     mock_db_session.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=None))
     mock_ai_provider.complete.return_value = AiCompletionResult(
         content='{"skills": [], "experience": [], "education": [], "certifications": [], "summary": "Fresh parse"}',
-        input_tokens=100, output_tokens=50, total_tokens=150,
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
     )
 
     logging_service = AiLoggingService(mock_db_session)
@@ -44,7 +45,9 @@ async def test_resume_cache_stores_with_30_day_ttl(mock_db_session, mock_ai_prov
     mock_db_session.execute.return_value = MagicMock(scalar_one_or_none=MagicMock(return_value=None))
     mock_ai_provider.complete.return_value = AiCompletionResult(
         content='{"skills": [], "experience": [], "education": [], "certifications": [], "summary": "Test"}',
-        input_tokens=100, output_tokens=50, total_tokens=150,
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
     )
 
     logging_service = AiLoggingService(mock_db_session)
@@ -53,13 +56,11 @@ async def test_resume_cache_stores_with_30_day_ttl(mock_db_session, mock_ai_prov
     await service.parse(ResumeParseRequest(parsed_text="resume text"), uuid.uuid4())
 
     # Find the cache entry among the add calls (log entry + cache entry)
-    cache_entries = [
-        call.args[0] for call in mock_db_session.add.call_args_list
-        if hasattr(call.args[0], "file_hash")
-    ]
+    cache_entries = [call.args[0] for call in mock_db_session.add.call_args_list if hasattr(call.args[0], "file_hash")]
     assert len(cache_entries) == 1
-    from datetime import datetime, timezone
-    assert cache_entries[0].expires_at > datetime.now(timezone.utc)
+    from datetime import datetime
+
+    assert cache_entries[0].expires_at > datetime.now(UTC)
 
 
 async def test_resume_cache_same_hash_different_tenant_returns_cached(mock_db_session, mock_ai_provider):

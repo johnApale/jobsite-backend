@@ -4,11 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-import app.main
-import app.api.routes.resume
-import app.api.routes.criteria
 import app.api.routes.assessment
+import app.api.routes.criteria
+import app.api.routes.resume
 import app.api.routes.screening
+import app.main
 from app.core.auth import JwtClaims, get_current_user
 from app.core.config import Settings, get_settings
 from app.infrastructure.ai_providers.base import AiCompletionResult
@@ -49,17 +49,18 @@ def api_client(shared_mock_provider) -> TestClient:
 
     mock_channel = MagicMock()
 
-    with patch.object(app.main, "get_settings", return_value=settings), \
-         patch("app.infrastructure.db.engine.create_engine", return_value=mock_engine), \
-         patch("app.infrastructure.db.session.init_session_factory"), \
-         patch("app.infrastructure.messaging.connection.connect_robust", new_callable=AsyncMock) as mock_rmq, \
-         patch("app.infrastructure.messaging.consumer.register_consumer", new_callable=AsyncMock), \
-         patch("app.infrastructure.messaging.connection.disconnect", new_callable=AsyncMock), \
-         patch.object(app.api.routes.resume, "get_ai_provider", return_value=shared_mock_provider), \
-         patch.object(app.api.routes.criteria, "get_ai_provider", return_value=shared_mock_provider), \
-         patch.object(app.api.routes.assessment, "get_ai_provider", return_value=shared_mock_provider), \
-         patch.object(app.api.routes.screening, "get_ai_provider", return_value=shared_mock_provider):
-
+    with (
+        patch.object(app.main, "get_settings", return_value=settings),
+        patch("app.infrastructure.db.engine.create_engine", return_value=mock_engine),
+        patch("app.infrastructure.db.session.init_session_factory"),
+        patch("app.infrastructure.messaging.connection.connect_robust", new_callable=AsyncMock) as mock_rmq,
+        patch("app.infrastructure.messaging.consumer.register_consumer", new_callable=AsyncMock),
+        patch("app.infrastructure.messaging.connection.disconnect", new_callable=AsyncMock),
+        patch.object(app.api.routes.resume, "get_ai_provider", return_value=shared_mock_provider),
+        patch.object(app.api.routes.criteria, "get_ai_provider", return_value=shared_mock_provider),
+        patch.object(app.api.routes.assessment, "get_ai_provider", return_value=shared_mock_provider),
+        patch.object(app.api.routes.screening, "get_ai_provider", return_value=shared_mock_provider),
+    ):
         mock_connection = AsyncMock()
         mock_connection.channel = AsyncMock(return_value=mock_channel)
         mock_rmq.return_value = mock_connection
@@ -89,10 +90,16 @@ def api_client(shared_mock_provider) -> TestClient:
 
 # --- Resume Parsing ---
 
+
 def test_parse_resume_endpoint_returns_200(api_client, shared_mock_provider):
     shared_mock_provider.complete.return_value = AiCompletionResult(
-        content='{"skills": [{"name": "Python"}], "experience": [], "education": [], "certifications": [], "summary": "Dev"}',
-        input_tokens=100, output_tokens=50, total_tokens=150,
+        content=(
+            '{"skills": [{"name": "Python"}], "experience": [], "education": [],'
+            ' "certifications": [], "summary": "Dev"}'
+        ),
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
     )
     response = api_client.post(
         "/api/v1/ai/resumes/parse",
@@ -113,10 +120,17 @@ def test_parse_resume_endpoint_missing_text_returns_422(api_client, shared_mock_
 
 # --- Criteria Suggestion ---
 
+
 def test_suggest_criteria_endpoint_returns_200(api_client, shared_mock_provider):
     shared_mock_provider.complete.return_value = AiCompletionResult(
-        content='{"suggestions": [{"name": "Python", "category": "Skill", "evaluation_method": "SemanticSimilarity", "is_required": true, "weight": 50.0, "configuration": "{}"}]}',
-        input_tokens=100, output_tokens=50, total_tokens=150,
+        content=(
+            '{"suggestions": [{"name": "Python", "category": "Skill",'
+            ' "evaluation_method": "SemanticSimilarity",'
+            ' "is_required": true, "weight": 50.0, "configuration": "{}"}]}'
+        ),
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
     )
     response = api_client.post(
         "/api/v1/ai/criteria/suggest",
@@ -135,16 +149,33 @@ def test_suggest_criteria_endpoint_missing_title_returns_422(api_client, shared_
 
 # --- Assessment Suggestion ---
 
+
 def test_suggest_assessment_endpoint_returns_200(api_client, shared_mock_provider):
     shared_mock_provider.complete.return_value = AiCompletionResult(
-        content='{"suggestions": [{"question_text": "Describe experience", "question_type": "FreeText", "timing": "AfterScreening", "is_required": true, "weight": 50.0}]}',
-        input_tokens=100, output_tokens=50, total_tokens=150,
+        content=(
+            '{"suggestions": [{"question_text": "Describe experience",'
+            ' "question_type": "FreeText", "timing": "AfterScreening",'
+            ' "is_required": true, "weight": 50.0}]}'
+        ),
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
     )
     response = api_client.post(
         "/api/v1/ai/assessment/suggest",
         json={
             "job_description": "Python developer",
-            "criteria": [{"id": str(uuid.uuid4()), "name": "Python", "category": "Skill", "evaluation_method": "SemanticSimilarity", "is_required": True, "weight": 50.0, "configuration": "{}"}],
+            "criteria": [
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": "Python",
+                    "category": "Skill",
+                    "evaluation_method": "SemanticSimilarity",
+                    "is_required": True,
+                    "weight": 50.0,
+                    "configuration": "{}",
+                }
+            ],
         },
     )
     assert response.status_code == 200
@@ -160,16 +191,34 @@ def test_suggest_assessment_endpoint_empty_criteria_returns_422(api_client, shar
 
 # --- Screening Evaluation ---
 
+
 def test_evaluate_endpoint_returns_200(api_client, shared_mock_provider):
     cid = str(uuid.uuid4())
     shared_mock_provider.complete.return_value = AiCompletionResult(
-        content=f'{{"breakdown": [{{"criterion_id": "{cid}", "criterion_name": "Python", "category": "Skill", "weight": 50.0, "score": 80.0, "result": "Pass", "reasoning": "Good"}}], "overall_score": 80.0}}',
-        input_tokens=200, output_tokens=100, total_tokens=300,
+        content=(
+            f'{{"breakdown": [{{"criterion_id": "{cid}",'
+            f' "criterion_name": "Python", "category": "Skill",'
+            f' "weight": 50.0, "score": 80.0, "result": "Pass",'
+            f' "reasoning": "Good"}}], "overall_score": 80.0}}'
+        ),
+        input_tokens=200,
+        output_tokens=100,
+        total_tokens=300,
     )
     response = api_client.post(
         "/api/v1/ai/screening/evaluate",
         json={
-            "criteria": [{"id": cid, "name": "Python", "category": "Skill", "evaluation_method": "SemanticSimilarity", "is_required": True, "weight": 50.0, "configuration": "{}"}],
+            "criteria": [
+                {
+                    "id": cid,
+                    "name": "Python",
+                    "category": "Skill",
+                    "evaluation_method": "SemanticSimilarity",
+                    "is_required": True,
+                    "weight": 50.0,
+                    "configuration": "{}",
+                }
+            ],
             "applicant": {"resume_parsed_text": "Python developer"},
         },
     )
@@ -186,11 +235,16 @@ def test_evaluate_endpoint_missing_criteria_returns_422(api_client, shared_mock_
 
 # --- Answer Scoring ---
 
+
 def test_score_answers_endpoint_returns_200(api_client, shared_mock_provider):
     qid = str(uuid.uuid4())
     shared_mock_provider.complete.return_value = AiCompletionResult(
-        content=f'{{"scores": [{{"question_id": "{qid}", "score": 75.0, "result": "Pass", "reasoning": "Good answer"}}]}}',
-        input_tokens=100, output_tokens=50, total_tokens=150,
+        content=(
+            f'{{"scores": [{{"question_id": "{qid}", "score": 75.0, "result": "Pass", "reasoning": "Good answer"}}]}}'
+        ),
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
     )
     response = api_client.post(
         "/api/v1/ai/screening/score-answers",
@@ -209,10 +263,13 @@ def test_score_answers_endpoint_empty_answers_returns_422(api_client, shared_moc
 
 # --- Candidate Feedback ---
 
+
 def test_feedback_endpoint_returns_200(api_client, shared_mock_provider):
     shared_mock_provider.complete.return_value = AiCompletionResult(
         content='{"feedback": "You demonstrated strong technical skills."}',
-        input_tokens=100, output_tokens=50, total_tokens=150,
+        input_tokens=100,
+        output_tokens=50,
+        total_tokens=150,
     )
     response = api_client.post(
         "/api/v1/ai/screening/feedback",

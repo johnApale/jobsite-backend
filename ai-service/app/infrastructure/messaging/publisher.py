@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -40,7 +40,7 @@ async def publish(
         "correlationId": correlation_id or str(uuid.uuid4()),
         "messageType": [f"urn:message:{message_type.replace(':', '.')}"],
         "message": payload,
-        "sentTime": datetime.now(timezone.utc).isoformat(),
+        "sentTime": datetime.now(UTC).isoformat(),
         "host": {
             "machineName": "ai-service",
             "processName": "ai-service",

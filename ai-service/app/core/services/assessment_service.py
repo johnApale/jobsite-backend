@@ -10,7 +10,8 @@ from app.infrastructure.ai_providers.base import AiProvider
 
 logger = structlog.get_logger()
 
-_SYSTEM_PROMPT = """You are an expert recruitment consultant. Given a job description and evaluation criteria, suggest screening questions for candidates.
+_SYSTEM_PROMPT = """You are an expert recruitment consultant. Given a job description and \
+evaluation criteria, suggest screening questions for candidates.
 
 Each question must have:
 - "question_text": the screening question (string)
@@ -18,8 +19,13 @@ Each question must have:
 - "timing": one of "AtApplication", "AfterScreening"
 - "is_required": whether the question must be answered (boolean)
 - "weight": importance weight from 0.00 to 100.00 (decimal)
-- "expected_answer": for YesNo, the expected answer as JSON string (e.g., '{"value": true}'). For FreeText, scoring rubric as JSON string (e.g., '{"key_topics": ["topic1"], "min_quality": "moderate"}'). For MultipleChoice, the correct option index as JSON string (e.g., '{"correct_index": 0}').
-- "options": ONLY for MultipleChoice — a JSON array string of option objects (e.g., '[{"text": "Option A"}, {"text": "Option B"}]'). null for other types.
+- "expected_answer": for YesNo, the expected answer as JSON string \
+(e.g., '{"value": true}'). For FreeText, scoring rubric as JSON string \
+(e.g., '{"key_topics": ["topic1"], "min_quality": "moderate"}'). \
+For MultipleChoice, the correct option index as JSON string \
+(e.g., '{"correct_index": 0}').
+- "options": ONLY for MultipleChoice — a JSON array string of option objects \
+(e.g., '[{"text": "Option A"}, {"text": "Option B"}]'). null for other types.
 
 Suggest 3-5 questions. Mix question types. Focus on AfterScreening timing.
 Questions should assess areas that automated criteria scoring cannot easily evaluate.
@@ -38,10 +44,7 @@ class AssessmentService:
         criteria_summary = "\n".join(
             f"- {c.name} ({c.category}, {c.evaluation_method}, weight: {c.weight})" for c in request.criteria
         )
-        user_prompt = (
-            f"Job Description:\n{request.job_description}\n\n"
-            f"Evaluation Criteria:\n{criteria_summary}"
-        )
+        user_prompt = f"Job Description:\n{request.job_description}\n\nEvaluation Criteria:\n{criteria_summary}"
 
         result = await logged_ai_call(
             provider=self._provider,

@@ -1,12 +1,13 @@
 import uuid
 from decimal import Decimal
 
-from app.api.schemas.answer_scoring import AnswerInput, AnswerScoreResult, ScoreAnswersRequest, ScoreAnswersResponse
-from app.api.schemas.assessment import AssessmentSuggestRequest, CriterionInput, QuestionSuggestion
-from app.api.schemas.criteria import CriteriaSuggestion, CriteriaSuggestRequest
-from app.api.schemas.feedback import FeedbackRequest, FeedbackResponse
-from app.api.schemas.resume import Education, Experience, ExtractedSkill, ResumeParseRequest, ResumeParseResponse
-from app.api.schemas.screening import ApplicantInput, CriterionScore, ScreeningEvaluateRequest, ScreeningEvaluateResponse
+from app.api.schemas.assessment import QuestionSuggestion
+from app.api.schemas.criteria import CriteriaSuggestion
+from app.api.schemas.feedback import FeedbackResponse
+from app.api.schemas.resume import Education, Experience, ExtractedSkill, ResumeParseResponse
+from app.api.schemas.screening import (
+    CriterionScore,
+)
 
 
 def test_resume_parse_response_excludes_none_fields():

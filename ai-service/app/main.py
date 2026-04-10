@@ -1,14 +1,14 @@
-import structlog
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import assessment, criteria, resume, screening
 from app.core.config import Settings, get_settings
 from app.core.errors import AppError, app_error_handler, unhandled_error_handler
 from app.core.middleware import CorrelationIdMiddleware
-from app.api.routes import resume, criteria, assessment, screening
 
 structlog.configure(
     processors=[

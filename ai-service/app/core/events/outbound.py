@@ -1,7 +1,7 @@
 """Outbound event schemas — messages published to the monolith."""
 
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict

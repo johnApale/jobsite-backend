@@ -1,6 +1,6 @@
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import structlog
@@ -20,12 +20,16 @@ from app.infrastructure.ai_providers.base import AiProvider
 
 logger = structlog.get_logger()
 
-_SYSTEM_PROMPT = """You are an expert resume parser. Extract structured data from the provided resume text.
+_SYSTEM_PROMPT = """You are an expert resume parser. Extract structured data from the \
+provided resume text.
 
 Return a JSON object with these fields:
-- "skills": array of objects with "name" (string), "level" (string, one of "Beginner", "Intermediate", "Advanced", "Expert" or null), "years" (integer or null)
-- "experience": array of objects with "title" (string), "company" (string), "start_date" (string or null), "end_date" (string or null), "description" (string or null)
-- "education": array of objects with "degree" (string), "institution" (string), "start_date" (string or null), "end_date" (string or null), "field" (string or null)
+- "skills": array of objects with "name" (string), "level" (string, one of \
+"Beginner", "Intermediate", "Advanced", "Expert" or null), "years" (integer or null)
+- "experience": array of objects with "title" (string), "company" (string), \
+"start_date" (string or null), "end_date" (string or null), "description" (string or null)
+- "education": array of objects with "degree" (string), "institution" (string), \
+"start_date" (string or null), "end_date" (string or null), "field" (string or null)
 - "certifications": array of strings
 - "summary": a brief professional summary string
 
@@ -69,7 +73,7 @@ class ResumeService:
     async def _get_cached(self, file_hash: str) -> ResumeParseResponse | None:
         stmt = select(ParsedResumeCache).where(
             ParsedResumeCache.file_hash == file_hash,
-            ParsedResumeCache.expires_at > datetime.now(timezone.utc),
+            ParsedResumeCache.expires_at > datetime.now(UTC),
         )
         row = (await self._session.execute(stmt)).scalar_one_or_none()
         if row is None:
@@ -82,7 +86,7 @@ class ResumeService:
             parsed_result=parsed.model_dump(exclude_none=True),
             ai_provider=self._provider.provider_name,
             ai_model=self._provider.model_name,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=_CACHE_TTL_DAYS),
+            expires_at=datetime.now(UTC) + timedelta(days=_CACHE_TTL_DAYS),
         )
         self._session.add(entry)
 

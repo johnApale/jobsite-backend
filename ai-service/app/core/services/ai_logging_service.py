@@ -1,8 +1,6 @@
 import time
-from collections.abc import Callable, Coroutine
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
 from uuid import UUID
 
 import structlog
@@ -79,7 +77,7 @@ class AiLoggingService:
             retry_count=retry_count,
             request_summary=request_summary,
             response_summary=response_summary,
-            called_at=datetime.now(timezone.utc),
+            called_at=datetime.now(UTC),
         )
 
         self._session.add(log_entry)

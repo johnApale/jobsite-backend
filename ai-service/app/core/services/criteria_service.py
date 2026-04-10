@@ -10,18 +10,24 @@ from app.infrastructure.ai_providers.base import AiProvider
 
 logger = structlog.get_logger()
 
-_SYSTEM_PROMPT = """You are an expert recruitment consultant. Given a job title and description, suggest evaluation criteria for screening candidates.
+_SYSTEM_PROMPT = """You are an expert recruitment consultant. Given a job title and \
+description, suggest evaluation criteria for screening candidates.
 
 Each criterion must have:
 - "name": descriptive name (string)
 - "category": one of "Skill", "Experience", "Certification", "Education", "Location", "Custom"
 - "evaluation_method": one of "ExactMatch", "RangeMatch", "SemanticSimilarity"
 - "is_required": whether this is a hard requirement (boolean)
-- "weight": importance weight from 0.00 to 100.00 (decimal). All weights should sum to approximately 100.
-- "configuration": a JSON string with category-specific config. For Skill: {"keywords": [...]}. For Experience: {"min_years": N}. For Education: {"degree_level": "..."}. For Certification: {"names": [...]}. For Location: {"locations": [...]}. For Custom: {"description": "..."}.
+- "weight": importance weight from 0.00 to 100.00 (decimal). \
+All weights should sum to approximately 100.
+- "configuration": a JSON string with category-specific config. \
+For Skill: {"keywords": [...]}. For Experience: {"min_years": N}. \
+For Education: {"degree_level": "..."}. For Certification: {"names": [...]}. \
+For Location: {"locations": [...]}. For Custom: {"description": "..."}.
 
 Suggest 5-8 criteria that cover the key requirements from the job description.
-Use "SemanticSimilarity" for skills and experience, "ExactMatch" for certifications and education, "RangeMatch" for years of experience.
+Use "SemanticSimilarity" for skills and experience, "ExactMatch" for \
+certifications and education, "RangeMatch" for years of experience.
 
 Return a JSON object with a "suggestions" key containing an array of criteria objects.
 Return ONLY valid JSON. No markdown, no explanation."""

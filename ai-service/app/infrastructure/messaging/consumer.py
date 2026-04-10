@@ -5,12 +5,11 @@ from typing import Any
 import structlog
 from aio_pika import ExchangeType
 from aio_pika.abc import (
+    AbstractIncomingMessage,
     AbstractRobustChannel,
     AbstractRobustExchange,
     AbstractRobustQueue,
-    AbstractIncomingMessage,
 )
-from pydantic import BaseModel
 
 logger = structlog.get_logger()
 

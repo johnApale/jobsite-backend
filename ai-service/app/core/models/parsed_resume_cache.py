@@ -19,9 +19,7 @@ class ParsedResumeCache(Base):
     ai_provider: Mapped[str] = mapped_column(String(20), nullable=False)
     ai_model: Mapped[str] = mapped_column(String(50), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("NOW()"))
 
     __table_args__ = (
         UniqueConstraint("file_hash", name="uq_parsed_resume_cache_hash"),

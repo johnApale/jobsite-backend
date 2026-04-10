@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,7 +32,7 @@ def valid_jwt_token() -> str:
         "tenant_id": _TEST_TENANT_ID,
         "role": "Recruiter",
         "email": "test@example.com",
-        "exp": int(datetime(2030, 1, 1, tzinfo=timezone.utc).timestamp()),
+        "exp": int(datetime(2030, 1, 1, tzinfo=UTC).timestamp()),
     }
     return jwt.encode(payload, _TEST_JWT_SECRET, algorithm="HS256")
 
@@ -44,7 +44,7 @@ def expired_jwt_token() -> str:
         "tenant_id": _TEST_TENANT_ID,
         "role": "Recruiter",
         "email": "test@example.com",
-        "exp": int(datetime(2020, 1, 1, tzinfo=timezone.utc).timestamp()),
+        "exp": int(datetime(2020, 1, 1, tzinfo=UTC).timestamp()),
     }
     return jwt.encode(payload, _TEST_JWT_SECRET, algorithm="HS256")
 
@@ -85,14 +85,15 @@ def _create_test_client(settings: Settings, mock_session: AsyncMock):
     mock_engine = MagicMock()
     mock_engine.dispose = AsyncMock()
 
-    with patch.object(app.main, "get_settings", return_value=settings), \
-         patch("app.infrastructure.db.engine.create_engine", return_value=mock_engine), \
-         patch("app.infrastructure.db.session.init_session_factory"):
-
+    with (
+        patch.object(app.main, "get_settings", return_value=settings),
+        patch("app.infrastructure.db.engine.create_engine", return_value=mock_engine),
+        patch("app.infrastructure.db.session.init_session_factory"),
+    ):
         app_instance = app.main.create_app()
 
-        from app.infrastructure.db.session import get_db
         from app.core.config import get_settings as get_settings_dep
+        from app.infrastructure.db.session import get_db
 
         async def override_get_db():
             yield mock_session

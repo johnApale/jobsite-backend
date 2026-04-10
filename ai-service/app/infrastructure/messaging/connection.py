@@ -1,6 +1,6 @@
 import structlog
 from aio_pika import connect_robust
-from aio_pika.abc import AbstractRobustConnection, AbstractRobustChannel
+from aio_pika.abc import AbstractRobustChannel, AbstractRobustConnection
 
 logger = structlog.get_logger()
 

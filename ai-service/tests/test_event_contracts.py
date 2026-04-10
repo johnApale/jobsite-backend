@@ -6,7 +6,7 @@ These tests guard the C# ↔ Python serialization boundary — if a C# property
 is renamed or a Python model drifts, these tests catch it.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -24,7 +24,6 @@ from app.core.events.outbound import (
     ResumeParsed,
     ScreeningEvaluated,
 )
-
 
 # ── Fixtures: sample payloads matching MassTransit snake_case output ──
 

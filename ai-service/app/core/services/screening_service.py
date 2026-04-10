@@ -17,7 +17,8 @@ from app.infrastructure.ai_providers.base import AiProvider
 
 logger = structlog.get_logger()
 
-_EVALUATE_SYSTEM_PROMPT = """You are an expert candidate evaluator. Given an applicant's resume/profile data and job evaluation criteria, score each criterion.
+_EVALUATE_SYSTEM_PROMPT = """You are an expert candidate evaluator. Given an applicant's \
+resume/profile data and job evaluation criteria, score each criterion.
 
 For each criterion, provide:
 - "criterion_id": the UUID of the criterion (string)
@@ -25,7 +26,8 @@ For each criterion, provide:
 - "category": the criterion category
 - "weight": the criterion weight
 - "score": a score from 0.00 to 100.00 (decimal)
-- "result": one of "Pass", "Fail", or "Required" (if is_required and score < 50, use "Required")
+- "result": one of "Pass", "Fail", or "Required" \
+(if is_required and score < 50, use "Required")
 - "reasoning": a brief explanation of why this score was assigned
 
 Also compute:
@@ -34,7 +36,8 @@ Also compute:
 Return a JSON object with "breakdown" (array of criterion scores) and "overall_score" (decimal).
 Return ONLY valid JSON. No markdown, no explanation."""
 
-_SCORE_ANSWERS_SYSTEM_PROMPT = """You are an expert answer evaluator. Score each candidate answer to a screening question.
+_SCORE_ANSWERS_SYSTEM_PROMPT = """\
+You are an expert answer evaluator. Score each candidate answer to a screening question.
 
 For each answer, provide:
 - "question_id": the UUID of the question (string)
@@ -51,7 +54,9 @@ Evaluate based on:
 Return a JSON object with a "scores" key containing an array of score objects.
 Return ONLY valid JSON. No markdown, no explanation."""
 
-_FEEDBACK_SYSTEM_PROMPT = """You are a professional career advisor. Generate candidate-facing feedback based on their screening results.
+_FEEDBACK_SYSTEM_PROMPT = """\
+You are a professional career advisor. Generate candidate-facing feedback \
+based on their screening results.
 
 The feedback should be:
 - Constructive and encouraging
@@ -60,7 +65,8 @@ The feedback should be:
 - Professional in tone
 
 Transparency levels:
-- "Full": Provide detailed feedback covering each criterion, specific scores, and actionable improvement suggestions.
+- "Full": Provide detailed feedback covering each criterion, specific scores, \
+and actionable improvement suggestions.
 - "Summary": Provide a high-level overview of strengths and areas for improvement without specific scores.
 - "None": Provide a brief, generic acknowledgment of the application.
 
