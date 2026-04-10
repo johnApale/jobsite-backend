@@ -666,7 +666,7 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
 /// </summary>
 public sealed class FakeSettingsReader : ITenantSettingsReader
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
@@ -682,8 +682,8 @@ public sealed class FakeSettingsReader : ITenantSettingsReader
 
         // Serialize the anonymous/plain object and deserialize into the requested T,
         // allowing conversion to private types like ScreeningSettingsProjection.
-        string json = JsonSerializer.Serialize(_settings, s_jsonOptions);
-        T? result = JsonSerializer.Deserialize<T>(json, s_jsonOptions);
+        string json = JsonSerializer.Serialize(_settings, JsonOptions);
+        T? result = JsonSerializer.Deserialize<T>(json, JsonOptions);
         return Task.FromResult(result);
     }
 }

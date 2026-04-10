@@ -140,7 +140,16 @@ csharp_preserve_single_line_blocks = true
 
 #### Naming conventions ####
 
-# Private fields: _camelCase
+# Private static readonly fields: PascalCase (e.g., JsonOptions, ErrorStatusCodes)
+dotnet_naming_rule.static_readonly_fields_should_be_pascal_case.severity = warning
+dotnet_naming_rule.static_readonly_fields_should_be_pascal_case.symbols = static_readonly_fields
+dotnet_naming_rule.static_readonly_fields_should_be_pascal_case.style = pascal_case_style
+
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.static_readonly_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_symbols.static_readonly_fields.required_modifiers = static, readonly
+
+# Private instance fields: _camelCase
 dotnet_naming_rule.private_fields_should_be_camel_case.severity = warning
 dotnet_naming_rule.private_fields_should_be_camel_case.symbols = private_fields
 dotnet_naming_rule.private_fields_should_be_camel_case.style = underscore_camel_case
