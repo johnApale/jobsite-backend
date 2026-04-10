@@ -119,16 +119,16 @@ Tests `UpdateProfileRequestValidator` — FluentValidation rules for the merge-p
 
 Tests `ResumeUploadedConsumer` — the MassTransit consumer that runs basic resume parsing asynchronously and publishes `ResumeParseRequested` to the message broker for AI parsing. Uses InMemory EF Core for `ProfilesDbContext` and NSubstitute for `IResumeParser`, `IEventPublisher`, `ITenantConnectionResolver`, and `ITenantDbContextFactory`.
 
-| Test                                                 | What It Verifies                                                       | Expected Outcome                                |
-| ---------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
-| `Consume_ValidEvent_RunsBasicParserAndPersists`      | Happy path: basic parser text + skills stored on resume                | ParsedText, ExtractedSkills set, IsParsed true  |
-| `Consume_ValidEvent_PublishesResumeParseRequestedEvent` | Publishes `ResumeParseRequested` event for async AI parsing         | Event published with correct data               |
-| `Consume_ValidEvent_DoesNotStoreAiParsedContentSynchronously` | AI parsed content not set synchronously — arrives via broker    | AiParsedContent null after consumer completes   |
-| `Consume_BasicParserFails_SetsParseErrorAndRethrows` | Parser exception stored on resume, then rethrown for MassTransit retry | ParseError set, exception propagated            |
-| `Consume_ResumeNotFound_LogsWarningAndReturns`       | Resume ID not in DB, parser never called                               | Parser not invoked                              |
-| `Consume_AlreadyParsed_SkipsProcessing`              | Resume with IsParsed=true is skipped                                   | Parser not invoked                              |
-| `Consume_ValidEvent_ResolvesCorrectTenantConnection` | Tenant connection resolved from event's TenantId                       | GetConnectionStringAsync called with correct ID |
-| `Consume_SuccessfulParse_SetsParsedAtTimestamp`      | ParsedAt timestamp set on successful parse                             | ParsedAt is not null, >= test start time        |
+| Test                                                          | What It Verifies                                                       | Expected Outcome                                |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------- |
+| `Consume_ValidEvent_RunsBasicParserAndPersists`               | Happy path: basic parser text + skills stored on resume                | ParsedText, ExtractedSkills set, IsParsed true  |
+| `Consume_ValidEvent_PublishesResumeParseRequestedEvent`       | Publishes `ResumeParseRequested` event for async AI parsing            | Event published with correct data               |
+| `Consume_ValidEvent_DoesNotStoreAiParsedContentSynchronously` | AI parsed content not set synchronously — arrives via broker           | AiParsedContent null after consumer completes   |
+| `Consume_BasicParserFails_SetsParseErrorAndRethrows`          | Parser exception stored on resume, then rethrown for MassTransit retry | ParseError set, exception propagated            |
+| `Consume_ResumeNotFound_LogsWarningAndReturns`                | Resume ID not in DB, parser never called                               | Parser not invoked                              |
+| `Consume_AlreadyParsed_SkipsProcessing`                       | Resume with IsParsed=true is skipped                                   | Parser not invoked                              |
+| `Consume_ValidEvent_ResolvesCorrectTenantConnection`          | Tenant connection resolved from event's TenantId                       | GetConnectionStringAsync called with correct ID |
+| `Consume_SuccessfulParse_SetsParsedAtTimestamp`               | ParsedAt timestamp set on successful parse                             | ParsedAt is not null, >= test start time        |
 
 **Why:** The consumer is the core of the async resume parsing pipeline. It runs basic parsing synchronously and publishes `ResumeParseRequested` to the broker for AI parsing. The AI result arrives asynchronously via `ResumeParsedConsumer`. The consumer must correctly resolve tenant databases for multi-tenant isolation.
 
@@ -138,11 +138,11 @@ Tests `ResumeUploadedConsumer` — the MassTransit consumer that runs basic resu
 
 Tests `ResumeParsedConsumer` — the MassTransit consumer that processes `ResumeParsed` events from the AI Service, applying AI-extracted structured data to resume records.
 
-| Test                                                    | What It Verifies                                                | Expected Outcome                        |
-| ------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------- |
-| `Consume_ValidEvent_UpdatesAiParsedContent`             | AI parsed content stored on resume record                       | AiParsedContent populated               |
-| `Consume_ResumeNotFound_DoesNotThrow`                   | Missing resume handled gracefully                               | No exception, logs warning              |
-| `Consume_ValidEvent_PreservesExistingFields`            | AI update does not overwrite basic parsing fields               | ParsedText and ExtractedSkills unchanged |
+| Test                                         | What It Verifies                                  | Expected Outcome                         |
+| -------------------------------------------- | ------------------------------------------------- | ---------------------------------------- |
+| `Consume_ValidEvent_UpdatesAiParsedContent`  | AI parsed content stored on resume record         | AiParsedContent populated                |
+| `Consume_ResumeNotFound_DoesNotThrow`        | Missing resume handled gracefully                 | No exception, logs warning               |
+| `Consume_ValidEvent_PreservesExistingFields` | AI update does not overwrite basic parsing fields | ParsedText and ExtractedSkills unchanged |
 
 **Why:** This consumer is the receiving side of the async AI resume parsing pipeline. It must correctly store AI results without overwriting basic parser output, and handle edge cases gracefully.
 
@@ -256,6 +256,6 @@ Tests `ApplicantProfileRepository` and `ResumeRepository` against a real Postgre
 
 ### Blocked by AI Service (Phase 6)
 
-| Area                               | Gap                                                                                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Area                               | Gap                                                                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | **Full Resume Parse Pipeline E2E** | End-to-end resume upload → basic parse → broker publish → AI parse → broker consume → persist requires operational AI Service + RabbitMQ. |

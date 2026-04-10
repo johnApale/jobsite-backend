@@ -67,37 +67,37 @@ The following operations are handled asynchronously via RabbitMQ. The AI Service
 
 ### Resume Parsing
 
-| Direction | Event                  | Key Fields                                        |
-| --------- | ---------------------- | ------------------------------------------------- |
-| Inbound   | `ResumeParseRequested` | `resume_id`, `tenant_id`, `parsed_text`           |
-| Outbound  | `ResumeParsed`         | `resume_id`, `tenant_id`, `ai_parsed_content`     |
+| Direction | Event                  | Key Fields                                    |
+| --------- | ---------------------- | --------------------------------------------- |
+| Inbound   | `ResumeParseRequested` | `resume_id`, `tenant_id`, `parsed_text`       |
+| Outbound  | `ResumeParsed`         | `resume_id`, `tenant_id`, `ai_parsed_content` |
 
 Extracts structured data (skills, experience, education, certifications) from resume text using AI. Results are cached by content hash for 30 days.
 
 ### Screening Evaluation
 
-| Direction | Event                          | Key Fields                                                         |
-| --------- | ------------------------------ | ------------------------------------------------------------------ |
+| Direction | Event                          | Key Fields                                                            |
+| --------- | ------------------------------ | --------------------------------------------------------------------- |
 | Inbound   | `ScreeningEvaluationRequested` | `application_id`, `tenant_id`, `criteria_json`, `applicant_data_json` |
-| Outbound  | `ScreeningEvaluated`           | `application_id`, `tenant_id`, `breakdown_json`, `overall_score`   |
+| Outbound  | `ScreeningEvaluated`           | `application_id`, `tenant_id`, `breakdown_json`, `overall_score`      |
 
 Evaluates an applicant against job criteria and returns per-criterion scores with an overall weighted score.
 
 ### Answer Scoring
 
-| Direction | Event                    | Key Fields                                           |
-| --------- | ------------------------ | ---------------------------------------------------- |
-| Inbound   | `AnswerScoringRequested` | `application_id`, `tenant_id`, `answers_json`        |
-| Outbound  | `AnswersScored`          | `application_id`, `tenant_id`, `scores_json`         |
+| Direction | Event                    | Key Fields                                    |
+| --------- | ------------------------ | --------------------------------------------- |
+| Inbound   | `AnswerScoringRequested` | `application_id`, `tenant_id`, `answers_json` |
+| Outbound  | `AnswersScored`          | `application_id`, `tenant_id`, `scores_json`  |
 
 Scores candidate free-text answers to screening questions.
 
 ### Candidate Feedback
 
-| Direction | Event                         | Key Fields                                                                   |
-| --------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| Direction | Event                         | Key Fields                                                                                 |
+| --------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
 | Inbound   | `FeedbackGenerationRequested` | `application_id`, `tenant_id`, `criteria_breakdown`, `overall_score`, `transparency_level` |
-| Outbound  | `FeedbackGenerated`           | `application_id`, `tenant_id`, `feedback`                                    |
+| Outbound  | `FeedbackGenerated`           | `application_id`, `tenant_id`, `feedback`                                                  |
 
 Generates candidate-facing feedback based on screening results, respecting the configured transparency level.
 

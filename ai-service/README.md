@@ -82,11 +82,11 @@ pytest tests/test_api.py  # endpoint tests only
 
 ## Message Broker Consumers (RabbitMQ)
 
-| Inbound Event                  | Outbound Event       | Description            |
-| ------------------------------ | -------------------- | ---------------------- |
-| `ResumeParseRequested`         | `ResumeParsed`       | Parse resume text      |
-| `ScreeningEvaluationRequested` | `ScreeningEvaluated` | Evaluate applicant     |
-| `AnswerScoringRequested`       | `AnswersScored`      | Score answers          |
-| `FeedbackGenerationRequested`  | `FeedbackGenerated`  | Generate feedback      |
+| Inbound Event                  | Outbound Event       | Description        |
+| ------------------------------ | -------------------- | ------------------ |
+| `ResumeParseRequested`         | `ResumeParsed`       | Parse resume text  |
+| `ScreeningEvaluationRequested` | `ScreeningEvaluated` | Evaluate applicant |
+| `AnswerScoringRequested`       | `AnswersScored`      | Score answers      |
+| `FeedbackGenerationRequested`  | `FeedbackGenerated`  | Generate feedback  |
 
 See [docs/api-reference/ai-service.md](../docs/api-reference/ai-service.md) for full API reference.
