@@ -106,6 +106,7 @@ public static class ModuleServiceCollectionExtensions
         {
             // Add consumers from module assemblies
             bus.AddConsumers(typeof(ProfilesDbContext).Assembly);
+            bus.AddConsumers(typeof(ScreeningDbContext).Assembly);
 
             bus.UsingRabbitMq((context, cfg) =>
             {
