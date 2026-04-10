@@ -1,0 +1,105 @@
+name: Deploy Staging
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [staging]
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  # ── Gate: only proceed if CI passed ──────────────────────────────
+  gate:
+    name: Verify CI Success
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - run: echo "CI passed — proceeding with staging deploy"
+
+  # ── Run EF Core migrations (catalog DB only) ────────────────────
+  migrate-dotnet:
+    name: EF Core Migrations
+    runs-on: ubuntu-latest
+    needs: gate
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          dotnet-quality: "preview"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore jobsite-api/Jobsite.Api.slnx
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Run catalog migrations
+        run: |
+          dotnet ef database update \
+            --project jobsite-api/src/Modules/Tenancy/Jobsite.Modules.Tenancy.Infrastructure/Jobsite.Modules.Tenancy.Infrastructure.csproj \
+            --startup-project jobsite-api/src/Jobsite.Api/Jobsite.Api.csproj \
+            --connection "${{ secrets.STAGING_CATALOG_DB_URL }}"
+
+  # ── Run Alembic migrations (AI service DB) ──────────────────────
+  migrate-ai-service:
+    name: Alembic Migrations
+    runs-on: ubuntu-latest
+    needs: gate
+    defaults:
+      run:
+        working-directory: ai-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: ai-service/pyproject.toml
+
+      - name: Install dependencies
+        run: pip install .
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_AI_DB_URL }}
+
+  # ── Trigger Render deploys ──────────────────────────────────────
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: [migrate-dotnet, migrate-ai-service]
+    steps:
+      - name: Deploy .NET API
+        run: curl -sf "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+
+      - name: Deploy AI Service
+        run: curl -sf "${{ secrets.RENDER_DEPLOY_HOOK_AI }}"
+
+      - name: Summary
+        run: |
+          echo "## Staging Deploy Triggered :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.event.workflow_run.head_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **CI Run:** [#${{ github.event.workflow_run.run_number }}](${{ github.event.workflow_run.html_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Both services triggered. Monitor progress in the [Render Dashboard](https://dashboard.render.com)." >> $GITHUB_STEP_SUMMARY
