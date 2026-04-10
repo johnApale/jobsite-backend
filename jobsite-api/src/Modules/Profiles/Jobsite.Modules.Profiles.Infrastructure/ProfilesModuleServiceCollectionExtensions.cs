@@ -41,10 +41,12 @@ public static class ProfilesModuleServiceCollectionExtensions
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IResumeService, ResumeService>();
 
-        // File storage — Azure Blob in production, local filesystem in development
+        // File storage — provider selected via App:FileStorage:Provider
         string fileStorageProvider = configuration["App:FileStorage:Provider"] ?? "Local";
         if (string.Equals(fileStorageProvider, "Azure", StringComparison.OrdinalIgnoreCase))
             services.AddScoped<IFileStorage, AzureBlobFileStorage>();
+        else if (string.Equals(fileStorageProvider, "S3", StringComparison.OrdinalIgnoreCase))
+            services.AddScoped<IFileStorage, S3FileStorage>();
         else
             services.AddScoped<IFileStorage, LocalFileStorage>();
 
