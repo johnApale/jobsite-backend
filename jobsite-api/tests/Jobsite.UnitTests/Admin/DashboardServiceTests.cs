@@ -100,23 +100,36 @@ public sealed class DashboardServiceTests
         // Arrange
         _recruitmentStatsReader.GetStatsAsync(Arg.Any<CancellationToken>()).Returns(new RecruitmentStatsSnapshot
         {
-            TotalJobPostings = 0, ActiveJobPostings = 0, ClosedJobPostings = 0,
-            TotalApplications = 0, SubmittedApplications = 0, ScreeningApplications = 0,
-            ShortlistedApplications = 0, RejectedApplications = 0, HiredApplications = 0,
+            TotalJobPostings = 0,
+            ActiveJobPostings = 0,
+            ClosedJobPostings = 0,
+            TotalApplications = 0,
+            SubmittedApplications = 0,
+            ScreeningApplications = 0,
+            ShortlistedApplications = 0,
+            RejectedApplications = 0,
+            HiredApplications = 0,
             WithdrawnApplications = 0
         });
 
         _screeningStatsReader.GetStatsAsync(Arg.Any<CancellationToken>()).Returns(new ScreeningStatsSnapshot
         {
-            TotalScreenings = 0, CompletedScreenings = 0, PendingScreenings = 0,
-            FailedScreenings = 0, AverageScore = null,
-            AutoAdvancedCount = 0, AutoRejectedCount = 0, ManualReviewCount = 0
+            TotalScreenings = 0,
+            CompletedScreenings = 0,
+            PendingScreenings = 0,
+            FailedScreenings = 0,
+            AverageScore = null,
+            AutoAdvancedCount = 0,
+            AutoRejectedCount = 0,
+            ManualReviewCount = 0
         });
 
         _matchingStatsReader.GetStatsAsync(Arg.Any<CancellationToken>()).Returns(new MatchingStatsSnapshot
         {
-            TotalShortlists = 0, DraftShortlists = 0,
-            FinalizedShortlists = 0, TotalCandidateMatches = 0
+            TotalShortlists = 0,
+            DraftShortlists = 0,
+            FinalizedShortlists = 0,
+            TotalCandidateMatches = 0
         });
 
         // Act
@@ -134,23 +147,36 @@ public sealed class DashboardServiceTests
         // Arrange
         _recruitmentStatsReader.GetStatsAsync(Arg.Any<CancellationToken>()).Returns(new RecruitmentStatsSnapshot
         {
-            TotalJobPostings = 0, ActiveJobPostings = 0, ClosedJobPostings = 0,
-            TotalApplications = 0, SubmittedApplications = 0, ScreeningApplications = 0,
-            ShortlistedApplications = 0, RejectedApplications = 0, HiredApplications = 0,
+            TotalJobPostings = 0,
+            ActiveJobPostings = 0,
+            ClosedJobPostings = 0,
+            TotalApplications = 0,
+            SubmittedApplications = 0,
+            ScreeningApplications = 0,
+            ShortlistedApplications = 0,
+            RejectedApplications = 0,
+            HiredApplications = 0,
             WithdrawnApplications = 0
         });
 
         _screeningStatsReader.GetStatsAsync(Arg.Any<CancellationToken>()).Returns(new ScreeningStatsSnapshot
         {
-            TotalScreenings = 0, CompletedScreenings = 0, PendingScreenings = 0,
-            FailedScreenings = 0, AverageScore = null,
-            AutoAdvancedCount = 0, AutoRejectedCount = 0, ManualReviewCount = 0
+            TotalScreenings = 0,
+            CompletedScreenings = 0,
+            PendingScreenings = 0,
+            FailedScreenings = 0,
+            AverageScore = null,
+            AutoAdvancedCount = 0,
+            AutoRejectedCount = 0,
+            ManualReviewCount = 0
         });
 
         _matchingStatsReader.GetStatsAsync(Arg.Any<CancellationToken>()).Returns(new MatchingStatsSnapshot
         {
-            TotalShortlists = 0, DraftShortlists = 0,
-            FinalizedShortlists = 0, TotalCandidateMatches = 0
+            TotalShortlists = 0,
+            DraftShortlists = 0,
+            FinalizedShortlists = 0,
+            TotalCandidateMatches = 0
         });
 
         // Act

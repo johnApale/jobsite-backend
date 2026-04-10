@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Jobsite.Modules.Screening.Application.DTOs;
 using Jobsite.Modules.Screening.Application.Interfaces;
-using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;

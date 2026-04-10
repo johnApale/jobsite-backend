@@ -15,7 +15,7 @@ public sealed class ErrorSchemaTransformer : IOpenApiOperationTransformer
     public Task TransformAsync(
         OpenApiOperation operation,
         OpenApiOperationTransformerContext context,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         if (operation.Responses is null)
             return Task.CompletedTask;

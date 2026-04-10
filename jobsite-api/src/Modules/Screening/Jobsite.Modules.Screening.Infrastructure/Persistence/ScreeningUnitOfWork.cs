@@ -1,5 +1,4 @@
 using Jobsite.SharedKernel.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace Jobsite.Modules.Screening.Infrastructure.Persistence;
 

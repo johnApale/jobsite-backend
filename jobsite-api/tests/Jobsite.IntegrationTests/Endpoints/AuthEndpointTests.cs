@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Jobsite.Modules.Auth.Application.DTOs;
-using Jobsite.Modules.Auth.Domain.Constants;
 
 namespace Jobsite.IntegrationTests.Endpoints;
 

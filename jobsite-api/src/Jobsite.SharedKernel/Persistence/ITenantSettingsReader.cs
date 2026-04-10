@@ -12,5 +12,6 @@ public interface ITenantSettingsReader
     /// Returns <c>null</c> if the settings row or section does not exist.
     /// </summary>
     /// <param name="section">The settings column name (e.g., "assessment_settings", "screening_settings").</param>
+    /// <param name="ct">Cancellation token.</param>
     Task<T?> GetSettingAsync<T>(string section, CancellationToken ct = default) where T : class;
 }

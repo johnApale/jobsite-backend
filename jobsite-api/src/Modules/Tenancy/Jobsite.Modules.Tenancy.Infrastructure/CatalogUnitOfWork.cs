@@ -1,5 +1,5 @@
-using Jobsite.SharedKernel.Persistence;
 using Jobsite.Modules.Tenancy.Infrastructure.Persistence;
+using Jobsite.SharedKernel.Persistence;
 
 namespace Jobsite.Modules.Tenancy.Infrastructure;
 

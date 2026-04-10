@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Jobsite.Modules.Profiles.Domain.Entities;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence;
 using Jobsite.Modules.Profiles.Infrastructure.Services;

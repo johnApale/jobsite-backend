@@ -1,7 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
 using Jobsite.Modules.Screening.Application.DTOs;
-using Jobsite.Modules.Screening.Application.Interfaces;
 using Jobsite.Modules.Screening.Application.Services;
 using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;
@@ -379,7 +378,8 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
         _applicantDataReader.GetApplicantDataAsync(applicantUserId, null, Arg.Any<CancellationToken>())
             .Returns(new ApplicantDataSnapshot
             {
-                UserId = applicantUserId, ResumeExtractedSkills = """["C#"]"""
+                UserId = applicantUserId,
+                ResumeExtractedSkills = """["C#"]"""
             });
 
         _questionsReader.GetQuestionsForJobAsync(jobPostingId, Arg.Any<CancellationToken>())
@@ -661,10 +661,10 @@ public sealed class ScreeningPipelineTests : IAsyncLifetime
 
 /// <summary>
 /// A manual fake for <see cref="ITenantSettingsReader"/> that JSON-round-trips
-/// a configured object into whatever <typeparamref name="T"/> the caller requests.
+/// a configured object into whatever <c>T</c> the caller requests.
 /// This avoids NSubstitute generic type matching issues with private projection types.
 /// </summary>
-sealed class FakeSettingsReader : ITenantSettingsReader
+public sealed class FakeSettingsReader : ITenantSettingsReader
 {
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {

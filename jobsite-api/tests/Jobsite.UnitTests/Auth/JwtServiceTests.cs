@@ -1,5 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using FluentAssertions;
 using Jobsite.Modules.Auth.Application.Configuration;
 using Jobsite.Modules.Auth.Domain.Constants;

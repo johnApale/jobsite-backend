@@ -11,7 +11,7 @@ public sealed class BearerSecuritySchemeTransformer : IOpenApiDocumentTransforme
     public Task TransformAsync(
         OpenApiDocument document,
         OpenApiDocumentTransformerContext context,
-        CancellationToken ct)
+        CancellationToken cancellationToken)
     {
         OpenApiSecurityScheme bearerScheme = new()
         {

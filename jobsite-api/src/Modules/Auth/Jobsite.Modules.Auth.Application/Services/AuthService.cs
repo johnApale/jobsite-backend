@@ -1,13 +1,13 @@
+using System.Security.Cryptography;
 using Jobsite.Modules.Auth.Application.Configuration;
 using Jobsite.Modules.Auth.Application.DTOs;
 using Jobsite.Modules.Auth.Application.Interfaces;
 using Jobsite.Modules.Auth.Domain.Constants;
 using Jobsite.Modules.Auth.Domain.Entities;
-using Microsoft.Extensions.DependencyInjection;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
-using System.Security.Cryptography;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Jobsite.Modules.Auth.Application.Services;
 

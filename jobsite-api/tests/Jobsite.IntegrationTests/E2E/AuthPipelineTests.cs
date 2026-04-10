@@ -9,7 +9,6 @@ using Jobsite.Modules.Auth.Infrastructure.Persistence;
 using Jobsite.Modules.Auth.Infrastructure.Repositories;
 using Jobsite.SharedKernel.Errors;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace Jobsite.IntegrationTests.E2E;

@@ -1,13 +1,13 @@
+using System.Text;
+using System.Text.Json;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Jobsite.Modules.Profiles.Application.Interfaces;
 using Jobsite.Modules.Profiles.Domain.Constants;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
-using System.Text;
-using System.Text.Json;
 
 namespace Jobsite.Modules.Profiles.Infrastructure.Parsing;
 

@@ -124,14 +124,22 @@ public static class AdminEndpoints
     private static List<string> GetUpdatedFields(UpdateCompanySettingsRequest request)
     {
         List<string> fields = [];
-        if (request.DefaultTimezone is not null) fields.Add("default_timezone");
-        if (request.DefaultCurrency is not null) fields.Add("default_currency");
-        if (request.AuthSettings is not null) fields.Add("auth_settings");
-        if (request.ProfileSettings is not null) fields.Add("profile_settings");
-        if (request.ScreeningSettings is not null) fields.Add("screening_settings");
-        if (request.MatchingSettings is not null) fields.Add("matching_settings");
-        if (request.AssessmentSettings is not null) fields.Add("assessment_settings");
-        if (request.NotificationSettings is not null) fields.Add("notification_settings");
+        if (request.DefaultTimezone is not null)
+            fields.Add("default_timezone");
+        if (request.DefaultCurrency is not null)
+            fields.Add("default_currency");
+        if (request.AuthSettings is not null)
+            fields.Add("auth_settings");
+        if (request.ProfileSettings is not null)
+            fields.Add("profile_settings");
+        if (request.ScreeningSettings is not null)
+            fields.Add("screening_settings");
+        if (request.MatchingSettings is not null)
+            fields.Add("matching_settings");
+        if (request.AssessmentSettings is not null)
+            fields.Add("assessment_settings");
+        if (request.NotificationSettings is not null)
+            fields.Add("notification_settings");
         return fields;
     }
 }

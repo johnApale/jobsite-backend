@@ -2,7 +2,6 @@ using Jobsite.Modules.Matching.Application.DTOs;
 using Jobsite.Modules.Matching.Domain.Constants;
 using Jobsite.Modules.Matching.Domain.Entities;
 using Jobsite.Modules.Matching.Domain.Interfaces;
-using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;

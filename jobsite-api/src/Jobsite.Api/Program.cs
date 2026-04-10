@@ -1,20 +1,19 @@
-using Jobsite.Api.Endpoints;
+using System.Text.Json;
 using Jobsite.Api.Extensions;
 using Jobsite.Api.Middleware;
 using Jobsite.Api.OpenApi;
 using Jobsite.Modules.Admin.Api;
 using Jobsite.Modules.Auth.Api;
+using Jobsite.Modules.HRWorkflows.Api;
+using Jobsite.Modules.Matching.Api;
 using Jobsite.Modules.Profiles.Api;
 using Jobsite.Modules.Recruitment.Api;
 using Jobsite.Modules.Screening.Api;
-using Jobsite.Modules.Matching.Api;
-using Jobsite.Modules.HRWorkflows.Api;
 using Jobsite.Modules.Tenancy.Api;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 using Serilog;
-using System.Text.Json;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

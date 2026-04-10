@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Jobsite.Modules.Matching.Application.DTOs;
 using Jobsite.Modules.Matching.Application.EventHandlers;
 using Jobsite.Modules.Matching.Application.Services;
 using Jobsite.Modules.Matching.Domain.Constants;
@@ -8,8 +8,6 @@ using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-
-using Jobsite.Modules.Matching.Application.DTOs;
 
 namespace Jobsite.UnitTests.Matching;
 

@@ -2,7 +2,6 @@ using Jobsite.Modules.HRWorkflows.Application.DTOs;
 using Jobsite.Modules.HRWorkflows.Domain.Constants;
 using Jobsite.Modules.HRWorkflows.Domain.Entities;
 using Jobsite.Modules.HRWorkflows.Domain.Interfaces;
-using Jobsite.SharedKernel.Domain;
 using Jobsite.SharedKernel.Errors;
 using Jobsite.SharedKernel.Events;
 using Jobsite.SharedKernel.Persistence;

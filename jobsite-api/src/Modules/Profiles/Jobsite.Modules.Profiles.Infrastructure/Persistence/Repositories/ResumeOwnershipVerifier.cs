@@ -1,4 +1,3 @@
-using Jobsite.Modules.Profiles.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.EntityFrameworkCore;
 

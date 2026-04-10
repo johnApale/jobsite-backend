@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Jobsite.Modules.Recruitment.Application.DTOs;
-using Jobsite.Modules.Recruitment.Application.Interfaces;
 using Jobsite.Modules.Recruitment.Application.Services;
 using Jobsite.Modules.Recruitment.Domain.Constants;
 using Jobsite.Modules.Recruitment.Domain.Entities;

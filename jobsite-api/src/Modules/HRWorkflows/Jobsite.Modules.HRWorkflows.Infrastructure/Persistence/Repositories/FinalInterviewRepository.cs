@@ -31,12 +31,12 @@ public sealed class FinalInterviewRepository : IFinalInterviewRepository
     }
 
     public async Task<List<FinalInterview>> GetByScheduledByAsync(
-        Guid scheduledBy, CancellationToken ct = default)
+        Guid userId, CancellationToken ct = default)
     {
         return await _db.FinalInterviews
             .AsNoTracking()
             .Include(i => i.Panelists)
-            .Where(i => i.ScheduledBy == scheduledBy)
+            .Where(i => i.ScheduledBy == userId)
             .OrderByDescending(i => i.ScheduledAt)
             .ToListAsync(ct);
     }

@@ -33,19 +33,19 @@ public sealed class JobCriteriaReaderTests : IDisposable
 
     private static JobEvaluationCriteria CreateCriteria(
         Guid jobPostingId, int displayOrder = 0, string? name = null) => new()
-    {
-        Id = Guid.NewGuid(),
-        JobPostingId = jobPostingId,
-        Name = name ?? "C# Proficiency",
-        Category = CriteriaCategory.Skill,
-        EvaluationMethod = EvaluationMethod.SemanticSimilarity,
-        IsRequired = true,
-        Weight = 25.0m,
-        Configuration = """{"skill_name":"C#"}""",
-        DisplayOrder = displayOrder,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
-    };
+        {
+            Id = Guid.NewGuid(),
+            JobPostingId = jobPostingId,
+            Name = name ?? "C# Proficiency",
+            Category = CriteriaCategory.Skill,
+            EvaluationMethod = EvaluationMethod.SemanticSimilarity,
+            IsRequired = true,
+            Weight = 25.0m,
+            Configuration = """{"skill_name":"C#"}""",
+            DisplayOrder = displayOrder,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
     [Fact]
     public async Task GetCriteriaForJobAsync_ExistingJob_ReturnsCriteriaSnapshots()

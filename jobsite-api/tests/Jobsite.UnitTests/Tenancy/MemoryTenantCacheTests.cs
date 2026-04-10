@@ -1,6 +1,6 @@
 using FluentAssertions;
-using Jobsite.Modules.Tenancy.Infrastructure.Caching;
 using Jobsite.Modules.Tenancy.Domain.Entities;
+using Jobsite.Modules.Tenancy.Infrastructure.Caching;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Jobsite.UnitTests.Tenancy;

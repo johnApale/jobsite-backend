@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Jobsite.Api.Infrastructure;
 using Jobsite.SharedKernel.Domain;
-using Jobsite.SharedKernel.Persistence;
 using NSubstitute;
 
 namespace Jobsite.UnitTests.Infrastructure;

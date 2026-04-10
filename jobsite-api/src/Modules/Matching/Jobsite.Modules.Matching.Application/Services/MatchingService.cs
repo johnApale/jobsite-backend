@@ -1,9 +1,7 @@
 using Jobsite.Modules.Matching.Application.DTOs;
-using Jobsite.Modules.Matching.Domain.Constants;
 using Jobsite.Modules.Matching.Domain.Entities;
 using Jobsite.Modules.Matching.Domain.Interfaces;
 using Jobsite.SharedKernel.Errors;
-using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Logging;
 
 namespace Jobsite.Modules.Matching.Application.Services;

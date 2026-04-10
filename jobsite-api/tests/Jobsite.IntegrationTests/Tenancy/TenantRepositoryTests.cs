@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Jobsite.Modules.Tenancy.Domain.Constants;
 using Jobsite.Modules.Tenancy.Domain.Entities;
 using Jobsite.Modules.Tenancy.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;

@@ -99,7 +99,7 @@ public sealed class AiQuestionSuggesterContractTests
         result[1].ExpectedAnswer.Should().Contain("correct_options");
 
         // Assert — verify request body structure
-        WireMock.Logging.ILogEntry entry = _fixture.Server.LogEntries.First();
+        WireMock.Logging.ILogEntry entry = _fixture.Server.LogEntries[0];
         entry.RequestMessage.Method.Should().Be("POST");
         entry.RequestMessage.Path.Should().Be("/api/v1/ai/assessment/suggest");
 

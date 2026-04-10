@@ -30,11 +30,11 @@ public sealed class JobOfferRepository : IJobOfferRepository
     }
 
     public async Task<List<JobOffer>> GetByExtendedByAsync(
-        Guid extendedBy, CancellationToken ct = default)
+        Guid userId, CancellationToken ct = default)
     {
         return await _db.JobOffers
             .AsNoTracking()
-            .Where(o => o.ExtendedBy == extendedBy)
+            .Where(o => o.ExtendedBy == userId)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync(ct);
     }

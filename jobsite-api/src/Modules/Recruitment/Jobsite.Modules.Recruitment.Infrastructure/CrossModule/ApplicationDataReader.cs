@@ -1,7 +1,6 @@
 using Jobsite.Modules.Recruitment.Infrastructure.Persistence;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.EntityFrameworkCore;
-using ApplicationEntity = Jobsite.Modules.Recruitment.Domain.Entities.Application;
 
 namespace Jobsite.Modules.Recruitment.Infrastructure.CrossModule;
 

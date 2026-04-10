@@ -1,6 +1,5 @@
 using Jobsite.Modules.Auth.Domain.Constants;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Jobsite.Modules.Auth.Api;
 

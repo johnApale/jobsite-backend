@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Jobsite.Modules.HRWorkflows.Application.EventHandlers;
 using Jobsite.Modules.HRWorkflows.Domain.Constants;
 using Jobsite.Modules.HRWorkflows.Domain.Entities;

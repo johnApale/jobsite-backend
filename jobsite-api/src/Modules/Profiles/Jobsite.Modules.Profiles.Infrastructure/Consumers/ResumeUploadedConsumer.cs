@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Jobsite.Modules.Profiles.Application.DTOs;
 using Jobsite.Modules.Profiles.Application.Interfaces;
 using Jobsite.Modules.Profiles.Domain.Entities;
 using Jobsite.Modules.Profiles.Infrastructure.Persistence;

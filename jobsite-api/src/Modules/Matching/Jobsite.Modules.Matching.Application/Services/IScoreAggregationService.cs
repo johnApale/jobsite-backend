@@ -1,5 +1,3 @@
-using Jobsite.Modules.Matching.Application.DTOs;
-
 namespace Jobsite.Modules.Matching.Application.Services;
 
 /// <summary>Computes weighted composite scores from screening + assessment.</summary>

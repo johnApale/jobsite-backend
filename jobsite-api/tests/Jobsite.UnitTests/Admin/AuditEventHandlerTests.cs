@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Jobsite.Modules.Admin.Application.EventHandlers;
 using Jobsite.Modules.Admin.Application.Interfaces;
 using Jobsite.Modules.Admin.Domain.Constants;

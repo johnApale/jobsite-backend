@@ -8,7 +8,6 @@ using Jobsite.Modules.Recruitment.Infrastructure.Persistence.Repositories;
 using Jobsite.SharedKernel.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http.Resilience;
 
 namespace Jobsite.Modules.Recruitment.Infrastructure;
 

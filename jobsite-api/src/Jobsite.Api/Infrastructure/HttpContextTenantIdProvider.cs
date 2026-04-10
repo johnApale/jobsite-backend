@@ -1,5 +1,4 @@
 using Jobsite.SharedKernel.Persistence;
-using Microsoft.AspNetCore.Http;
 
 namespace Jobsite.Api.Infrastructure;
 

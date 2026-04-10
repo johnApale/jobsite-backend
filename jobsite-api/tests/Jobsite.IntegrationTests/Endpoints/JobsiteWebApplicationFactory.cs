@@ -88,7 +88,7 @@ public sealed class JobsiteWebApplicationFactory : WebApplicationFactory<Program
             // Replace CatalogDbContext — the minimal hosting model captures the connection
             // string before ConfigureAppConfiguration takes effect, so we must re-register it.
             services.RemoveAll<CatalogDbContext>();
-            services.RemoveAll(typeof(DbContextOptions<CatalogDbContext>));
+            services.RemoveAll<DbContextOptions<CatalogDbContext>>();
             services.AddDbContext<CatalogDbContext>(options =>
                 options.UseNpgsql(ConnectionString)
                        .UseSnakeCaseNamingConvention());

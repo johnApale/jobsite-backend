@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Jobsite.Modules.Screening.Application.DTOs;
-using Jobsite.Modules.Screening.Application.Interfaces;
 using Jobsite.Modules.Screening.Application.Services;
 using Jobsite.Modules.Screening.Domain.Constants;
 using Jobsite.Modules.Screening.Domain.Entities;

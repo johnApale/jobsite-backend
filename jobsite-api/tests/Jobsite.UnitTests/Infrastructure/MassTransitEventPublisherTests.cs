@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Jobsite.Api.Infrastructure;
 using Jobsite.SharedKernel.Domain;
 using MassTransit;

@@ -156,7 +156,8 @@ public sealed class ProfileService : IProfileService
                 _ => true
             };
 
-            if (!hasValue) return false;
+            if (!hasValue)
+                return false;
         }
 
         return true;
@@ -183,7 +184,8 @@ public sealed class ProfileService : IProfileService
             return false;
 
         SocialLinksDto? links = DeserializeJson<SocialLinksDto>(profile.SocialLinks);
-        if (links is null) return false;
+        if (links is null)
+            return false;
 
         foreach (string link in settings.RequiredSocialLinks)
         {
@@ -195,7 +197,8 @@ public sealed class ProfileService : IProfileService
                 _ => true
             };
 
-            if (!hasValue) return false;
+            if (!hasValue)
+                return false;
         }
 
         return true;
@@ -210,7 +213,8 @@ public sealed class ProfileService : IProfileService
             return false;
 
         List<DocumentDto>? docs = DeserializeJson<List<DocumentDto>>(profile.Documents);
-        if (docs is null) return false;
+        if (docs is null)
+            return false;
 
         HashSet<string> uploadedTypes = new(docs.Select(d => d.Type), StringComparer.OrdinalIgnoreCase);
 

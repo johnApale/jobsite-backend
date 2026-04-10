@@ -6,8 +6,8 @@ using Jobsite.SharedKernel.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using NSubstitute;
 using Npgsql;
+using NSubstitute;
 
 namespace Jobsite.IntegrationTests.Tenancy;
 

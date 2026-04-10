@@ -33,18 +33,18 @@ public sealed class JobScreeningQuestionsReaderTests : IDisposable
 
     private static JobScreeningQuestion CreateQuestion(
         Guid jobPostingId, int displayOrder = 0, string? timing = null, string? questionText = null) => new()
-    {
-        Id = Guid.NewGuid(),
-        JobPostingId = jobPostingId,
-        QuestionText = questionText ?? "Do you have 5+ years experience?",
-        QuestionType = QuestionType.YesNo,
-        Timing = timing ?? QuestionTiming.AtApplication,
-        IsRequired = true,
-        Weight = 10.0m,
-        DisplayOrder = displayOrder,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
-    };
+        {
+            Id = Guid.NewGuid(),
+            JobPostingId = jobPostingId,
+            QuestionText = questionText ?? "Do you have 5+ years experience?",
+            QuestionType = QuestionType.YesNo,
+            Timing = timing ?? QuestionTiming.AtApplication,
+            IsRequired = true,
+            Weight = 10.0m,
+            DisplayOrder = displayOrder,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
     // ── GetQuestionsForJobAsync ──────────────────────────────────────────
 
