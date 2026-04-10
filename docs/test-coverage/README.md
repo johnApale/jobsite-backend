@@ -8,10 +8,10 @@
 
 | Project                   | Tests    | Status                                    |
 | ------------------------- | -------- | ----------------------------------------- |
-| Jobsite.UnitTests         | 798      | ✅ All passing                            |
+| Jobsite.UnitTests         | 817      | ✅ All passing                            |
 | Jobsite.ArchitectureTests | 78       | ✅ All passing                            |
 | Jobsite.IntegrationTests  | 263      | ✅ All passing (all tests require Docker) |
-| **Total**                 | **1139** |                                           |
+| **Total**                 | **1158** |                                           |
 
 ---
 
@@ -19,25 +19,25 @@
 
 > Counts are `[Fact]`/`[Theory]` test methods. Runtime test cases (1,107) are higher due to `[Theory]` data expansion.
 
-| Module / Area        | Unit    | Integration | Total   | Doc                                                                   |
-| -------------------- | ------- | ----------- | ------- | --------------------------------------------------------------------- |
-| SharedKernel         | 27      | —           | 27      | [shared-kernel.md](shared-kernel.md)                                  |
-| Tenancy              | 46      | 15          | 61      | [tenancy.md](tenancy.md)                                              |
-| Auth                 | 94      | 27          | 121     | [auth.md](auth.md)                                                    |
-| Admin                | 41      | 16          | 57      | [admin.md](admin.md)                                                  |
-| Profiles             | 75      | 22          | 97      | [profiles.md](profiles.md)                                            |
-| Recruitment          | 189     | 44          | 233     | [recruitment.md](recruitment.md)                                      |
-| Screening            | 107     | 17          | 124     | [screening.md](screening.md)                                          |
-| Matching             | 50      | 28          | 78      | [matching.md](matching.md)                                            |
-| HR Workflows         | 36      | —           | 36      | [hr-workflows.md](hr-workflows.md)                                    |
-| Middleware           | 30      | —           | 30      | [middleware.md](middleware.md)                                        |
-| Pipeline Behaviors   | 7       | —           | 7       | [pipeline-behaviors.md](pipeline-behaviors.md)                        |
-| Infrastructure       | 7       | —           | 7       | [infrastructure.md](infrastructure.md)                                |
-| Contracts (WireMock) | —       | 24          | 24      | [integration.md](integration.md)                                      |
-| E2E Pipelines        | —       | 38          | 38      | [integration.md](integration.md)                                      |
-| Endpoint Tests (WAF) | —       | 32          | 32      | [integration.md](integration.md#endpoint-tests-webapplicationfactory) |
-| Architecture         | —       | —           | 15      | [architecture.md](architecture.md)                                    |
-| **Total**            | **709** | **263**     | **987** |                                                                       |
+| Module / Area        | Unit    | Integration | Total    | Doc                                                                   |
+| -------------------- | ------- | ----------- | -------- | --------------------------------------------------------------------- |
+| SharedKernel         | 46      | —           | 46       | [shared-kernel.md](shared-kernel.md)                                  |
+| Tenancy              | 46      | 15          | 61       | [tenancy.md](tenancy.md)                                              |
+| Auth                 | 94      | 27          | 121      | [auth.md](auth.md)                                                    |
+| Admin                | 41      | 16          | 57       | [admin.md](admin.md)                                                  |
+| Profiles             | 75      | 22          | 97       | [profiles.md](profiles.md)                                            |
+| Recruitment          | 189     | 44          | 233      | [recruitment.md](recruitment.md)                                      |
+| Screening            | 107     | 17          | 124      | [screening.md](screening.md)                                          |
+| Matching             | 50      | 28          | 78       | [matching.md](matching.md)                                            |
+| HR Workflows         | 36      | —           | 36       | [hr-workflows.md](hr-workflows.md)                                    |
+| Middleware           | 30      | —           | 30       | [middleware.md](middleware.md)                                        |
+| Pipeline Behaviors   | 7       | —           | 7        | [pipeline-behaviors.md](pipeline-behaviors.md)                        |
+| Infrastructure       | 7       | —           | 7        | [infrastructure.md](infrastructure.md)                                |
+| Contracts (WireMock) | —       | 24          | 24       | [integration.md](integration.md)                                      |
+| E2E Pipelines        | —       | 38          | 38       | [integration.md](integration.md)                                      |
+| Endpoint Tests (WAF) | —       | 32          | 32       | [integration.md](integration.md#endpoint-tests-webapplicationfactory) |
+| Architecture         | —       | —           | 15       | [architecture.md](architecture.md)                                    |
+| **Total**            | **728** | **263**     | **1006** |                                                                       |
 
 ---
 

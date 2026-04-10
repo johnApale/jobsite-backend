@@ -362,21 +362,23 @@ Rules to enforce:
 
 ## Integration Event Schema Tests
 
-Validate serialization of message broker events between the C# monolith and Python AI Interview Service.
+Validate serialization of message broker events between the C# monolith and Python AI Service. The C# side (25 tests in `IntegrationEventSerializationTests`) verifies snake_case JSON output and round-trip fidelity for all 10 integration events. The Python side (20 tests in `test_event_contracts.py`) verifies Pydantic models correctly deserialize the same JSON payloads, including MassTransit envelope extraction.
 
 ### .NET Side
 
 ```csharp
 [Fact]
 [Trait("Category", "Contract")]
-public void CandidateReadyForInterviewEvent_SerializesToExpectedSchema()
+public void ResumeParseRequested_SerializesToSnakeCaseJson()
 {
-    CandidateReadyForInterviewEvent evt = new()
+    ResumeParseRequested evt = new()
     {
-        ApplicationId = Guid.NewGuid(),
-        JobPostingId = Guid.NewGuid(),
+        EventId = Guid.NewGuid(),
         TenantId = Guid.NewGuid(),
-        ApplicantUserId = Guid.NewGuid()
+        ResumeId = Guid.NewGuid(),
+        ParsedText = "Experienced .NET developer…",
+        CorrelationId = "corr-rpr-001",
+        OccurredAt = DateTime.UtcNow
     };
 
     string json = JsonSerializer.Serialize(evt, SnakeCaseOptions);
@@ -384,29 +386,53 @@ public void CandidateReadyForInterviewEvent_SerializesToExpectedSchema()
     JsonElement root = doc.RootElement;
 
     // Verify snake_case field names for Python consumption
-    root.TryGetProperty("application_id", out _).Should().BeTrue();
-    root.TryGetProperty("job_posting_id", out _).Should().BeTrue();
+    root.TryGetProperty("event_id", out _).Should().BeTrue();
+    root.TryGetProperty("resume_id", out _).Should().BeTrue();
+    root.TryGetProperty("parsed_text", out _).Should().BeTrue();
     root.TryGetProperty("tenant_id", out _).Should().BeTrue();
-    root.TryGetProperty("applicant_user_id", out _).Should().BeTrue();
 }
 ```
 
 ### Python Side
 
 ```python
-def test_candidate_ready_event_deserialization():
-    """Verify Python can deserialize events published by the C# monolith."""
-    raw = {
-        "application_id": "550e8400-e29b-41d4-a716-446655440000",
-        "job_posting_id": "660e8400-e29b-41d4-a716-446655440000",
-        "tenant_id": "770e8400-e29b-41d4-a716-446655440000",
-        "applicant_user_id": "880e8400-e29b-41d4-a716-446655440000",
-    }
+class TestResumeParseRequestedContract:
+    def test_deserializes_all_fields(self):
+        """Verify Python can deserialize events published by the C# monolith."""
+        raw = {
+            "event_id": "550e8400-e29b-41d4-a716-446655440000",
+            "tenant_id": "660e8400-e29b-41d4-a716-446655440000",
+            "resume_id": "770e8400-e29b-41d4-a716-446655440000",
+            "parsed_text": "Experienced .NET developer…",
+            "correlation_id": "corr-001",
+            "occurred_at": "2025-06-15T10:30:00",
+        }
 
-    event = CandidateReadyForInterviewEvent(**raw)
+        event = ResumeParseRequested(**raw)
 
-    assert event.application_id == UUID("550e8400-e29b-41d4-a716-446655440000")
-    assert event.tenant_id == UUID("770e8400-e29b-41d4-a716-446655440000")
+        assert event.resume_id == UUID("770e8400-e29b-41d4-a716-446655440000")
+        assert event.tenant_id == UUID("660e8400-e29b-41d4-a716-446655440000")
+
+
+class TestMassTransitEnvelopeExtraction:
+    def test_extract_payload_from_envelope(self):
+        """MassTransit wraps payloads under 'message' key."""
+        envelope = {
+            "messageId": "abc-123",
+            "message": {
+                "event_id": "550e8400-e29b-41d4-a716-446655440000",
+                "tenant_id": "660e8400-e29b-41d4-a716-446655440000",
+                "resume_id": "770e8400-e29b-41d4-a716-446655440000",
+                "parsed_text": "text",
+                "correlation_id": "corr-001",
+                "occurred_at": "2025-06-15T10:30:00",
+            },
+        }
+
+        payload = envelope.get("message", envelope)
+        event = ResumeParseRequested(**payload)
+
+        assert event.resume_id == UUID("770e8400-e29b-41d4-a716-446655440000")
 ```
 
 Both sides test serialization independently against the same expected field names. If either side changes the schema, their test breaks.

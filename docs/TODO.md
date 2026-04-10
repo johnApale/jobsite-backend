@@ -188,24 +188,25 @@ _(none)_
 
 ### AI Interview Service Integration (Broker)
 
-| Item                                | Description                                                                                                                                                      |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CandidateReadyForInterviewEvent E2E | Publish event via MassTransit → AI Service consumes from RabbitMQ/Azure Service Bus → verify interview session created in AI Service DB.                         |
-| InterviewCompletedEvent E2E         | AI Service publishes completion event → .NET monolith consumes → verify application status updated and `InterviewCompletedEvent` audit log entry created.        |
-| Broker Serialization Contract Test  | Verify `CandidateReadyForInterviewEvent` and `InterviewCompletedEvent` snake_case JSON matches Python Pydantic model expectations. Uses Testcontainers RabbitMQ. |
+| Item                                | Description                                                                                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CandidateReadyForInterviewEvent E2E | Publish event via MassTransit → AI Service consumes from RabbitMQ/Azure Service Bus → verify interview session created in AI Service DB.                  |
+| InterviewCompletedEvent E2E         | AI Service publishes completion event → .NET monolith consumes → verify application status updated and `InterviewCompletedEvent` audit log entry created. |
 
 ### AI Service pytest Suite (`ai-service/tests/`)
 
 ### Completed
 
-| Item                   | Resolution                                                                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| FastAPI Endpoint Tests | 11 test cases in `test_api.py` covering all 6 endpoints (happy path 200 + validation 422). Auth overridden via dependency injection.        |
-| Auth Tests             | 5 tests in `test_auth.py` — valid/expired/invalid JWT, missing tenant_id, missing role claims.                                              |
-| Error Envelope Tests   | 5 tests in `test_errors.py` — status codes, envelope format, request_id propagation, health endpoint, error codes.                          |
-| Service Unit Tests     | 16 tests in `test_services.py` — AiLoggingService (4), ResumeService (4), CriteriaService (2), AssessmentService (2), ScreeningService (4). |
-| Resume Caching Tests   | 4 tests in `test_caching.py` — cache hit/miss, 30-day TTL, cross-tenant cache sharing.                                                      |
-| Schema Tests           | 6 tests in `test_schemas.py` — exclude_none behavior, snake_case serialization, PascalCase enum values, optional field defaults.            |
+| Item                          | Resolution                                                                                                                                                                                   |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FastAPI Endpoint Tests        | 11 test cases in `test_api.py` covering all 6 endpoints (happy path 200 + validation 422). Auth overridden via dependency injection.                                                         |
+| Auth Tests                    | 5 tests in `test_auth.py` — valid/expired/invalid JWT, missing tenant_id, missing role claims.                                                                                               |
+| Error Envelope Tests          | 5 tests in `test_errors.py` — status codes, envelope format, request_id propagation, health endpoint, error codes.                                                                           |
+| Service Unit Tests            | 16 tests in `test_services.py` — AiLoggingService (4), ResumeService (4), CriteriaService (2), AssessmentService (2), ScreeningService (4).                                                  |
+| Resume Caching Tests          | 4 tests in `test_caching.py` — cache hit/miss, 30-day TTL, cross-tenant cache sharing.                                                                                                       |
+| Schema Tests                  | 6 tests in `test_schemas.py` — exclude_none behavior, snake_case serialization, PascalCase enum values, optional field defaults.                                                             |
+| Event Contract Tests          | 20 tests in `test_event_contracts.py` — inbound deserialization (8), outbound serialization (8), MassTransit envelope extraction (2), numeric type handling (2). Covers all 8 broker events. |
+| Broker Serialization Contract | 25 C# serialization tests in `IntegrationEventSerializationTests.cs` + 20 Python deserialization tests validate snake_case JSON contract for all 10 integration events.                      |
 
 ### Deferred
 

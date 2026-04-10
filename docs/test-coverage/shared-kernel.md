@@ -82,17 +82,36 @@ Tests the abstract `TenantDbContext` base class that handles snake_case naming a
 
 ---
 
-## `IntegrationEventSerializationTests` (6 tests)
+## `IntegrationEventSerializationTests` (25 tests)
 
-Verifies that integration events — which cross the C# → Python boundary via the message broker — serialize to snake_case JSON and round-trip without data loss. The AI Interview Service (Python/FastAPI) deserializes these events using Pydantic, so the JSON contract must remain stable.
+Verifies that integration events — which cross the C# → Python boundary via the message broker — serialize to snake_case JSON and round-trip without data loss. The AI Service (Python/FastAPI) deserializes these events using Pydantic, so the JSON contract must remain stable. Covers all 10 integration events (2 interview + 8 broker).
 
-| Test                                                        | What It Verifies                                                            | Expected Outcome                                        |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `CandidateReadyForInterviewEvent_SerializesToSnakeCaseJson` | All property names serialize to snake_case (`event_id`, `tenant_id`, etc.)  | JSON contains all expected snake_case keys              |
-| `CandidateReadyForInterviewEvent_RoundTripsWithoutDataLoss` | Serialize → deserialize produces identical property values                  | All fields match original                               |
-| `CandidateReadyForInterviewEvent_NoPascalCaseKeysInOutput`  | PascalCase property names (`EventId`, `TenantId`) do NOT appear in JSON     | No PascalCase keys found in serialized output           |
-| `InterviewCompletedEvent_SerializesToSnakeCaseJson`         | All property names serialize to snake_case including `interview_session_id` | JSON contains all expected snake_case keys              |
-| `InterviewCompletedEvent_RoundTripsWithoutDataLoss`         | Serialize → deserialize preserves `OverallScore` and all GUIDs              | All fields match original                               |
-| `InterviewCompletedEvent_OverallScoreSerializesAsNumber`    | `OverallScore` (int) serializes as a JSON number, not a quoted string       | JSON contains `"overall_score":75` (no quotes on value) |
+| Test                                                         | What It Verifies                                                            | Expected Outcome                                        |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `CandidateReadyForInterviewEvent_SerializesToSnakeCaseJson`  | All property names serialize to snake_case (`event_id`, `tenant_id`, etc.)  | JSON contains all expected snake_case keys              |
+| `CandidateReadyForInterviewEvent_RoundTripsWithoutDataLoss`  | Serialize → deserialize produces identical property values                  | All fields match original                               |
+| `CandidateReadyForInterviewEvent_NoPascalCaseKeysInOutput`   | PascalCase property names (`EventId`, `TenantId`) do NOT appear in JSON     | No PascalCase keys found in serialized output           |
+| `InterviewCompletedEvent_SerializesToSnakeCaseJson`          | All property names serialize to snake_case including `interview_session_id` | JSON contains all expected snake_case keys              |
+| `InterviewCompletedEvent_RoundTripsWithoutDataLoss`          | Serialize → deserialize preserves `OverallScore` and all GUIDs              | All fields match original                               |
+| `InterviewCompletedEvent_OverallScoreSerializesAsNumber`     | `OverallScore` (int) serializes as a JSON number, not a quoted string       | JSON contains `"overall_score":75` (no quotes on value) |
+| `ResumeParseRequested_SerializesToSnakeCaseJson`             | `resume_id`, `parsed_text` serialize to snake_case                          | JSON contains all expected snake_case keys              |
+| `ResumeParseRequested_RoundTripsWithoutDataLoss`             | Serialize → deserialize preserves `ResumeId` and `ParsedText`               | All fields match original                               |
+| `ResumeParseRequested_NoPascalCaseKeysInOutput`              | PascalCase property names do NOT appear in JSON                             | No PascalCase keys found in serialized output           |
+| `ResumeParsed_SerializesToSnakeCaseJson`                     | `resume_id`, `ai_parsed_content` serialize to snake_case                    | JSON contains all expected snake_case keys              |
+| `ResumeParsed_RoundTripsWithoutDataLoss`                     | Serialize → deserialize preserves `AiParsedContent`                         | All fields match original                               |
+| `ScreeningEvaluationRequested_SerializesToSnakeCaseJson`     | `criteria_json`, `applicant_data_json` serialize to snake_case              | JSON contains all expected snake_case keys              |
+| `ScreeningEvaluationRequested_RoundTripsWithoutDataLoss`     | Serialize → deserialize preserves `CriteriaJson` and `ApplicantDataJson`    | All fields match original                               |
+| `ScreeningEvaluated_SerializesToSnakeCaseJson`               | `breakdown_json`, `overall_score` serialize to snake_case                   | JSON contains all expected snake_case keys              |
+| `ScreeningEvaluated_RoundTripsWithoutDataLoss`               | Serialize → deserialize preserves `BreakdownJson` and `OverallScore`        | All fields match original                               |
+| `ScreeningEvaluated_OverallScoreSerializesAsNumber`          | `OverallScore` (decimal) serializes as a JSON number                        | JSON contains `"overall_score":92.5`                    |
+| `AnswerScoringRequested_SerializesToSnakeCaseJson`           | `answers_json` serializes to snake_case                                     | JSON contains all expected snake_case keys              |
+| `AnswerScoringRequested_RoundTripsWithoutDataLoss`           | Serialize → deserialize preserves `AnswersJson`                             | All fields match original                               |
+| `AnswersScored_SerializesToSnakeCaseJson`                    | `scores_json` serializes to snake_case                                      | JSON contains all expected snake_case keys              |
+| `AnswersScored_RoundTripsWithoutDataLoss`                    | Serialize → deserialize preserves `ScoresJson`                              | All fields match original                               |
+| `FeedbackGenerationRequested_SerializesToSnakeCaseJson`      | `criteria_breakdown`, `transparency_level` serialize to snake_case          | JSON contains all expected snake_case keys              |
+| `FeedbackGenerationRequested_RoundTripsWithoutDataLoss`      | Serialize → deserialize preserves all fields including `OverallScore`       | All fields match original                               |
+| `FeedbackGenerationRequested_OverallScoreSerializesAsNumber` | `OverallScore` (decimal) serializes as a JSON number                        | JSON contains `"overall_score":65.0`                    |
+| `FeedbackGenerated_SerializesToSnakeCaseJson`                | `feedback` serializes to snake_case                                         | JSON contains all expected snake_case keys              |
+| `FeedbackGenerated_RoundTripsWithoutDataLoss`                | Serialize → deserialize preserves `Feedback`                                | All fields match original                               |
 
-**Why:** These are the contract tests for the most critical cross-service boundary in the architecture. The .NET monolith publishes `CandidateReadyForInterviewEvent` to RabbitMQ/Azure Service Bus, and the Python AI Interview Service consumes it. If the JSON shape changes (e.g., `eventId` instead of `event_id`), the Python service will silently drop fields or crash. The `NoPascalCaseKeys` test is a safety net against accidentally using the wrong `JsonSerializerOptions`.
+**Why:** These are the contract tests for the most critical cross-service boundary in the architecture. The .NET monolith publishes events to RabbitMQ/Azure Service Bus, and the Python AI Service consumes them. If the JSON shape changes (e.g., `eventId` instead of `event_id`), the Python service will silently drop fields or crash. The `NoPascalCaseKeys` tests are a safety net against accidentally using the wrong `JsonSerializerOptions`. Companion Python tests in `ai-service/tests/test_event_contracts.py` (20 tests) validate the receiving side.
