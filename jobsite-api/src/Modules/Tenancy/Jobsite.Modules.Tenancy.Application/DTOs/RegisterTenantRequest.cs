@@ -6,7 +6,7 @@ public sealed class RegisterTenantRequest
     /// <summary>Company display name.</summary>
     public required string Name { get; init; }
 
-    /// <summary>DNS label for <c>{subdomain}.djobsite.com</c>.</summary>
+    /// <summary>DNS label for <c>{subdomain}.jobsite.com</c>.</summary>
     public required string Subdomain { get; init; }
 
     /// <summary>Person who registered the tenant.</summary>

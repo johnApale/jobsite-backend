@@ -108,7 +108,7 @@ Resolves the current tenant **before** authentication so the tenant's database c
 Host header → extract subdomain → check cache → look up tenant in DB → cache result → validate status → store in HttpContext
 ```
 
-1. **Extract subdomain** from `Host` header (e.g. `acme.djobsite.com` → `acme`).
+1. **Extract subdomain** from `Host` header (e.g. `acme.jobsite.com` → `acme`).
 2. **Skip** if the route is a non-tenant route (see bypass list below).
 3. **Check cache** via `ITenantCache.GetBySubdomainAsync()` for a cached tenant.
 4. **On cache miss**, look up the tenant by subdomain via `ITenantRepository.GetBySubdomainAsync()`, then populate the cache via `ITenantCache.SetAsync()`.

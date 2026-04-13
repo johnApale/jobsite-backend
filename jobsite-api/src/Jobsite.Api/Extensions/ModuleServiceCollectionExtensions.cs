@@ -161,7 +161,7 @@ public static class ModuleServiceCollectionExtensions
                     // Development: allow any origin with credentials requires explicit origins,
                     // so allow common dev patterns
                     policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost"
-                        || origin.EndsWith(".djobsite.com", StringComparison.OrdinalIgnoreCase));
+                        || origin.EndsWith(".jobsite.com", StringComparison.OrdinalIgnoreCase));
                 }
 
                 policy.WithMethods("GET", "POST", "PATCH", "DELETE", "OPTIONS")

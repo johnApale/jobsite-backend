@@ -14,31 +14,31 @@ Supports email/password login and OAuth (Google, Apple, Facebook). Users can hav
 
 Every person who can log into this tenant's portal. Staff (recruiters, hiring managers, interviewers) are created via admin invite. Applicants self-register (via email/password or OAuth). The initial AgencyAdmin is seeded during tenant provisioning from the owner email in the catalog.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| email | varchar(254) | NOT NULL, UNIQUE | Login identifier. Uniqueness is per-tenant (per-database), not global |
-| password_hash | varchar(200) | nullable | BCrypt hash. NULL for OAuth-only users. Set on registration, invitation activation, or when a user adds a password to their OAuth account |
-| email_verified | boolean | NOT NULL, DEFAULT false | True if verified via email confirmation or if the user registered through an OAuth provider that supplies a verified email |
-| role | varchar(20) | NOT NULL | Enum: `Applicant`, `Recruiter`, `HiringManager`, `Interviewer`, `AgencyAdmin` |
-| status | varchar(20) | NOT NULL | Enum: `Active`, `Invited`, `Deactivated` |
-| first_name | varchar(100) | NOT NULL | |
-| last_name | varchar(100) | NOT NULL | |
-| avatar_url | varchar(2048) | nullable | Profile picture URL. Initially populated from OAuth provider if available |
-| invited_by | uuid | nullable, FK → users.id | The admin/manager who created this account. NULL for self-registered applicants and the seeded AgencyAdmin |
-| last_login_at | timestamp | nullable | Updated on each successful authentication (email/password or OAuth) |
-| deactivated_at | timestamp | nullable | Set when status moves to `Deactivated` |
-| created_at | timestamp | NOT NULL | |
-| updated_at | timestamp | NOT NULL | Auto-set on modification |
+| Column         | Type          | Constraints             | Description                                                                                                                               |
+| -------------- | ------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| id             | uuid          | PK                      |                                                                                                                                           |
+| email          | varchar(254)  | NOT NULL, UNIQUE        | Login identifier. Uniqueness is per-tenant (per-database), not global                                                                     |
+| password_hash  | varchar(200)  | nullable                | BCrypt hash. NULL for OAuth-only users. Set on registration, invitation activation, or when a user adds a password to their OAuth account |
+| email_verified | boolean       | NOT NULL, DEFAULT false | True if verified via email confirmation or if the user registered through an OAuth provider that supplies a verified email                |
+| role           | varchar(20)   | NOT NULL                | Enum: `Applicant`, `Recruiter`, `HiringManager`, `Interviewer`, `AgencyAdmin`                                                             |
+| status         | varchar(20)   | NOT NULL                | Enum: `Active`, `Invited`, `Deactivated`                                                                                                  |
+| first_name     | varchar(100)  | NOT NULL                |                                                                                                                                           |
+| last_name      | varchar(100)  | NOT NULL                |                                                                                                                                           |
+| avatar_url     | varchar(2048) | nullable                | Profile picture URL. Initially populated from OAuth provider if available                                                                 |
+| invited_by     | uuid          | nullable, FK → users.id | The admin/manager who created this account. NULL for self-registered applicants and the seeded AgencyAdmin                                |
+| last_login_at  | timestamp     | nullable                | Updated on each successful authentication (email/password or OAuth)                                                                       |
+| deactivated_at | timestamp     | nullable                | Set when status moves to `Deactivated`                                                                                                    |
+| created_at     | timestamp     | NOT NULL                |                                                                                                                                           |
+| updated_at     | timestamp     | NOT NULL                | Auto-set on modification                                                                                                                  |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_users_email | email | Unique | Login lookup, duplicate prevention, OAuth email matching |
-| ix_users_role | role | Non-unique | Filtering users by role (admin panels, assignment queries) |
-| ix_users_status | status | Non-unique | Active user filtering, admin views |
-| ix_users_invited_by | invited_by | Non-unique | "Who did this admin invite?" queries |
+| Name                | Columns    | Type       | Purpose                                                    |
+| ------------------- | ---------- | ---------- | ---------------------------------------------------------- |
+| ix_users_email      | email      | Unique     | Login lookup, duplicate prevention, OAuth email matching   |
+| ix_users_role       | role       | Non-unique | Filtering users by role (admin panels, assignment queries) |
+| ix_users_status     | status     | Non-unique | Active user filtering, admin views                         |
+| ix_users_invited_by | invited_by | Non-unique | "Who did this admin invite?" queries                       |
 
 ---
 
@@ -46,30 +46,30 @@ Every person who can log into this tenant's portal. Staff (recruiters, hiring ma
 
 Maps users to their OAuth provider identities. A user can have multiple linked providers (Google + Apple, etc.). The provider's subject ID is the stable identifier — not the email, which can change on the provider side.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| user_id | uuid | NOT NULL, FK → users.id | The local user this external identity belongs to |
-| provider | varchar(20) | NOT NULL | Enum: `Google`, `Apple`, `Facebook` |
-| provider_subject_id | varchar(200) | NOT NULL | The `sub` claim from the provider's ID token. Stable, unique per user per provider |
-| provider_email | varchar(254) | nullable | Email from the provider at time of linking. Informational — not used for matching after initial link |
-| provider_display_name | varchar(200) | nullable | Name from the provider at time of linking. Informational only |
-| linked_at | timestamp | NOT NULL | When this provider was linked to the user account |
-| created_at | timestamp | NOT NULL | |
+| Column                | Type         | Constraints             | Description                                                                                          |
+| --------------------- | ------------ | ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| id                    | uuid         | PK                      |                                                                                                      |
+| user_id               | uuid         | NOT NULL, FK → users.id | The local user this external identity belongs to                                                     |
+| provider              | varchar(20)  | NOT NULL                | Enum: `Google`, `Apple`, `Facebook`                                                                  |
+| provider_subject_id   | varchar(200) | NOT NULL                | The `sub` claim from the provider's ID token. Stable, unique per user per provider                   |
+| provider_email        | varchar(254) | nullable                | Email from the provider at time of linking. Informational — not used for matching after initial link |
+| provider_display_name | varchar(200) | nullable                | Name from the provider at time of linking. Informational only                                        |
+| linked_at             | timestamp    | NOT NULL                | When this provider was linked to the user account                                                    |
+| created_at            | timestamp    | NOT NULL                |                                                                                                      |
 
 **Constraints:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
+| Name                                | Columns                       | Type   | Purpose                                                                                                  |
+| ----------------------------------- | ----------------------------- | ------ | -------------------------------------------------------------------------------------------------------- |
 | uq_external_logins_provider_subject | provider, provider_subject_id | Unique | One local account per provider identity. Prevents the same Google account from being linked to two users |
-| uq_external_logins_user_provider | user_id, provider | Unique | One link per provider per user. A user can't link two Google accounts |
+| uq_external_logins_user_provider    | user_id, provider             | Unique | One link per provider per user. A user can't link two Google accounts                                    |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_external_logins_provider_subject | provider, provider_subject_id | Unique | OAuth login lookup: "which user owns this Google sub?" |
-| ix_external_logins_user_id | user_id | Non-unique | "What providers does this user have linked?" |
+| Name                                | Columns                       | Type       | Purpose                                                |
+| ----------------------------------- | ----------------------------- | ---------- | ------------------------------------------------------ |
+| ix_external_logins_provider_subject | provider, provider_subject_id | Unique     | OAuth login lookup: "which user owns this Google sub?" |
+| ix_external_logins_user_id          | user_id                       | Non-unique | "What providers does this user have linked?"           |
 
 ---
 
@@ -79,26 +79,26 @@ Supports JWT refresh token rotation with replay detection. Each login session st
 
 Works identically for email/password and OAuth login sessions — both produce JWTs and refresh tokens through the same flow.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| user_id | uuid | NOT NULL, FK → users.id | The user this token belongs to |
-| token_hash | varchar(200) | NOT NULL, UNIQUE | SHA-256 hash of the refresh token. Never store the raw token |
-| family_id | uuid | NOT NULL | Groups all tokens from one login session. Enables family-wide revocation on replay |
-| is_revoked | boolean | NOT NULL, DEFAULT false | Set to true on rotation or explicit logout |
-| expires_at | timestamp | NOT NULL | Absolute expiration — token is invalid after this regardless of revocation status |
-| revoked_at | timestamp | nullable | When this specific token was revoked (rotation or logout) |
-| replaced_by_id | uuid | nullable, FK → refresh_tokens.id | Points to the token that replaced this one on rotation. NULL if this is the current active token |
-| created_at | timestamp | NOT NULL | Issued at — also serves as the rotation timestamp for the previous token |
+| Column         | Type         | Constraints                      | Description                                                                                      |
+| -------------- | ------------ | -------------------------------- | ------------------------------------------------------------------------------------------------ |
+| id             | uuid         | PK                               |                                                                                                  |
+| user_id        | uuid         | NOT NULL, FK → users.id          | The user this token belongs to                                                                   |
+| token_hash     | varchar(200) | NOT NULL, UNIQUE                 | SHA-256 hash of the refresh token. Never store the raw token                                     |
+| family_id      | uuid         | NOT NULL                         | Groups all tokens from one login session. Enables family-wide revocation on replay               |
+| is_revoked     | boolean      | NOT NULL, DEFAULT false          | Set to true on rotation or explicit logout                                                       |
+| expires_at     | timestamp    | NOT NULL                         | Absolute expiration — token is invalid after this regardless of revocation status                |
+| revoked_at     | timestamp    | nullable                         | When this specific token was revoked (rotation or logout)                                        |
+| replaced_by_id | uuid         | nullable, FK → refresh_tokens.id | Points to the token that replaced this one on rotation. NULL if this is the current active token |
+| created_at     | timestamp    | NOT NULL                         | Issued at — also serves as the rotation timestamp for the previous token                         |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_refresh_tokens_token_hash | token_hash | Unique | Token lookup on refresh requests |
-| ix_refresh_tokens_user_id | user_id | Non-unique | "Revoke all sessions for this user" |
-| ix_refresh_tokens_family_id | family_id | Non-unique | Family-wide revocation on replay detection |
-| ix_refresh_tokens_expires_at | expires_at | Non-unique | Cleanup job — bulk delete expired tokens |
+| Name                         | Columns    | Type       | Purpose                                    |
+| ---------------------------- | ---------- | ---------- | ------------------------------------------ |
+| ix_refresh_tokens_token_hash | token_hash | Unique     | Token lookup on refresh requests           |
+| ix_refresh_tokens_user_id    | user_id    | Non-unique | "Revoke all sessions for this user"        |
+| ix_refresh_tokens_family_id  | family_id  | Non-unique | Family-wide revocation on replay detection |
+| ix_refresh_tokens_expires_at | expires_at | Non-unique | Cleanup job — bulk delete expired tokens   |
 
 ---
 
@@ -141,7 +141,7 @@ No "Suspended" state at the user level — suspension is a tenant-level concept 
 ## OAuth Login Flow
 
 ```
-1. User clicks "Sign in with Google" on {subdomain}.djobsite.com
+1. User clicks "Sign in with Google" on {subdomain}.jobsite.com
 2. Frontend redirects to Google's OAuth consent screen
    - redirect_uri includes the tenant subdomain so we know where to route back
 3. Google redirects back with authorization code
@@ -200,7 +200,7 @@ Expired refresh tokens should be purged periodically. A background job can delet
 
 **Custom auth instead of ASP.NET Identity.** Identity Framework owns its table schema (`AspNetUsers`, `AspNetRoles`, `AspNetUserLogins`, etc.) and fights against database-per-tenant patterns. Its `UserManager<T>` assumes a single database context. Custom auth gives full control over multi-tenant routing, schema design, and token management without working around framework assumptions.
 
-**No tenant ID column.** The database *is* the tenant boundary. Each tenant has their own PostgreSQL database. Adding a tenant ID to every row would be redundant — there's no other tenant's data to filter against. Tenant identity is resolved by the middleware (subdomain → connection string from catalog DB), and from that point on, every query runs against the correct database.
+**No tenant ID column.** The database _is_ the tenant boundary. Each tenant has their own PostgreSQL database. Adding a tenant ID to every row would be redundant — there's no other tenant's data to filter against. Tenant identity is resolved by the middleware (subdomain → connection string from catalog DB), and from that point on, every query runs against the correct database.
 
 **Nullable `password_hash`.** OAuth-only users don't have a password. Making this nullable instead of storing a dummy hash is honest — you can check `password_hash IS NULL` to determine if a user can do email/password login, and prompt them to set a password if they want to add that option.
 

@@ -21,7 +21,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: djobsite_catalog
+          POSTGRES_DB: jobsite_catalog
         ports:
           - 5432:5432
         options: >-
@@ -62,7 +62,7 @@ jobs:
       - name: Test
         run: dotnet test jobsite-api/Jobsite.Api.slnx --no-build --configuration Release --verbosity normal
         env:
-          ConnectionStrings__CatalogDb: "Host=localhost;Port=5432;Database=djobsite_catalog;Username=postgres;Password=postgres"
+          ConnectionStrings__CatalogDb: "Host=localhost;Port=5432;Database=jobsite_catalog;Username=postgres;Password=postgres"
 
   python-test:
     name: Python AI Service Tests

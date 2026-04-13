@@ -35,8 +35,8 @@ public static class TestJwtHelper
         };
 
         JwtSecurityToken token = new(
-            issuer: "djobsite-iconnect",
-            audience: "djobsite-iconnect",
+            issuer: "jobsite-iconnect",
+            audience: "jobsite-iconnect",
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(expiresInMinutes),
             signingCredentials: credentials);

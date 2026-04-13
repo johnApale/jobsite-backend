@@ -4,7 +4,7 @@
 services:
   # ── .NET Modular Monolith API ──────────────────────────────────────
   - type: web
-    name: djobsite-api
+    name: jobsite-api
     runtime: docker
     dockerfilePath: ./jobsite-api/Dockerfile
     dockerContext: ./jobsite-api
@@ -17,14 +17,14 @@ services:
         value: Staging
       - key: ConnectionStrings__CatalogDb
         fromDatabase:
-          name: djobsite-staging-db
+          name: jobsite-staging-db
           property: connectionString
       - key: App__JwtSecret
         sync: false # set manually in Render dashboard
       - key: App__AiServiceUrl
         fromService:
           type: pserv
-          name: djobsite-ai-service
+          name: jobsite-ai-service
           property: hostport
       - key: App__MessageBroker__Host
         sync: false
@@ -39,7 +39,7 @@ services:
       - key: App__Redis__ConnectionString
         fromService:
           type: redis
-          name: djobsite-staging-redis
+          name: jobsite-staging-redis
           property: connectionString
       - key: App__FileStorage__Provider
         value: S3
@@ -50,13 +50,13 @@ services:
       - key: App__FileStorage__S3__SecretKey
         sync: false
       - key: App__FileStorage__S3__BucketName
-        value: djobsite-staging-uploads
+        value: jobsite-staging-uploads
       - key: App__Cors__AllowedOrigins__0
         sync: false
 
   # ── Python AI Service (private — not internet-exposed) ─────────────
   - type: pserv
-    name: djobsite-ai-service
+    name: jobsite-ai-service
     runtime: docker
     dockerfilePath: ./ai-service/Dockerfile
     dockerContext: ./ai-service
@@ -84,13 +84,13 @@ services:
         value: "true"
 
 databases:
-  - name: djobsite-staging-db
+  - name: jobsite-staging-db
     plan: free
-    databaseName: djobsite_catalog
+    databaseName: jobsite_catalog
     postgresMajorVersion: "17"
     region: oregon
 
-  - name: djobsite-staging-redis
+  - name: jobsite-staging-redis
     plan: free
     region: oregon
     maxmemoryPolicy: allkeys-lru

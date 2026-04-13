@@ -24,8 +24,8 @@ Tokens contain the following claims:
 | Claim       | Description                                               |
 | ----------- | --------------------------------------------------------- |
 | `sub`       | User ID (UUID)                                            |
-| `iss`       | Issuer (`djobsite-iconnect`)                              |
-| `aud`       | Audience (`djobsite-iconnect`)                            |
+| `iss`       | Issuer (`jobsite-iconnect`)                               |
+| `aud`       | Audience (`jobsite-iconnect`)                             |
 | `exp`       | Expiration timestamp                                      |
 | `tenant_id` | Tenant UUID                                               |
 | `role`      | User role (e.g., `AgencyAdmin`, `Recruiter`, `Applicant`) |
@@ -72,7 +72,7 @@ In addition to JWT authentication, most endpoints require a **tenant context** r
 ### How It Works
 
 1. The `TenantResolutionMiddleware` extracts the subdomain from the `Host` header
-2. Example: `acme.djobsite.com` → subdomain `acme`
+2. Example: `acme.jobsite.com` → subdomain `acme`
 3. The subdomain is used to look up the tenant in the Catalog database
 4. The tenant must be in `Active` status
 5. The tenant entity and its connection string are stored in `HttpContext.Items` for downstream use
@@ -106,9 +106,9 @@ The following routes skip tenant resolution entirely:
 
 ## Required Headers Summary
 
-| Header             | Required            | Description                                               |
-| ------------------ | ------------------- | --------------------------------------------------------- |
-| `Authorization`    | Protected endpoints | `Bearer <access_token>`                                   |
-| `Host`             | Protected endpoints | Must include tenant subdomain (e.g., `acme.djobsite.com`) |
-| `X-Correlation-ID` | No                  | UUID for distributed tracing. Auto-generated if absent.   |
-| `Content-Type`     | Request body        | `application/json`                                        |
+| Header             | Required            | Description                                              |
+| ------------------ | ------------------- | -------------------------------------------------------- |
+| `Authorization`    | Protected endpoints | `Bearer <access_token>`                                  |
+| `Host`             | Protected endpoints | Must include tenant subdomain (e.g., `acme.jobsite.com`) |
+| `X-Correlation-ID` | No                  | UUID for distributed tracing. Auto-generated if absent.  |
+| `Content-Type`     | Request body        | `application/json`                                       |

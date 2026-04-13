@@ -10,29 +10,29 @@ The Catalog DB is the one shared database on the platform. It stores tenant meta
 
 Core tenant identity, routing, ownership, and contact info. This is the hottest table in the catalog — the middleware hits it (via Redis cache) on every request to resolve subdomain → connection string + branding.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| name | varchar(200) | NOT NULL, UNIQUE | Company display name |
-| subdomain | varchar(63) | NOT NULL, UNIQUE | DNS label for `{subdomain}.djobsite.com` |
-| connection_string | varchar(500) | NOT NULL | Routes to this tenant's isolated PostgreSQL database |
-| status | varchar(20) | NOT NULL | Enum: `Provisioning`, `Active`, `Suspended`, `Deactivated` |
-| owner_name | varchar(200) | NOT NULL | Person who registered the tenant; seeded as initial AgencyAdmin |
-| owner_email | varchar(254) | NOT NULL | Used to seed the first user account in the tenant DB |
-| contact_name | varchar(200) | NOT NULL | Receives platform notifications (may differ from owner) |
-| contact_email | varchar(254) | NOT NULL | Platform-level communications: incidents, provisioning updates |
-| provisioned_at | timestamp | nullable | Set when the tenant DB is created and migrations complete |
-| deactivated_at | timestamp | nullable | Set when status moves to `Deactivated` |
-| created_at | timestamp | NOT NULL | |
-| updated_at | timestamp | NOT NULL | Auto-set on modification |
+| Column            | Type         | Constraints      | Description                                                     |
+| ----------------- | ------------ | ---------------- | --------------------------------------------------------------- |
+| id                | uuid         | PK               |                                                                 |
+| name              | varchar(200) | NOT NULL, UNIQUE | Company display name                                            |
+| subdomain         | varchar(63)  | NOT NULL, UNIQUE | DNS label for `{subdomain}.jobsite.com`                         |
+| connection_string | varchar(500) | NOT NULL         | Routes to this tenant's isolated PostgreSQL database            |
+| status            | varchar(20)  | NOT NULL         | Enum: `Provisioning`, `Active`, `Suspended`, `Deactivated`      |
+| owner_name        | varchar(200) | NOT NULL         | Person who registered the tenant; seeded as initial AgencyAdmin |
+| owner_email       | varchar(254) | NOT NULL         | Used to seed the first user account in the tenant DB            |
+| contact_name      | varchar(200) | NOT NULL         | Receives platform notifications (may differ from owner)         |
+| contact_email     | varchar(254) | NOT NULL         | Platform-level communications: incidents, provisioning updates  |
+| provisioned_at    | timestamp    | nullable         | Set when the tenant DB is created and migrations complete       |
+| deactivated_at    | timestamp    | nullable         | Set when status moves to `Deactivated`                          |
+| created_at        | timestamp    | NOT NULL         |                                                                 |
+| updated_at        | timestamp    | NOT NULL         | Auto-set on modification                                        |
 
 **Indexes:**
 
-| Name | Columns | Type | Purpose |
-|------|---------|------|---------|
-| ix_tenants_subdomain | subdomain | Unique | Tenant resolution (middleware, cached) |
-| ix_tenants_name | name | Unique | Prevent duplicate company names |
-| ix_tenants_status | status | Non-unique | Platform admin filtering by status |
+| Name                 | Columns   | Type       | Purpose                                |
+| -------------------- | --------- | ---------- | -------------------------------------- |
+| ix_tenants_subdomain | subdomain | Unique     | Tenant resolution (middleware, cached) |
+| ix_tenants_name      | name      | Unique     | Prevent duplicate company names        |
+| ix_tenants_status    | status    | Non-unique | Platform admin filtering by status     |
 
 ---
 
@@ -40,16 +40,16 @@ Core tenant identity, routing, ownership, and contact info. This is the hottest 
 
 Visual customization for the tenant's portal. One-to-one with `tenants` using a shared primary key. When this row doesn't exist, platform defaults are used. Eager-loaded with the tenant on resolution and cached in Redis, so the JOIN cost is paid once on cache miss.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| tenant_id | uuid | PK, FK → tenants.id | Shared key — also the primary key |
-| logo_url | varchar(2048) | nullable | CDN URL for the company logo |
-| favicon_url | varchar(2048) | nullable | CDN URL for the portal favicon |
-| primary_color | varchar(9) | nullable | Hex color for buttons, links, accents (e.g., `#1A73E8`) |
-| secondary_color | varchar(9) | nullable | Hex color for backgrounds, hover states |
-| tagline | varchar(500) | nullable | Displayed on the login/landing page |
-| created_at | timestamp | NOT NULL | |
-| updated_at | timestamp | NOT NULL | Auto-set on modification |
+| Column          | Type          | Constraints         | Description                                             |
+| --------------- | ------------- | ------------------- | ------------------------------------------------------- |
+| tenant_id       | uuid          | PK, FK → tenants.id | Shared key — also the primary key                       |
+| logo_url        | varchar(2048) | nullable            | CDN URL for the company logo                            |
+| favicon_url     | varchar(2048) | nullable            | CDN URL for the portal favicon                          |
+| primary_color   | varchar(9)    | nullable            | Hex color for buttons, links, accents (e.g., `#1A73E8`) |
+| secondary_color | varchar(9)    | nullable            | Hex color for backgrounds, hover states                 |
+| tagline         | varchar(500)  | nullable            | Displayed on the login/landing page                     |
+| created_at      | timestamp     | NOT NULL            |                                                         |
+| updated_at      | timestamp     | NOT NULL            | Auto-set on modification                                |
 
 No additional indexes — accessed only via the FK join on `tenant_id`.
 
@@ -73,7 +73,7 @@ Provisioning → Active → Suspended → Active (reactivated)
 ```
 
 - **Provisioning**: Database is being created, migrations running. Not accessible.
-- **Active**: Tenant is live. Users can log in at `{subdomain}.djobsite.com`.
+- **Active**: Tenant is live. Users can log in at `{subdomain}.jobsite.com`.
 - **Suspended**: Temporarily blocked (e.g., payment failure). Data preserved, access denied.
 - **Deactivated**: Permanently shut down by platform admin. `deactivated_at` is set.
 
@@ -91,7 +91,7 @@ Tenant resolution is the hottest path — every inbound request needs it. The fu
 5. EF Core migrations run against new database
 6. Initial AgencyAdmin user seeded in tenant DB (using owner_email)
 7. Tenant status set to Active, provisioned_at timestamped
-8. Tenant is live at {subdomain}.djobsite.com
+8. Tenant is live at {subdomain}.jobsite.com
 ```
 
 ## Design Decisions

@@ -1,4 +1,4 @@
-# D'Jobsite iConnect — Backend Development Plan
+# Jobsite iConnect — Backend Development Plan
 
 > **Last updated:** 2025-07-01
 >
@@ -52,7 +52,7 @@
 | 0.7 | **Architecture tests**           | Tests                         | NetArchTest rules — module dependency direction, no cross-module project refs, sealed class enforcement, naming conventions |
 | 0.8 | **CI pipeline**                  | DevOps                        | `dotnet build` → `dotnet test` → lint checks; Python `pytest` for AI service                                                |
 
-**Exit Criteria:** Tenant provisioning works end-to-end. A request to `{subdomain}.djobsite.com` resolves to the correct tenant database. Architecture tests enforce module boundaries.
+**Exit Criteria:** Tenant provisioning works end-to-end. A request to `{subdomain}.jobsite.com` resolves to the correct tenant database. Architecture tests enforce module boundaries.
 
 ---
 

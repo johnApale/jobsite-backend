@@ -86,7 +86,7 @@ public sealed class SecurityHeadersMiddlewareTests
     {
         // Arrange
         DefaultHttpContext context = new();
-        context.Request.Host = new HostString("acme.djobsite.com");
+        context.Request.Host = new HostString("acme.jobsite.com");
         SecurityHeadersMiddleware middleware = CreateMiddleware();
 
         // Act

@@ -11,7 +11,7 @@ public sealed class Tenant : AggregateRoot
     /// <summary>Company display name. Unique across the platform.</summary>
     public string Name { get; set; } = null!;
 
-    /// <summary>DNS label for <c>{subdomain}.djobsite.com</c>. Unique, max 63 chars.</summary>
+    /// <summary>DNS label for <c>{subdomain}.jobsite.com</c>. Unique, max 63 chars.</summary>
     public string Subdomain { get; set; } = null!;
 
     /// <summary>Routes requests to this tenant's isolated PostgreSQL database.</summary>

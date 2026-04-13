@@ -5,7 +5,7 @@ Interactive API documentation is available via **Scalar** at [`/scalar`](http://
 ## Base URL
 
 ```
-https://{subdomain}.djobsite.com/api/v1
+https://{subdomain}.jobsite.com/api/v1
 ```
 
 Local development: `http://localhost:5166`
@@ -22,7 +22,7 @@ Tokens are issued as HS256 JWTs with tenant, user, and role claims. See [Authent
 
 ## Tenant Resolution
 
-Requests to protected endpoints must include a tenant context via the **subdomain** in the `Host` header (e.g., `acme.djobsite.com`). The middleware resolves the tenant and connects to the tenant-specific database.
+Requests to protected endpoints must include a tenant context via the **subdomain** in the `Host` header (e.g., `acme.jobsite.com`). The middleware resolves the tenant and connects to the tenant-specific database.
 
 Routes that bypass tenant resolution: `/health`, `/ready`, `/api/v1/tenants/*`, `/scalar`, `/openapi`.
 

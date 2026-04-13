@@ -73,7 +73,7 @@ The **Catalog DB** is the one shared database. It stores only tenant metadata: n
 
 **Request flow:**
 
-1. Request arrives at `acme.djobsite.com`
+1. Request arrives at `acme.jobsite.com`
 2. `TenantResolutionMiddleware` extracts the subdomain
 3. Catalog DB lookup (Redis-cached) returns the tenant's connection string and branding
 4. `TenantDbContext` is configured to point at the tenant's database for the rest of the request

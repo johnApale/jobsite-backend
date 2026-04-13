@@ -448,7 +448,7 @@ Full HTTP pipeline endpoint tests using `WebApplicationFactory<Program>` backed 
 
 - `JobsiteWebApplicationFactory` — Custom `WebApplicationFactory<Program>` implementing `IAsyncLifetime`. Starts a `postgres:17-alpine` container, applies all 8 module migrations, seeds a test tenant ("testcorp"), and overrides configuration for JWT secrets and rate limits. Exposes `CreateTenantClient(subdomain)` to create `HttpClient` instances with the correct `Host` header for tenant resolution.
 - `EndpointTestCollection` — xUnit `[CollectionDefinition("Endpoints")]` sharing a single `JobsiteWebApplicationFactory` across all endpoint test classes.
-- `TestJwtHelper` — Static utility that generates valid/expired HS256 JWT tokens matching the factory's JWT configuration (issuer: "djobsite-iconnect", audience: "djobsite-iconnect"). Claims include `sub`, `nameid`, `email`, `role`, `tenant_id`, `jti`.
+- `TestJwtHelper` — Static utility that generates valid/expired HS256 JWT tokens matching the factory's JWT configuration (issuer: "jobsite-iconnect", audience: "jobsite-iconnect"). Claims include `sub`, `nameid`, `email`, `role`, `tenant_id`, `jti`.
 
 **Key design decisions:**
 

@@ -1,4 +1,4 @@
-# D'Jobsite iConnect
+# Jobsite iConnect
 
 A multi-tenant, white-label HR hiring platform that takes companies from application intake to signed offer — with AI-assisted interviews along the way.
 
@@ -33,7 +33,7 @@ Every step is configurable per tenant — thresholds, scoring weights, question 
 
 ## Key Capabilities
 
-**Multi-tenancy with full data isolation.** Each tenant gets their own PostgreSQL database. No shared tables, no tenant ID filters on user data, no risk of cross-tenant leakage. Tenants are identified by subdomain (`acme.djobsite.com`) and resolved on every request.
+**Multi-tenancy with full data isolation.** Each tenant gets their own PostgreSQL database. No shared tables, no tenant ID filters on user data, no risk of cross-tenant leakage. Tenants are identified by subdomain (`acme.jobsite.com`) and resolved on every request.
 
 **White-label branding.** Each tenant configures their own logo, colors, favicon, and tagline. The portal looks like their own product.
 
@@ -96,7 +96,7 @@ All monolith modules share the tenant database but own separate PostgreSQL schem
 4. EF Core migrations run against the new database
 5. Initial AgencyAdmin user seeded from registration info
 6. Default company settings created with sensible defaults
-7. Tenant is live at {subdomain}.djobsite.com
+7. Tenant is live at {subdomain}.jobsite.com
 ```
 
 ---
@@ -144,10 +144,10 @@ Custom auth — not ASP.NET Identity. Supports email/password and OAuth (Google,
 ## Project Structure
 
 ```
-DJobsite.iConnect/
+Jobsite.iConnect/
 ├── src/
-│   ├── DJobsite.Api/                    # API host — composition root, middleware, config
-│   ├── DJobsite.SharedKernel/           # Shared contracts, events, base types (no business logic)
+│   ├── jobsite.Api/                    # API host — composition root, middleware, config
+│   ├── jobsite.SharedKernel/           # Shared contracts, events, base types (no business logic)
 │   ├── Modules/
 │   │   ├── Tenancy/                     # Tenant provisioning, subdomain resolution
 │   │   ├── Auth/                        # Login, registration, JWT, refresh tokens, OAuth
@@ -158,11 +158,11 @@ DJobsite.iConnect/
 │   │   ├── HRWorkflows/                 # Final interviews, panel feedback, job offers
 │   │   └── Profiles/                    # Applicant profiles, resumes, skills, documents
 │   └── Services/
-│       └── DJobsite.AIInterview.Service/  # Standalone AI interview microservice
+│       └── jobsite.AIInterview.Service/  # Standalone AI interview microservice
 └── tests/
-    ├── DJobsite.UnitTests/
-    ├── DJobsite.IntegrationTests/
-    └── DJobsite.AIInterview.Tests/
+    ├── jobsite.UnitTests/
+    ├── jobsite.IntegrationTests/
+    └── jobsite.AIInterview.Tests/
 ```
 
 Every module follows the same internal layout: **Domain/** (entities), **Application/** (services, DTOs, events), **Infrastructure/** (persistence, integrations), **Api/** (controllers). Modules reference `SharedKernel` for contracts but never reference each other directly.
@@ -201,7 +201,7 @@ Application Submitted
 ### Configuration
 
 1. Clone the repository
-2. Copy `appsettings.json` to `appsettings.Development.json` in both `DJobsite.Api` and `DJobsite.AIInterview.Service`
+2. Copy `appsettings.json` to `appsettings.Development.json` in both `Jobsite.Api` and `Jobsite.AIInterview.Service`
 3. Configure connection strings for the catalog database, Redis, and the message broker
 4. Set the JWT secret (must match between monolith and AI service)
 5. Add your AI provider API key to the AI Interview Service config
@@ -210,11 +210,11 @@ Application Submitted
 
 ```bash
 # Start the monolith
-cd src/DJobsite.Api
+cd src/Jobsite.Api
 dotnet run
 
 # Start the AI Interview Service (separate terminal)
-cd src/Services/DJobsite.AIInterview.Service
+cd src/Services/Jobsite.AIInterview.Service
 dotnet run
 ```
 
@@ -230,7 +230,7 @@ POST /api/tenants/register
   "ownerEmail": "jane@acme.com"
 }
 
-# The tenant's portal is now live at acme.djobsite.com
+# The tenant's portal is now live at acme.jobsite.com
 # Jane can log in with the seeded credentials and start configuring
 ```
 

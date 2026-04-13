@@ -94,7 +94,7 @@ public sealed class TenantResolutionMiddlewareTests
         // Arrange
         DefaultHttpContext context = new();
         context.Response.Body = new MemoryStream();
-        context.Request.Host = new HostString("unknown.djobsite.com");
+        context.Request.Host = new HostString("unknown.jobsite.com");
         context.Request.Path = "/api/v1/jobs";
 
         _tenantRepository.GetBySubdomainAsync("unknown", Arg.Any<CancellationToken>())
@@ -119,7 +119,7 @@ public sealed class TenantResolutionMiddlewareTests
         // Arrange
         DefaultHttpContext context = new();
         context.Response.Body = new MemoryStream();
-        context.Request.Host = new HostString("suspended.djobsite.com");
+        context.Request.Host = new HostString("suspended.jobsite.com");
         context.Request.Path = "/api/v1/jobs";
 
         Tenant suspendedTenant = TestData.CreateTenant(subdomain: "suspended", status: TenantStatus.Suspended);
@@ -145,7 +145,7 @@ public sealed class TenantResolutionMiddlewareTests
     {
         // Arrange
         DefaultHttpContext context = new();
-        context.Request.Host = new HostString("acme.djobsite.com");
+        context.Request.Host = new HostString("acme.jobsite.com");
         context.Request.Path = "/api/v1/jobs";
         bool nextCalled = false;
 
@@ -173,7 +173,7 @@ public sealed class TenantResolutionMiddlewareTests
     {
         // Arrange
         DefaultHttpContext context = new();
-        context.Request.Host = new HostString("acme.djobsite.com", 443);
+        context.Request.Host = new HostString("acme.jobsite.com", 443);
         context.Request.Path = "/api/v1/jobs";
 
         Tenant activeTenant = TestData.CreateTenant(subdomain: "acme", status: TenantStatus.Active);
@@ -237,7 +237,7 @@ public sealed class TenantResolutionMiddlewareTests
     {
         // Arrange
         DefaultHttpContext context = new();
-        context.Request.Host = new HostString("cached.djobsite.com");
+        context.Request.Host = new HostString("cached.jobsite.com");
         context.Request.Path = "/api/v1/jobs";
 
         Tenant cachedTenant = TestData.CreateTenant(subdomain: "cached", status: TenantStatus.Active);
@@ -259,7 +259,7 @@ public sealed class TenantResolutionMiddlewareTests
     {
         // Arrange
         DefaultHttpContext context = new();
-        context.Request.Host = new HostString("fresh.djobsite.com");
+        context.Request.Host = new HostString("fresh.jobsite.com");
         context.Request.Path = "/api/v1/jobs";
 
         _tenantCache.GetBySubdomainAsync("fresh", Arg.Any<CancellationToken>())
@@ -285,7 +285,7 @@ public sealed class TenantResolutionMiddlewareTests
         // Arrange
         DefaultHttpContext context = new();
         context.Response.Body = new MemoryStream();
-        context.Request.Host = new HostString("suspended.djobsite.com");
+        context.Request.Host = new HostString("suspended.jobsite.com");
         context.Request.Path = "/api/v1/jobs";
 
         Tenant suspendedTenant = TestData.CreateTenant(subdomain: "suspended", status: TenantStatus.Suspended);
@@ -308,7 +308,7 @@ public sealed class TenantResolutionMiddlewareTests
         // Arrange
         DefaultHttpContext context = new();
         context.Response.Body = new MemoryStream();
-        context.Request.Host = new HostString("unknown.djobsite.com");
+        context.Request.Host = new HostString("unknown.jobsite.com");
         context.Request.Path = "/api/v1/jobs";
         string correlationId = Guid.NewGuid().ToString();
         context.Items["CorrelationId"] = correlationId;

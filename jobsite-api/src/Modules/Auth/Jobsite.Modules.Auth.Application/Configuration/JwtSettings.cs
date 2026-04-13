@@ -7,8 +7,8 @@ namespace Jobsite.Modules.Auth.Application.Configuration;
 public sealed class JwtSettings
 {
     public string JwtSecret { get; set; } = string.Empty;
-    public string JwtIssuer { get; set; } = "djobsite-iconnect";
-    public string JwtAudience { get; set; } = "djobsite-iconnect";
+    public string JwtIssuer { get; set; } = "jobsite-iconnect";
+    public string JwtAudience { get; set; } = "jobsite-iconnect";
     public int JwtExpirationMinutes { get; set; } = 60;
     public int RefreshTokenExpirationDays { get; set; } = 30;
     public int MaxFailedLoginAttempts { get; set; } = 5;

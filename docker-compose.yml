@@ -1,11 +1,11 @@
 services:
   postgres:
     image: postgres:17
-    container_name: djobsite-postgres
+    container_name: jobsite-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: djobsite_catalog
+      POSTGRES_DB: jobsite_catalog
     ports:
       - "5432:5432"
     volumes:
@@ -18,7 +18,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management
-    container_name: djobsite-rabbitmq
+    container_name: jobsite-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -35,7 +35,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: djobsite-redis
+    container_name: jobsite-redis
     ports:
       - "6379:6379"
     volumes:
@@ -50,12 +50,12 @@ services:
     build:
       context: ./jobsite-api
       dockerfile: Dockerfile
-    container_name: djobsite-api
+    container_name: jobsite-api
     ports:
       - "8080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__CatalogDb: "Host=postgres;Port=5432;Database=djobsite_catalog;Username=postgres;Password=postgres"
+      ConnectionStrings__CatalogDb: "Host=postgres;Port=5432;Database=jobsite_catalog;Username=postgres;Password=postgres"
       App__MessageBroker__Host: rabbitmq
       App__Redis__ConnectionString: "redis:6379"
       App__AiServiceUrl: "http://ai-service:8000"
@@ -71,7 +71,7 @@ services:
     build:
       context: ./ai-service
       dockerfile: Dockerfile
-    container_name: djobsite-ai-service
+    container_name: jobsite-ai-service
     ports:
       - "8000:8000"
     environment:

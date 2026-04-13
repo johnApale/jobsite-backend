@@ -66,8 +66,8 @@ public sealed class JobsiteWebApplicationFactory : WebApplicationFactory<Program
             {
                 ["ConnectionStrings:CatalogDb"] = ConnectionString,
                 ["App:JwtSecret"] = TestJwtSecret,
-                ["App:JwtIssuer"] = "djobsite-iconnect",
-                ["App:JwtAudience"] = "djobsite-iconnect",
+                ["App:JwtIssuer"] = "jobsite-iconnect",
+                ["App:JwtAudience"] = "jobsite-iconnect",
                 ["App:JwtExpirationMinutes"] = "60",
                 ["App:AiServiceUrl"] = "http://localhost:9999",
                 ["App:MessageBroker:Host"] = "localhost",
@@ -103,7 +103,7 @@ public sealed class JobsiteWebApplicationFactory : WebApplicationFactory<Program
     /// </summary>
     public HttpClient CreateTenantClient(string? subdomain = null)
     {
-        string host = $"{subdomain ?? TestTenantSubdomain}.djobsite.com";
+        string host = $"{subdomain ?? TestTenantSubdomain}.jobsite.com";
         HttpClient client = CreateClient(new WebApplicationFactoryClientOptions
         {
             BaseAddress = new Uri($"http://{host}")

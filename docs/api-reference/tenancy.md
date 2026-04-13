@@ -34,8 +34,8 @@ Retrieve tenant metadata and branding by tenant ID.
   "contact_email": "jane@acmestaffing.com",
   "provisioned_at": "2026-03-15T10:30:00Z",
   "branding": {
-    "logo_url": "https://cdn.djobsite.com/acme/logo.png",
-    "favicon_url": "https://cdn.djobsite.com/acme/favicon.ico",
+    "logo_url": "https://cdn.jobsite.com/acme/logo.png",
+    "favicon_url": "https://cdn.jobsite.com/acme/favicon.ico",
     "primary_color": "#1E40AF",
     "secondary_color": "#F59E0B",
     "tagline": "Connecting talent with opportunity"
@@ -73,12 +73,12 @@ Register a new tenant. Creates the tenant in `Provisioning` status and triggers 
 }
 ```
 
-| Field         | Type     | Required | Description                              |
-| ------------- | -------- | -------- | ---------------------------------------- |
-| `name`        | `string` | Yes      | Company display name                     |
-| `subdomain`   | `string` | Yes      | DNS label for `{subdomain}.djobsite.com` |
-| `owner_name`  | `string` | Yes      | Person who registered the tenant         |
-| `owner_email` | `string` | Yes      | Seeded as the first `AgencyAdmin` user   |
+| Field         | Type     | Required | Description                             |
+| ------------- | -------- | -------- | --------------------------------------- |
+| `name`        | `string` | Yes      | Company display name                    |
+| `subdomain`   | `string` | Yes      | DNS label for `{subdomain}.jobsite.com` |
+| `owner_name`  | `string` | Yes      | Person who registered the tenant        |
+| `owner_email` | `string` | Yes      | Seeded as the first `AgencyAdmin` user  |
 
 #### Response — `201 Created`
 
@@ -146,12 +146,12 @@ Note: `provisioned_at`, `deactivated_at`, and `branding` are null (omitted from 
 
 ### `RegisterTenantRequest`
 
-| Field         | Type     | Required | Description                              |
-| ------------- | -------- | -------- | ---------------------------------------- |
-| `name`        | `string` | Yes      | Company display name                     |
-| `subdomain`   | `string` | Yes      | DNS label for `{subdomain}.djobsite.com` |
-| `owner_name`  | `string` | Yes      | Person who registered the tenant         |
-| `owner_email` | `string` | Yes      | Seeded as the first `AgencyAdmin` user   |
+| Field         | Type     | Required | Description                             |
+| ------------- | -------- | -------- | --------------------------------------- |
+| `name`        | `string` | Yes      | Company display name                    |
+| `subdomain`   | `string` | Yes      | DNS label for `{subdomain}.jobsite.com` |
+| `owner_name`  | `string` | Yes      | Person who registered the tenant        |
+| `owner_email` | `string` | Yes      | Seeded as the first `AgencyAdmin` user  |
 
 ## Tenant Status
 
@@ -177,8 +177,8 @@ POST /register → Tenant created (Provisioning) → SaveChanges → ProvisionAs
 
 1. **Registration**: `TenantService.RegisterAsync()` creates a `Tenant` entity with status `Provisioning` and calls `SaveChangesAsync()` on the catalog database.
 2. **Provisioning**: `ITenantProvisioner.ProvisionAsync()` is called after the tenant is persisted:
-   - Builds a database name: `djobsite_tenant_{subdomain}` (sanitized to alphanumeric + underscore).
-   - Executes `CREATE DATABASE "djobsite_tenant_{subdomain}"` via a raw SQL connection to the catalog PostgreSQL server.
+   - Builds a database name: `jobsite_tenant_{subdomain}` (sanitized to alphanumeric + underscore).
+   - Executes `CREATE DATABASE "jobsite_tenant_{subdomain}"` via a raw SQL connection to the catalog PostgreSQL server.
    - Builds a connection string for the new database using the catalog server's host, port, and credentials.
    - Updates the tenant: `ConnectionString`, `Status = Active`, `ProvisionedAt = DateTime.UtcNow`.
 3. **Event publishing**: After successful provisioning, `TenantProvisionedEvent` is dispatched via the in-process domain event bus. This triggers the Admin module's `TenantProvisionedHandler` to seed default `CompanySettings` for the new tenant.

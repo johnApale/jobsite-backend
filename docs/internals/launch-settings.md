@@ -57,4 +57,4 @@ Defines how `dotnet run` starts the application in development.
 - `launchBrowser` is `false` in both profiles — open the Scalar UI manually at `/scalar/v1`.
 - Tenant resolution requires a subdomain in the `Host` header. When calling tenant-scoped endpoints from `localhost`, either:
   - Add a hosts file entry (e.g. `127.0.0.1 acme.localhost`) and use `http://acme.localhost:5166`.
-  - Pass a custom `Host` header: `curl -H "Host: acme.djobsite.com" http://localhost:5166/api/v1/...`.
+  - Pass a custom `Host` header: `curl -H "Host: acme.jobsite.com" http://localhost:5166/api/v1/...`.

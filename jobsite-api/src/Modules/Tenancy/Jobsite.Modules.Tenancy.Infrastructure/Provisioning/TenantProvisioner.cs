@@ -41,7 +41,7 @@ public sealed class TenantProvisioner : ITenantProvisioner
         Tenant tenant = await _catalogDb.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, ct)
             ?? throw AppErrors.TenantNotFound;
 
-        string databaseName = $"djobsite_tenant_{tenant.Subdomain}";
+        string databaseName = $"jobsite_tenant_{tenant.Subdomain}";
         string tenantConnectionString = BuildTenantConnectionString(databaseName);
 
         try

@@ -30,7 +30,7 @@ try
             .Enrich.FromLogContext()
             .Enrich.WithMachineName()
             .Enrich.WithEnvironmentName()
-            .Enrich.WithProperty("Application", "djobsite-api")
+            .Enrich.WithProperty("Application", "jobsite-api")
             .WriteTo.Console());
 
     // Kestrel request size limit (10 MB default)
@@ -60,7 +60,7 @@ try
                 Contact = new Microsoft.OpenApi.OpenApiContact
                 {
                     Name = "D'Jobsite iConnect",
-                    Email = "dev@djobsite.com"
+                    Email = "dev@jobsite.com"
                 }
             };
 

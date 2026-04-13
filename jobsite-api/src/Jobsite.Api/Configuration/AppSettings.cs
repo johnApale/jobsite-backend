@@ -12,10 +12,10 @@ public sealed class AppSettings
     public string JwtSecret { get; set; } = string.Empty;
 
     /// <summary>JWT issuer claim.</summary>
-    public string JwtIssuer { get; set; } = "djobsite-iconnect";
+    public string JwtIssuer { get; set; } = "jobsite-iconnect";
 
     /// <summary>JWT audience claim.</summary>
-    public string JwtAudience { get; set; } = "djobsite-iconnect";
+    public string JwtAudience { get; set; } = "jobsite-iconnect";
 
     /// <summary>JWT access token lifetime in minutes.</summary>
     public int JwtExpirationMinutes { get; set; } = 60;
@@ -84,7 +84,7 @@ public sealed class RateLimitSettings
 /// <summary>CORS settings for allowed origins.</summary>
 public sealed class CorsSettings
 {
-    /// <summary>Allowed origin patterns (e.g., "https://*.djobsite.com"). Leave empty for development defaults.</summary>
+    /// <summary>Allowed origin patterns (e.g., "https://*.jobsite.com"). Leave empty for development defaults.</summary>
     public string[] AllowedOrigins { get; set; } = [];
 }
 
@@ -95,5 +95,5 @@ public sealed class OtelSettings
     public string OtlpEndpoint { get; set; } = string.Empty;
 
     /// <summary>Service name reported to the collector.</summary>
-    public string ServiceName { get; set; } = "djobsite-api";
+    public string ServiceName { get; set; } = "jobsite-api";
 }

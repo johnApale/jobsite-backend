@@ -59,12 +59,12 @@ public sealed class TenantProvisioningTests : IAsyncLifetime
 
         updated.Should().NotBeNull();
         updated!.Status.Should().Be(TenantStatus.Active);
-        updated.ConnectionString.Should().Contain("djobsite_tenant_provtest");
+        updated.ConnectionString.Should().Contain("jobsite_tenant_provtest");
         updated.ProvisionedAt.Should().NotBeNull();
         updated.ProvisionedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
 
         // Verify the database actually exists
-        bool dbExists = await DatabaseExistsAsync("djobsite_tenant_provtest");
+        bool dbExists = await DatabaseExistsAsync("jobsite_tenant_provtest");
         dbExists.Should().BeTrue("tenant database should have been created");
     }
 
@@ -109,14 +109,14 @@ public sealed class TenantProvisioningTests : IAsyncLifetime
         updatedB!.Status.Should().Be(TenantStatus.Active);
 
         // Connection strings should point to different databases
-        updatedA.ConnectionString.Should().Contain("djobsite_tenant_isolatea");
-        updatedB.ConnectionString.Should().Contain("djobsite_tenant_isolateb");
+        updatedA.ConnectionString.Should().Contain("jobsite_tenant_isolatea");
+        updatedB.ConnectionString.Should().Contain("jobsite_tenant_isolateb");
         updatedA.ConnectionString.Should().NotBe(updatedB.ConnectionString,
             "each tenant must have its own database connection string");
 
         // Both databases should exist
-        bool dbAExists = await DatabaseExistsAsync("djobsite_tenant_isolatea");
-        bool dbBExists = await DatabaseExistsAsync("djobsite_tenant_isolateb");
+        bool dbAExists = await DatabaseExistsAsync("jobsite_tenant_isolatea");
+        bool dbBExists = await DatabaseExistsAsync("jobsite_tenant_isolateb");
         dbAExists.Should().BeTrue();
         dbBExists.Should().BeTrue();
     }
@@ -167,7 +167,7 @@ public sealed class TenantProvisioningTests : IAsyncLifetime
 
     private async Task CleanupTenantDatabasesAsync()
     {
-        string[] tenantDbs = ["djobsite_tenant_provtest", "djobsite_tenant_isolatea", "djobsite_tenant_isolateb"];
+        string[] tenantDbs = ["jobsite_tenant_provtest", "jobsite_tenant_isolatea", "jobsite_tenant_isolateb"];
 
         await using NpgsqlConnection connection = new(_fixture.ConnectionString);
         await connection.OpenAsync();

@@ -207,13 +207,13 @@ Additional documents beyond resumes. Stored as a JSONB array so new document typ
 [
   {
     "type": "CoverLetter",
-    "url": "https://storage.djobsite.com/tenant-abc/docs/cl-123.pdf",
+    "url": "https://storage.jobsite.com/tenant-abc/docs/cl-123.pdf",
     "filename": "cover_letter_2025.pdf",
     "uploaded_at": "2025-03-15T10:30:00Z"
   },
   {
     "type": "Certification",
-    "url": "https://storage.djobsite.com/tenant-abc/docs/cert-456.pdf",
+    "url": "https://storage.jobsite.com/tenant-abc/docs/cert-456.pdf",
     "filename": "aws_solutions_architect.pdf",
     "uploaded_at": "2025-02-20T14:00:00Z"
   }

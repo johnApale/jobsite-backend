@@ -86,7 +86,7 @@ public sealed class TenantResolutionMiddleware
 
     /// <summary>
     /// Extracts the subdomain from a hostname.
-    /// <c>acme.djobsite.com</c> → <c>acme</c>.
+    /// <c>acme.jobsite.com</c> → <c>acme</c>.
     /// <c>localhost</c> / bare IPs → null (no tenant context).
     /// </summary>
     private static string? ExtractSubdomain(string host)
