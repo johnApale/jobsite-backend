@@ -20,6 +20,17 @@ public static class PlatformAdminEndpoints
             .RequireAuthorization("RequirePlatformAdmin")
             .RequireRateLimiting("global");
 
+        group.MapPost("/", async (RegisterTenantRequest request, ITenantService service, CancellationToken ct) =>
+            {
+                TenantResponse response = await service.RegisterAsync(request, ct);
+                return Results.Created($"/api/v1/platform/tenants/{response.Id}", response);
+            })
+            .WithName("RegisterTenantPlatform")
+            .WithSummary("Register a new tenant (platform admin)")
+            .WithDescription("Creates a new tenant in Provisioning status. Triggers async database provisioning. Requires PlatformAdmin JWT.")
+            .Produces<TenantResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status400BadRequest);
+
         group.MapGet("/", async (
                 string? status,
                 string? search,
