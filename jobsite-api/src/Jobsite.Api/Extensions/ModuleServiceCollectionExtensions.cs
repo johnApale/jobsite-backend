@@ -65,6 +65,9 @@ public static class ModuleServiceCollectionExtensions
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
+                // Disable default claim type mapping so JWT claims ("role", "sub")
+                // are preserved as-is instead of being mapped to long Microsoft URIs.
+                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -75,7 +78,9 @@ public static class ModuleServiceCollectionExtensions
                     ValidAudience = appSettings.JwtAudience,
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(appSettings.JwtSecret)),
-                    ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero,
+                    NameClaimType = "sub",
+                    RoleClaimType = "role"
                 };
             });
 
