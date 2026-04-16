@@ -59,6 +59,8 @@ public static class ModuleServiceCollectionExtensions
             .GetSection(AppSettings.SectionName)
             .Get<AppSettings>() ?? new AppSettings();
 
+        services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
+
         // 3. JWT authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

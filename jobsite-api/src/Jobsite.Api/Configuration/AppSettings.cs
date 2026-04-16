@@ -23,6 +23,9 @@ public sealed class AppSettings
     /// <summary>Refresh token lifetime in days.</summary>
     public int RefreshTokenExpirationDays { get; set; } = 30;
 
+    /// <summary>API key for platform provisioning endpoints (X-Api-Key header).</summary>
+    public string PlatformApiKey { get; set; } = string.Empty;
+
     /// <summary>Base URL for the AI Interview microservice.</summary>
     public string AiServiceUrl { get; set; } = "http://localhost:8000";
 
