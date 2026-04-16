@@ -160,7 +160,7 @@ public partial class Program { }
 
 Rules:
 
-- `Program.cs` must stay clean — all DI registration lives in `ModuleServiceCollectionExtensions.AddJobsiteModules()`.
+- `Program.cs` must stay clean — all DI registration lives in `ModuleServiceCollectionExtensions.AdjobsiteModules()`.
 - JSON configuration (`snake_case`) is set in the extensions method, not in `Program.cs`.
 - `public partial class Program { }` at the end for `WebApplicationFactory` test support.
 - `TenantResolutionMiddleware` runs **before** authentication — it resolves the tenant DB context needed for user lookup.
@@ -172,7 +172,7 @@ Each module exposes a single `Add{Module}Module()` extension method from its Inf
 ```csharp
 public static class ModuleServiceCollectionExtensions
 {
-    public static IServiceCollection AddJobsiteModules(
+    public static IServiceCollection AdjobsiteModules(
         this IServiceCollection services, IConfiguration configuration)
     {
         // 1. Global JSON defaults (snake_case)

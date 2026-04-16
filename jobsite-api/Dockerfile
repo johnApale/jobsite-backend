@@ -4,7 +4,7 @@ WORKDIR /src
 
 COPY . .
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet restore Jobsite.Api.slnx
+    dotnet restore src/Jobsite.Api/Jobsite.Api.csproj
 
 RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet publish src/Jobsite.Api/Jobsite.Api.csproj -c Release -o /app/publish --no-restore
@@ -13,8 +13,10 @@ RUN --mount=type=cache,target=/root/.nuget/packages \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --ingroup appgroup appuser
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --system --gid 1001 appgroup && \
+    useradd --system --uid 1001 --gid appgroup --no-create-home appuser
 
 COPY --from=build /app/publish .
 
