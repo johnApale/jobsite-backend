@@ -36,8 +36,11 @@ public static class TenantEndpoints
             })
             .WithName("RegisterTenant")
             .WithSummary("Register a new tenant")
-            .WithDescription("Creates a new tenant in Provisioning status. Triggers async database provisioning.")
+            .WithDescription("Creates a new tenant in Provisioning status. Triggers async database provisioning. Requires X-Api-Key header.")
+            .AddEndpointFilter<ApiKeyEndpointFilter>()
             .Produces<TenantResponse>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status400BadRequest);
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
     }
 }
