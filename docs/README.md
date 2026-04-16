@@ -90,7 +90,8 @@ All monolith modules share the tenant database but own separate PostgreSQL schem
 ## Tenant Onboarding
 
 ```
-1. Company signs up via /api/tenants/register
+1. Platform admin provisions a tenant via POST /api/v1/tenants/register (X-Api-Key)
+   or POST /api/v1/platform/tenants (PlatformAdmin JWT)
 2. Catalog DB entry created (subdomain, connection string, subscription tier)
 3. New PostgreSQL database provisioned
 4. EF Core migrations run against the new database
@@ -221,14 +222,16 @@ dotnet run
 ### First Tenant
 
 ```bash
-# Register a new tenant
-POST /api/tenants/register
-{
-  "name": "Acme Corp",
-  "subdomain": "acme",
-  "ownerName": "Jane Admin",
-  "ownerEmail": "jane@acme.com"
-}
+# Register a new tenant (requires platform API key)
+curl -X POST http://localhost:5000/api/v1/tenants/register \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: your-platform-api-key" \
+  -d '{
+    "name": "Acme Corp",
+    "subdomain": "acme",
+    "owner_name": "Jane Admin",
+    "owner_email": "jane@acme.com"
+  }'
 
 # The tenant's portal is now live at acme.jobsite.com
 # Jane can log in with the seeded credentials and start configuring

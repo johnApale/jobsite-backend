@@ -59,8 +59,14 @@ Retrieve tenant metadata and branding by tenant ID.
 
 Register a new tenant. Creates the tenant in `Provisioning` status and triggers asynchronous database provisioning.
 
-**Authentication:** None (public registration)
+**Authentication:** API key via `X-Api-Key` header
 **Tenant resolution:** Bypassed
+
+#### Request Headers
+
+| Header      | Required | Description                         |
+| ----------- | -------- | ----------------------------------- |
+| `X-Api-Key` | Yes      | Platform API key from configuration |
 
 #### Request Body
 
@@ -113,6 +119,28 @@ Note: `provisioned_at`, `deactivated_at`, and `branding` are null (omitted from 
     "owner_email": "Must be a valid email address"
   },
   "request_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+#### Response — `401 Unauthorized`
+
+Returned when the `X-Api-Key` header is missing.
+
+```json
+{
+  "code": "UNAUTHORIZED",
+  "message": "Missing X-Api-Key header."
+}
+```
+
+#### Response — `403 Forbidden`
+
+Returned when the `X-Api-Key` header value is invalid.
+
+```json
+{
+  "code": "FORBIDDEN",
+  "message": "Invalid API key."
 }
 ```
 
@@ -194,6 +222,35 @@ Platform admin endpoints provide system-wide tenant management. They operate on 
 
 **Base path:** `/api/v1/platform/tenants`
 **Tag:** `PlatformAdmin`
+
+### `POST /api/v1/platform/tenants`
+
+Register a new tenant via JWT authentication. Creates the tenant in `Provisioning` status and triggers asynchronous database provisioning. This is an alternative to `POST /api/v1/tenants/register` (which uses API key auth) — both call the same service.
+
+**Authorization:** `RequirePlatformAdmin`
+
+#### Request Body
+
+Same as [`RegisterTenantRequest`](#registertenantrequest).
+
+#### Response — `201 Created`
+
+```http
+HTTP/1.1 201 Created
+Location: /api/v1/platform/tenants/550e8400-e29b-41d4-a716-446655440000
+```
+
+Returns a `TenantResponse` with `status: "Provisioning"`.
+
+#### Errors
+
+| Code               | Status | Condition                             |
+| ------------------ | ------ | ------------------------------------- |
+| `VALIDATION_ERROR` | 400    | Missing fields or duplicate subdomain |
+| `UNAUTHORIZED`     | 401    | Missing or invalid JWT                |
+| `FORBIDDEN`        | 403    | JWT role is not PlatformAdmin         |
+
+---
 
 ### `GET /api/v1/platform/tenants`
 

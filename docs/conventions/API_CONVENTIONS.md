@@ -6,11 +6,12 @@
 
 The monolith organizes routes into three tiers:
 
-| Tier      | Path Prefix          | Authentication | Purpose                                   |
-| --------- | -------------------- | -------------- | ----------------------------------------- |
-| Health    | `/health`, `/ready`  | None           | Infrastructure probes                     |
-| Public    | `/api/v1/{module}/*` | None           | Login, registration, token refresh        |
-| Protected | `/api/v1/{module}/*` | JWT Bearer     | All authenticated client-facing endpoints |
+| Tier      | Path Prefix                | Authentication | Purpose                                   |
+| --------- | -------------------------- | -------------- | ----------------------------------------- |
+| Health    | `/health`, `/ready`        | None           | Infrastructure probes                     |
+| Public    | `/api/v1/{module}/*`       | None           | Login, registration, token refresh        |
+| API Key   | `/api/v1/tenants/register` | X-Api-Key      | Tenant provisioning (no JWT required)     |
+| Protected | `/api/v1/{module}/*`       | JWT Bearer     | All authenticated client-facing endpoints |
 
 ### Module Route Prefixes
 
@@ -50,6 +51,10 @@ The JWT secret is shared between the monolith and the AI Interview Service so bo
 
 Some endpoints require no authentication (login, registration, token refresh, health checks). These are explicitly marked with `.AllowAnonymous()`.
 
+### API Key (Provisioning Endpoints)
+
+Tenant provisioning (`POST /api/v1/tenants/register`) uses API key authentication via the `X-Api-Key` header. This avoids the bootstrapping problem where no JWT-issuing tenant exists yet. The key is stored in configuration (`App:PlatformApiKey`) and validated by `ApiKeyEndpointFilter` using constant-time comparison. An alternative JWT-protected route (`POST /api/v1/platform/tenants`) is available for backoffice UIs once a PlatformAdmin user exists.
+
 ### AI Interview Service Authentication
 
 The AI Interview Service validates the same JWTs. It receives tenant context from the JWT claims — not from subdomain resolution.
@@ -61,6 +66,7 @@ The AI Interview Service validates the same JWTs. It receives tenant context fro
 | Header             | Required          | Source    | Description                                    |
 | ------------------ | ----------------- | --------- | ---------------------------------------------- |
 | `Authorization`    | Protected routes  | Client    | `Bearer {jwt}` token                           |
+| `X-Api-Key`        | Provisioning      | Client    | Platform API key for tenant registration       |
 | `X-Correlation-ID` | All               | Generated | Request correlation ID for distributed tracing |
 | `Content-Type`     | When body present | Client    | Must be `application/json` for JSON bodies     |
 

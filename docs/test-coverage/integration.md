@@ -504,18 +504,35 @@ HTTP pipeline tests for Auth module endpoints (`/api/v1/auth/*`). Validates regi
 
 ### `TenantEndpointTests` (6 tests)
 
-HTTP pipeline tests for Tenancy module endpoints (`/api/v1/tenants/*`). These routes are non-tenant-scoped — they don't require a subdomain Host header.
+HTTP pipeline tests for Tenancy module endpoints (`/api/v1/tenants/*`). These routes are non-tenant-scoped — they don't require a subdomain Host header. The `POST /register` endpoint is protected by API key (`X-Api-Key` header).
 
-| Test                                                   | What It Verifies                                        | Expected Outcome                                                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `GetTenantById_ExistingTenant_Returns200`              | `/tenants/{id}` returns pre-seeded test tenant data     | 200 OK + `TenantResponse` with correct id, name, subdomain, status                               |
-| `GetTenantById_NonExistentTenant_Returns404`           | Non-existent tenant ID returns 404                      | 404 Not Found                                                                                    |
-| `GetTenantById_ResponseUsesSnakeCaseJson`              | Response uses snake_case field names                    | 200 OK + `id`, `name`, `subdomain`, `owner_name`, `owner_email`, `contact_name`, `contact_email` |
-| `RegisterTenant_ValidRequest_Returns201`               | Register new tenant creates record with location header | 201 Created + `Location` header + `TenantResponse`                                               |
-| `RegisterTenant_DuplicateSubdomain_ReturnsClientError` | Duplicate subdomain rejected                            | 400 or 409                                                                                       |
-| `TenantRoutes_AreNonTenantScoped_NoHostHeaderRequired` | Tenant routes bypass tenant resolution middleware       | NOT 400 (no `INVALID_REQUEST` tenant error)                                                      |
+| Test                                                   | What It Verifies                                    | Expected Outcome                                                                                 |
+| ------------------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `GetTenantById_ExistingTenant_Returns200`              | `/tenants/{id}` returns pre-seeded test tenant data | 200 OK + `TenantResponse` with correct id, name, subdomain, status                               |
+| `GetTenantById_NonExistentTenant_Returns404`           | Non-existent tenant ID returns 404                  | 404 Not Found                                                                                    |
+| `GetTenantById_ResponseUsesSnakeCaseJson`              | Response uses snake_case field names                | 200 OK + `id`, `name`, `subdomain`, `owner_name`, `owner_email`, `contact_name`, `contact_email` |
+| `RegisterTenant_ValidApiKey_Returns201`                | Register with valid X-Api-Key creates tenant        | 201 Created + `Location` header + `TenantResponse`                                               |
+| `RegisterTenant_DuplicateSubdomain_ReturnsClientError` | Duplicate subdomain rejected (with valid API key)   | 400 or 409                                                                                       |
+| `RegisterTenant_MissingApiKey_Returns401`              | Missing X-Api-Key header rejected                   | 401 Unauthorized                                                                                 |
+| `RegisterTenant_InvalidApiKey_Returns403`              | Invalid API key rejected                            | 403 Forbidden                                                                                    |
+| `TenantRoutes_AreNonTenantScoped_NoHostHeaderRequired` | Tenant routes bypass tenant resolution middleware   | NOT 400 (no `INVALID_REQUEST` tenant error)                                                      |
 
-**Why:** Tenant routes don't require authentication or tenant resolution — these tests verify the middleware bypass paths work correctly and that the Tenancy endpoints produce correct snake_case responses with proper status codes.
+**Why:** Tenant routes don't require tenant resolution — these tests verify the middleware bypass paths work correctly, that the API key filter protects the registration endpoint, and that the Tenancy endpoints produce correct snake_case responses with proper status codes.
+
+---
+
+### `PlatformAdminEndpointTests` (4 tests)
+
+HTTP pipeline tests for the platform admin tenant creation endpoint (`POST /api/v1/platform/tenants`). This is the JWT-protected alternative to the API key-based `/tenants/register` endpoint.
+
+| Test                                                   | What It Verifies                                      | Expected Outcome                                   |
+| ------------------------------------------------------ | ----------------------------------------------------- | -------------------------------------------------- |
+| `RegisterTenant_PlatformAdminJwt_Returns201`           | PlatformAdmin JWT creates tenant successfully         | 201 Created + `Location` header + `TenantResponse` |
+| `RegisterTenant_WithoutAuth_Returns401`                | Missing JWT rejected                                  | 401 Unauthorized                                   |
+| `RegisterTenant_NonAdminRole_Returns403`               | Non-PlatformAdmin JWT rejected                        | 403 Forbidden                                      |
+| `RegisterTenant_DuplicateSubdomain_ReturnsClientError` | Duplicate subdomain rejected (with PlatformAdmin JWT) | 400 or 409                                         |
+
+**Why:** This endpoint provides a second way to create tenants via JWT auth (for backoffice UIs). These tests verify the `RequirePlatformAdmin` policy is enforced and that the endpoint correctly delegates to the same tenant service.
 
 ---
 

@@ -101,11 +101,28 @@ Tests `PlatformAdminService`, the application service for platform-wide tenant a
 
 ---
 
+## `ApiKeyEndpointFilterTests` (5 tests)
+
+Tests `ApiKeyEndpointFilter`, the endpoint filter that validates `X-Api-Key` headers for the tenant registration endpoint.
+
+| Test                                        | What It Verifies                                       | Expected Outcome                             |
+| ------------------------------------------- | ------------------------------------------------------ | -------------------------------------------- |
+| `InvokeAsync_ValidApiKey_CallsNext`         | Valid API key passes through to the endpoint           | `next` delegate is called                    |
+| `InvokeAsync_MissingApiKey_Returns401`      | Missing X-Api-Key header is rejected                   | 401 Unauthorized, `next` not called          |
+| `InvokeAsync_InvalidApiKey_Returns403`      | Wrong API key is rejected                              | 403 Forbidden, `next` not called             |
+| `InvokeAsync_EmptyApiKeyHeader_Returns401`  | Empty X-Api-Key header treated as missing              | 401 Unauthorized, `next` not called          |
+| `InvokeAsync_UnconfiguredApiKey_Returns500` | Server with no API key configured returns server error | 500 Internal Server Error, `next` not called |
+
+**Why:** The API key filter protects the tenant provisioning endpoint — if it fails, anyone can create tenants and provision databases. The constant-time comparison (tested implicitly via valid/invalid key behavior) prevents timing attacks on the API key.
+
+---
+
 ## Endpoint Tests (WebApplicationFactory)
 
-6 HTTP pipeline tests for Tenant endpoints (`/api/v1/tenants/*`) and 6 tenant isolation tests using `WebApplicationFactory<Program>` against real PostgreSQL.
+8 HTTP pipeline tests for Tenant endpoints (`/api/v1/tenants/*`), 4 platform admin tests (`/api/v1/platform/tenants`), and 6 tenant isolation tests using `WebApplicationFactory<Program>` against real PostgreSQL.
 
-- **TenantEndpointTests** — GET by ID, register, snake_case validation, non-tenant-scoped routing.
+- **TenantEndpointTests** — GET by ID, register with API key, API key validation (missing/invalid), snake_case validation, non-tenant-scoped routing.
+- **PlatformAdminEndpointTests** — Register tenant with PlatformAdmin JWT, auth rejection (missing JWT, wrong role), duplicate subdomain.
 - **TenantIsolationTests** — Suspended/Deactivated/Provisioning tenants blocked (403), non-existent tenant (404), cross-tenant token isolation, cache verification.
 
 See [integration.md](integration.md#tenantendpointtests-6-tests) and [integration.md](integration.md#tenantisolationtests-6-tests) for the full test tables.
