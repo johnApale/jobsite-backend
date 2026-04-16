@@ -70,10 +70,14 @@ try
 
     WebApplication app = builder.Build();
 
-    if (app.Environment.IsDevelopment())
+    List<string> docsEnvironments = builder.Configuration
+        .GetSection("App:ApiDocs:EnabledEnvironments")
+        .Get<List<string>>() ?? [];
+
+    if (docsEnvironments.Contains(app.Environment.EnvironmentName, StringComparer.OrdinalIgnoreCase))
     {
         app.MapOpenApi();
-        app.MapScalarApiReference(options =>
+        app.MapScalarApiReference("/api/docs", options =>
         {
             options.WithTitle("D'Jobsite iConnect API");
             options.WithTheme(ScalarTheme.DeepSpace);

@@ -80,7 +80,7 @@ public sealed class TenantResolutionMiddleware
             || path.StartsWith("/ready", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/v1/tenants", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/api/v1/platform", StringComparison.OrdinalIgnoreCase)
-            || path.StartsWith("/scalar", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/api/docs", StringComparison.OrdinalIgnoreCase)
             || path.StartsWith("/openapi", StringComparison.OrdinalIgnoreCase);
     }
 
