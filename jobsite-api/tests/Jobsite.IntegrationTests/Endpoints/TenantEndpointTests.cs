@@ -86,10 +86,11 @@ public sealed class TenantEndpointTests
     }
 
     [Fact]
-    public async Task RegisterTenant_ValidRequest_Returns201()
+    public async Task RegisterTenant_ValidApiKey_Returns201()
     {
         // Arrange
         HttpClient client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", JobsiteWebApplicationFactory.TestPlatformApiKey);
         object request = new
         {
             name = "New Tenant Corp",
@@ -117,6 +118,7 @@ public sealed class TenantEndpointTests
     {
         // Arrange — the test tenant's subdomain is already taken
         HttpClient client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", JobsiteWebApplicationFactory.TestPlatformApiKey);
         object request = new
         {
             name = "Duplicate Corp",
@@ -132,6 +134,49 @@ public sealed class TenantEndpointTests
         // Assert — returns 400 (validation) or 409 (conflict) depending on error handling
         int statusCode = (int)response.StatusCode;
         statusCode.Should().BeOneOf(400, 409);
+    }
+
+    [Fact]
+    public async Task RegisterTenant_MissingApiKey_Returns401()
+    {
+        // Arrange — no X-Api-Key header
+        HttpClient client = _factory.CreateClient();
+        object request = new
+        {
+            name = "Unauthorized Corp",
+            subdomain = "unauth",
+            owner_name = "Owner",
+            owner_email = "owner@unauth.com"
+        };
+
+        // Act
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/api/v1/tenants/register", request, SnakeCaseOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task RegisterTenant_InvalidApiKey_Returns403()
+    {
+        // Arrange — wrong API key
+        HttpClient client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", "wrong-key");
+        object request = new
+        {
+            name = "Forbidden Corp",
+            subdomain = "forbidden",
+            owner_name = "Owner",
+            owner_email = "owner@forbidden.com"
+        };
+
+        // Act
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/api/v1/tenants/register", request, SnakeCaseOptions);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]

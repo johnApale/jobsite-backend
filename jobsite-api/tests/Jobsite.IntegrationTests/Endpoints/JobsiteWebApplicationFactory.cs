@@ -31,6 +31,7 @@ public sealed class JobsiteWebApplicationFactory : WebApplicationFactory<Program
     private PostgreSqlContainer _postgres = null!;
 
     public const string TestJwtSecret = "integration-test-jwt-secret-at-least-32-chars!!";
+    public const string TestPlatformApiKey = "integration-test-platform-api-key";
     public const string TestTenantSubdomain = "testcorp";
     public const string TestTenantName = "Test Corporation";
 
@@ -66,6 +67,7 @@ public sealed class JobsiteWebApplicationFactory : WebApplicationFactory<Program
             {
                 ["ConnectionStrings:CatalogDb"] = ConnectionString,
                 ["App:JwtSecret"] = TestJwtSecret,
+                ["App:PlatformApiKey"] = TestPlatformApiKey,
                 ["App:JwtIssuer"] = "jobsite-iconnect",
                 ["App:JwtAudience"] = "jobsite-iconnect",
                 ["App:JwtExpirationMinutes"] = "60",
